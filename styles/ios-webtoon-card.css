@@ -1,0 +1,161 @@
+/* iOS 웹툰 카드 전용 스타일 */
+
+.ios-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+}
+
+.ios-webtoon-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+/* 터치 디바이스에서 호버 효과 제거 */
+@media (hover: hover) and (pointer: fine) {
+  .ios-webtoon-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.ios-thumbnail-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 133%; /* 3:4 비율 */
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.ios-thumbnail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+.ios-age-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 0, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 2;
+}
+
+.ios-episode-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  z-index: 2;
+}
+
+.ios-card-info {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.ios-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.ios-card-author {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
+
+.ios-card-genre {
+  font-size: 11px;
+  color: #999;
+  margin: 0;
+}
+
+.ios-card-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #666;
+}
+
+.ios-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ios-icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* iOS용 그리드 레이아웃 */
+.ios-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 12px;
+  padding-left: max(12px, env(safe-area-inset-left));
+  padding-right: max(12px, env(safe-area-inset-right));
+}
+
+@media (min-width: 414px) {
+  .ios-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .ios-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ios-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .ios-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}

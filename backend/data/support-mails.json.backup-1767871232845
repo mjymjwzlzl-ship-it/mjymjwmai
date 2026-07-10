@@ -1,0 +1,1090 @@
+[
+  {
+    "id": "57f4a87e-b8de-4d67-80af-f38db2605663",
+    "from": {
+      "name": "Test User",
+      "email": "test@example.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "테스트 이메일입니다",
+    "message": "이것은 테스트 이메일 본문입니다.\n\n감사합니다.",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T02:08:31.169Z",
+    "replies": [],
+    "source": "test",
+    "readAt": "2025-08-15T03:13:18.074Z"
+  },
+  {
+    "id": "dbce0065-435a-421b-bf65-0a6903c3466d",
+    "from": {
+      "name": "LeeByoungsang",
+      "email": "carryer123@me.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "dd",
+    "message": "",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T02:35:14.575Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-08-15T02:50:16.447Z"
+  },
+  {
+    "id": "8481466d-80b8-4038-9737-056c2aa2da37",
+    "from": {
+      "name": "LeeByoungsang",
+      "email": "carryer123@me.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "dd",
+    "message": "",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T02:37:38.881Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-08-15T02:50:13.411Z"
+  },
+  {
+    "id": "91b02df1-5f82-4730-9991-45b2207e1dc0",
+    "from": {
+      "name": "LeeByoungsang",
+      "email": "carryer123@me.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "ㅇㅇㅇ",
+    "message": "",
+    "category": "email",
+    "status": "replied",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T02:39:31.902Z",
+    "replies": [
+      {
+        "id": "64b1de3f-d9da-4648-b4b1-7a81ad9fc8ba",
+        "message": "넵",
+        "attachments": [],
+        "from": "support@arata.co.kr",
+        "to": "carryer123@me.com",
+        "createdAt": "2025-08-15T02:59:31.480Z"
+      }
+    ],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-08-15T02:50:13.261Z",
+    "lastReplyAt": "2025-08-15T02:59:31.480Z"
+  },
+  {
+    "id": "55bc30f8-d977-4565-ab9a-34787e7bc662",
+    "from": {
+      "name": "ARATA Support",
+      "email": "support@arata.co.kr"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "[관리자 발송] 아라따",
+    "message": "To: carryer123@naver.com\n\n아라따",
+    "category": "admin",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T02:49:35.715Z",
+    "replies": [],
+    "readAt": "2025-08-15T02:50:17.731Z"
+  },
+  {
+    "id": "3664a733-3e01-466e-b609-98b9d92157c0",
+    "from": {
+      "name": "ARATA Support",
+      "email": "support@arata.co.kr"
+    },
+    "to": "carryer123@naver.com",
+    "subject": "아라따",
+    "message": "아라따",
+    "category": "sent",
+    "status": "sent",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T02:57:06.157Z",
+    "replies": []
+  },
+  {
+    "id": "3f670b59-c143-4bc1-bd21-d44c8394d1f6",
+    "from": {
+      "name": "ARATA Support",
+      "email": "support@arata.co.kr"
+    },
+    "to": "mjymjwmai@naver.com",
+    "subject": "아라따",
+    "message": "아라따",
+    "category": "sent",
+    "status": "sent",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T02:58:10.947Z",
+    "replies": []
+  },
+  {
+    "id": "dd0ef06d-36a2-4bc8-887b-ab9a251e5bab",
+    "from": {
+      "name": "ARATA Support",
+      "email": "support@arata.co.kr"
+    },
+    "to": "real-sketchup@naver.com",
+    "subject": "아라따",
+    "message": "아라따",
+    "category": "sent",
+    "status": "sent",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T02:58:30.570Z",
+    "replies": []
+  },
+  {
+    "id": "379461ce-f787-4737-bb25-e2776b5a908d",
+    "from": {
+      "name": "ARATA Support",
+      "email": "support@arata.co.kr"
+    },
+    "to": "darya.kutovenko@gmail.com",
+    "subject": "아라따",
+    "message": "아라따",
+    "category": "sent",
+    "status": "sent",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-15T03:06:06.545Z",
+    "replies": []
+  },
+  {
+    "id": "ccaf47b8-be51-4704-8303-15a866c303fb",
+    "from": {
+      "name": "Test User",
+      "email": "test@example.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "Test Email",
+    "message": "This is a test message",
+    "category": "general",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-08-28T04:17:57.040Z",
+    "replies": [],
+    "readAt": "2025-12-10T10:35:04.144Z"
+  },
+  {
+    "id": "7547c8ab-33d9-4a0d-9e16-00760a6e566a",
+    "from": {
+      "name": "Arata Payroll",
+      "email": "care@arata.co.kr"
+    },
+    "to": "care@arata.co.kr",
+    "subject": "Re: Arata - Salary Schedule Shared with You",
+    "message": "",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-10-28T21:01:16.261Z",
+    "replies": [],
+    "source": "email",
+    "spf": "none",
+    "readAt": "2025-12-10T10:35:03.694Z"
+  },
+  {
+    "id": "6ab7c208-ce31-4899-a663-852fe6c52281",
+    "from": {
+      "name": "oakyes@gmail.com",
+      "email": "oakyes@gmail.com"
+    },
+    "to": "care@arata.co.kr",
+    "subject": "Fw: Invoice",
+    "message": "",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-10-29T05:03:20.661Z",
+    "replies": [],
+    "source": "email",
+    "spf": "none",
+    "readAt": "2025-12-10T10:35:03.036Z"
+  },
+  {
+    "id": "6c484c58-dbc3-4203-8815-710c34fcd7cd",
+    "from": {
+      "name": "Google for Startups Cloud 프로그램",
+      "email": "googlecloud@google.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "Google for Startups Cloud Program: 신청 완료를 위한 첫 번째 단계",
+    "message": "",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-10T07:25:03.675Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-10T10:32:42.515Z"
+  },
+  {
+    "id": "f2bad568-14d3-4eab-974b-6f3c0662bbe7",
+    "from": {
+      "name": "Google",
+      "email": "noreply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "이메일 주소 인증",
+    "message": "내 이메일이 맞는지 확인\n\nsurpport@arata.co.kr\n\n\n최근 내 이메일 주소를 확인하기 위해 이 이메일 주소가 입력되었습니다.\n이 코드를 사용하여 내 이메일이 맞는지 확인할 수 있습니다.\n\n634066\n\n본인이 아닌 경우 누군가 자신의 이메일 주소를 잘못 입력했을 수 있습니다. 이 코드는 보관해 두세요. 현재 다른 조치는 필요하지 않습니다.\n\nGoogle 계정팀\n\n\n이 이메일은 Google 계정 및 서비스의 중요한 변경사항을 알려드리기 위해 발송되었습니다.\n\n© 2025 Google Inc.,1600 Amphitheatre Parkway, Mountain View, CA 94043, USA\n\n\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-10T10:41:21.495Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-10T10:41:33.388Z"
+  },
+  {
+    "id": "1373206b-2eb1-4ca6-aa22-7160a1d540e9",
+    "from": {
+      "name": "Google Cloud",
+      "email": "CloudPlatform-noreply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "계정 확인: Google Cloud 무료 체험판",
+    "message": "Google Cloud <https://c.gle/ANnMTcbhbcD1YjG80C5tJfIKIEN8pzTyg1r5GaIMsSJcrzY_ARPKTEEeg2tfbnDLBuM0bCYMHLlUWgBou3kquRTBUdwiz1i24MFjnHaSEGUSPQQzUh9dynu4mvqMwkXO4E318c-WmgLr6E5d5l2WlYk8SG5EEHzOMojDf03Vykn2dPzxyp8EdDV2N9BJ2HX7x3nmj-YChelkkvcw8SbtW3Xzg-Tknn_nGGAzaTRE0eXYhfFuTWWHu5w_jNWve1ChUR4og_mtSw>\n\n내 콘솔로 이동 <https://c.gle/ANnMTcaycWZdrl2lxNjGW3xx19BiPMvvySBZW1yIcJG4jU62W4d9zxMCX65BWabrPPP1YaFSO39b_tfY5FahvEHVi3gFw_uB0xS_SNJrSgMxFUEeFL7m16hbMA-jG3YlkDxVsBmAkd48zn5eB9ykAy_mPjaEwEvfgyijEwsBG1ZKUcMQ5EXIZR9Ad7V9RiStnoTekusmSKFY3ZmKt2MmhQykPHhZw6t3ilmCWyvL2PZFQnjzGBdq7MIDi4I831QxluvsPXF_bKdVEPoSzgqGIfIT>\n\nGoogle Cloud에 오신 것을 환영합니다.\n\n이 튜토리얼 <https://c.gle/ANnMTcYmjdNlE55YckNuGk2Xf0VA3BWaYTXjZ2AkXPVazbmK-xj81X8wiFoz_Zhm8bGb0eihgpjDa1rBkOn03SdCtG9mz2mNfC58E4aSXqj_QzTzTHCT9nqbm4UvzHwRxNXWVp1TLKNp9hA_YFI-_D_p2vZRffwRKfxuE_Um7VVNs1NZclMD2m2WOdn9p6h3jetAhitfAD6eOxmQbw44YSHaK1MfvbO5XWwPfdP4N3ON5P9XQ-vikGKST0Da3pUJ2Q2l5k6gzyMqVEnro4399rHrhV7bF0pXyfRHFe5mSoQpACEUaCRhKlL9SWHjGgyx08i_DbI4PaBhI0a9rC8rs39lRWdUzJtpvUXV5uuAjgXiUfYkmRw>에서 기본적인 사항을 알아보고 항상 무료 등급 이용 시 Google Cloud에서 무료로 가능한 작업에는 무엇이 있는지 살펴보세요.\n\n내 콘솔로 이동 <https://c.gle/ANnMTcbpRiUxSZ_5JcXlnsiFxh40E6a3x7ZjIVML5XlqOUBwAfH8EF2IErpR5YJmyLvkfpAe-nqgoF4JCmT4tv4QvDD8LH2ZuAy0BXT76toeCEY1YGyO-1H_4zHGqrAxy5rcPOGivWooykMDBC796xnIjMO4dPfWbRISraTjpcHLZPp1323JxvHBWV2UyLHnGeqS-zqGrTsIkhRRhmMkfgrK9SDQ788kSPegzCpycm0h-P15i7T4EEnr9nlm9mdxk1tn-LoxVYCG7WsM0VbnySHFJEdtO8Hx-2yzPKu-yuOifh2SuA>\n\n오늘부터 $300(USD)의 크레딧이 제공되며 다음에 사용할 수 있습니다.\n\n- 위험 부담 없이* Google Cloud 평가하기\n\n- Compute Engine <https://c.gle/ANnMTcZmdiBWnSyjN7xQqk-YQZapb7FWzSd4OITy6ZsMmpxHxBQRFigVz2Xqb0PNxbxcXINmsGDw_quG3e9JK87y_xkSYv8q3_iPi5Unniyuau29baGTex7JL_sskF5kOwvKCU4VFrK2OgYAkI3zw962IYZs4VJoXokqrPNlRZo>,  BigQuery <https://c.gle/ANnMTcZaaCidZ6qMwDqOx_G-sT5HSuPi72ACJv5wOAPR4dIMJXAuhLlDegjiHX8wIa8Xzt8RPMmTeG4rt5wmmJqkM1fwnjyLLfMVFYmS75-L3hau9ZhiWEYGNn50nMYZI5Yt9M76frSXqcwlGr3Rs1-t>부터 업계 최고 수준의 AI <https://c.gle/ANnMTca30yvqn0g8PUsxuy_KEYwANUk_fvOr0aPq3yNJuQHhRd8U8ZvQEVZItuW7PsOPX6UHS93oUg3KuMZLmvf0FztDRJlWLPebTT_T-p71YokMn8lZVLu_DhIvNJOm_KGf0TUAsN2570THaKeltAJIaaR0Tv5Dy3WOjhLzjvpQbk-1ReJ9>에 이르는 다양한 Google Cloud 제품 및 서비스 살펴보기\n\n- Google Cloud 콘솔의 결제 섹션 <https://c.gle/ANnMTcaoAJv-DgbwB0b8KodWpyHyT0RVcmZ-PVNz-4gqDtIpt4KvjT5TEfOUDsdywEDcEsdOY9CkSekcdiEo0klyvGQjzA0OuWhUBMheXQnRLwJivPMOJenrdcm76tyIwOah5pV-LXnmv3jDT-4ojmDpc5jqANEF>에서 크레딧 사용량 손쉽게 확인하기\n\n\n항상 무료로 제공되는 항목을 살펴보세요.\n\n무료 체험판을 본격적으로 사용하기 전에 잠시 시간을 내어 항상 무료 등급 <https://c.gle/ANnMTcbUy7SsQVlYk90dmzYUTk-ItxpMif7CwkAppRI3gmfzzHjy3MUTiWNF-GWEHAfbBe0N7deQndaSAuIdXt48A-ZRw712sJ1n8noo0iFEfVR70sXqP_rRiVtUtIGYrVfWHj71E-Cp4geKSEOG5VhRmGsY2FdjGfYK7U8-hFaGDM2-qVAbYxcGLR8oBU7EaVh8giltqanABM5sj4wjn5_bjX2akyLzxgnZ16XlBHaktg4wlluUkYu_jchbfhRpA7E3IR44udhPey0VUiB92PwmdmH4W-Be0S3Zg5DvbYEgENm2AtFl5smKHevK13NPhWrOdlDwbw4TZAz3MIru> 페이지에서 20여 가지의 항상 무료 제품을 살펴보세요. 항상 무료 제품은 정해진 사용량 한도 내에서 요금이나 크레딧을 지불하지 않고 자유롭게 사용하실 수 있습니다.\n\nCloud 콘솔 빠르게 둘러보기 <https://c.gle/ANnMTcbRhmjAShWZ5L-KszYN8dmsA_6B7vG0rRGGtNPuGGFDtyZACGFKMxvRTebm3k_FZE-a0oP0VpHsIUIAUderAlRh81IW17CXSWA_9eD7URBJkarkYwQdXW7AjyXXm7wo_gSfYZJvGrmYBxQaz9gDuh5aAicKuPyremAjSOL8ZXTlJkUgAsEd9QoKnRmo-BzboNQJQ5079xF0CgBgJDD8vk3OijGUldBDebnOBkisRU4VQbvOrE9WZvJhcVxvmqJCd2tlF-hJPusxHc-f9rJIXcUGvVeuCT0xvrnI6Laj579U2f9zKX2hMG-7gYnqWciJzbAcm19inVhjneYUlM6pIQn-L_i3FsKuOXXfQnNWHIfT9vm8kJCjj-2A_owTB4lx> 실습을 통해 프로젝트를 손쉽게 탐색하고 구성하고 관리하는 방법을 익혀 보세요. 직접 살펴보려면 Cloud 콘솔로 이동하세요.\n\n내 콘솔로 이동 <https://c.gle/ANnMTcYQPwC0XNYCpMJN2xCRv4B_wM9M_-xAuZpbPqcOkR0swgRdAvjA6NSvtkL8NBPOsonVv4-DcVtEb2PaJaWg_fIYKRE4Jx12xMxipaiETxGwqbyZZ6ffIMyxtL3b0TR9x68a8ME3rE3nw1WZjAXJludYC9vRHzfVOj6UxhpP2AF3L88hQzxuz54tbNwAFsw0ftEXGc_ubHLJvHOMOjDknrI0c8Eb9aXyXTPukMJ5rCO2kgoNBZQzaxUZu0p4lxYHyp8YGKAZNYCfT3bhtEL8s0ekophOMYHoG1Xy2RneYqEj>\n\n클라우드에서 뵙겠습니다.\nGoogle Cloud팀\n\n* 무료 체험판은 계속 무료로 사용 가능합니다. 자동 결제를 사용 설정하지 않는 한 요금이 청구되지 않습니다. 무료 크레딧을 모두 사용했거나 무료 체험 기간이 지난 다음에도 프로젝트 작업을 계속하려는 경우를 위해 30일 동안 프로젝트가 저장됩니다.\n\n\n지원 <https://c.gle/ANnMTcbhz_J-uC7kY9vUgr6LBgSQ4mf1DWtrssexzlFnHdJKNOV86nw2cqgZoeKNRhnTkaOZAQ8xyxo3q7JLYFHx8JHMHsx86iMDpmN_XUI7sC7Zje854iZfV66EdFaGHkHlV3wVVyl5TcZK9BVPlVuXy5Z8NVhwqR2P4oVbZB2teQX5hMlyF-IT7IZYzKL66lSdMcFqyeOFq6TXzdoTAakl8PW_VV5SQ-AeclGcya9jnh528RIPG4vOstQxCn67oGTRgYG3mzYSMr80KbvyQQ>\n\n포럼 <https://c.gle/ANnMTcZKR4SBm7TWgtLjA5kkiZe20cln9pd_VDVIuofjko444tAf40ZJv2M-adGoyvtGKCP_KTJUuaoiAyl-L6IPzktOMTc6yDYyBGCR3zQmn0fGH70K9SbQw9f3ovMPA4ERSc7RhhbdsU2q>\n\n문서 <https://c.gle/ANnMTcbVJWWpbUaL1RjUVpMNiecX0sz-Va9czg8A22iOH-aVQLgWiQ5qFTOCMmbnN_cTm-wuazOjMtZG-UI-DhbduWut7k8PtfTSriFoMZI3N2FcCzJKEc-JscJlc0-G6eUEb3YEyN-cdEMWpaLaBqiHzPjT0cau8qDokTjA_VBZkQh9-LapoLfd55zFX4eXwIKmQ9o_6Gtg7Nerjkirj_JbSYsh7EseoQxUtPNCJ46wx4BqNpVpt77DuWmUmhYRLEamfJrnUvel1BmPhcpD>\n\n가이드 <https://c.gle/ANnMTcYjqBiOC0QNlm3HhVJGKXCDhw2VThbe9DILiCIRYnVR7hVxwXCaXRR8i3KEIP-CFUHMXcP7pGZXtXd7hpO4XVaU6doMidL5QZfkIx_0wbXvD9rPmeICnPIgeKsdrb0V0FnSYAjvg1oaXPpR3zun55WJVm_EIt84sUtwdcnAvzWKRZBP5oIRYNDPtOQtjJdlwcrpVnZHIbK2Ki27vys8VrE-e36Izt2KfcZruzdC5QeORwhIqgAu_iEjS6X-QvNTHX3bVia0Cn7mHDBw2lkJrWtv>\n\nGoogle Cloud\n\nGoogle LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043\n\n본 메일은 Google Cloud 또는 귀하의 계정에 대한 중요 변경사항을 알려드리기 위해 전송되는 필수 서비스 공지입니다.\n\n\nGoogle Cloud 블로그 <https://c.gle/ANnMTcZyS6c7rszeXbicyWvo1sJ9A-0Krc2F5brywTiXdRPBsJRCZTrOwFpPwF2E6BIpzwP2hvJpCWFPpQqP04GUc1Ha-_Zm5BFRcggpk8BvIfkRIessezn-PYr_e1bPRMWs-FnkkMQj7I8y04wE4DBgOKfpusg_Q7ne12pCs9QJkRI4SrsT-MUWqE5GfbUA4YWzl35e0QhjSJtxMp3AnEk2VAIiMdpvTFg36ATSLlrWe28euTXcivoAtgkkEU64zhLFm6tR>\n\nGitHub <https://c.gle/ANnMTcZYpQJ-MNXK9um5N2D1AYZHK6hP2XZ8YDr6w30MkYpsQxpiTyaGOj071ftBDZGHnXtlqlDENZjgUuin3xmKpTCbUaf288fY1jcjhtOJjZgE-zvOcimL-QnA_Lo8LEUS__kzeAbEn-J0Vg>\n\nLinkedIn <https://c.gle/ANnMTcZkzg4pbHQsGc1ALGSUV_fSS0hrYzAQ1VoIg3kq74nIIUuzFFcYgjkJBQwvsun8wjl3R7YQCvSZu_CButDUDUUzQqjvq2ESJhUo97mzl9MX2DFYXKW6aoAuK_dn5P2Zdxf5J71aQCAheCpavX_Ra9vCcfyy>\n\nTwitter <https://c.gle/ANnMTcZUMTeCgVgh8VcXf5ydfxFzzqNOpdrYiNGnhmNU6VV6uRouZOn-cO5RrCEi75MONCJswUDwdy2eERZbN0OCtY1jFP3KHQXGWUTqD8VmWCMEisXk6ntUbK8Ewv2hVw3Cokduaw>\n\nFacebook <https://c.gle/ANnMTcZnL63jvo4VPW9xWwKuRZoqYs7ueVH5mc3zEv8RAIm2wjfKuuI-i0W1GGuj8_9jqM0xpDvzHdDrM13VqM7uZfoAb24clKuwnoToL486ZTnZ4YFiXBZ_A5vjv31gPYmS2iBiwL_RJXTq4cU>\n\n\n\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-10T11:08:33.509Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-10T11:28:47.530Z"
+  },
+  {
+    "id": "2a1a1a51-cb26-44cc-99b7-a412e1efa877",
+    "from": {
+      "name": "Google for Startups Cloud 프로그램",
+      "email": "googlecloud@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "Google for Startups Cloud Program을 신청해 주셔서 감사합니다",
+    "message": "곧 연락드리겠습니다\n\n\n신청해 주셔서 감사합니다. 신청서가 접수되었으며 곧 연락을 드려 다음 단계를 안내해 드리겠습니다.\n\n\n=======================================================================\n\n\n병상님, 안녕하세요.\n\n\nGoogle for Startups Cloud Program을 신청해 주셔서 감사합니다. 영업일 기준 며칠 내로 연락을 드려 신청 상태를 알려드리도록 하겠습니다.\n\n\n다음으로, 스타트업을 위한 Google Cloud 계정 설정 <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc0EJya-9d4nONqQf-W4VutcCfmdla3Zqm7YMvrpeY2RjNhA6i8myEMVdC8TpzWzX_-Y=> 체크리스트를 검토하여 계정이 준비되었는지 확인해야 합니다. 신청이 승인되면 신청서에 기재된 Cloud Billing 계정 ID로 크레딧이 즉시 입금되며 입금 시점부터 크레딧 유효 기간이 시작됩니다.\n\n\n아직 뉴스레터를 구독하지 않으셨다면 신청 <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc-qEGcAynKwA9KHtP4KbUtoj_8_DLrcT4JMx5vL6BOoi7hLSvTN4nSgql1tERBOBcpA=>하여 최신 리소스, 동종 업계 스타트업의 사례, 한 해 동안 열리는 특별 이벤트에 대한 정보를 받아보세요.\n\n\n구름 위에서 뵙겠습니다.\n Google for Startups Cloud Program팀\n\n=======================================================================\n\n\n© 2025 Google Asia Pacific Pte. Ltd.\n 70 Pasir Panjang Road, #03-71, Mapletree Business City, Singapore 117371\n\n\n\n스타트업 프로그램에 등록하셨기 때문에 본 이메일을 수신하고 계십니다.\n\n\nBlog\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc6K8IMS3nR7KbQbYKbJqRopBprdyrEZP28yHV09h1nQ_InC3DeCelaj87pTT2HaB0Hk=>\n\nGitHub\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc894JR2JTHj8C6Plne9DHOdIPUj330Oz_qt0RxrFKVoEVeSqTGVqt0zSD-J6OetXkcA=>\n\nLinkedIn\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc8PXWH7AXv-fwTuQ3kLs2r-JApcVrV8Mx3ePCR5HHMColP5l3RnHCSdCqD8eGN3Tjmk=>\n\nTwitter\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc4xfJEOEsg-aRPMr4cl_uU10w1ig-ZKeHF3W9m9KY6OQYnKR8BK_62cwYnZNsv7ocgs=>\n\nFacebook\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdocwpusSFAsGWrs5YAx2QFLgZgtIVVvR4JB_r7WWtLor-dBf9x6riByB85s5z1jrG3QH0=>\n\nYouTube\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc9hg7xeogQs3bs3zYWLdjeg20aUXQ53dQ-xDeNaRLP3x1Pn6KjOA8upweeDYNXYrS_U=>\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-10T11:39:04.724Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-10T13:11:53.557Z"
+  },
+  {
+    "id": "8bdaa0a8-1988-4f15-815d-803daf3b7d5d",
+    "from": {
+      "name": "ARATA Support",
+      "email": "support@arata.co.kr"
+    },
+    "to": "forward@example.com",
+    "subject": "Fwd: 테스트 이메일입니다",
+    "message": "\n---------- Forwarded Message ----------\nFrom: Test User <test@example.com>\nTo: support@arata.co.kr\nSubject: 테스트 이메일입니다\nDate: 2025. 8. 15. 오전 2:08:31\n\n이것은 테스트 이메일 본문입니다.\n\n감사합니다.\n\n\n---------- 전달 메시지 ----------\nTest forward\n        ",
+    "category": "sent",
+    "status": "sent",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-10T13:22:50.937Z",
+    "replies": [],
+    "forwardedFrom": "57f4a87e-b8de-4d67-80af-f38db2605663"
+  },
+  {
+    "id": "add609bf-cb33-47f8-ac3d-2ce3a685a719",
+    "from": {
+      "name": "ARATA Support",
+      "email": "support@arata.co.kr"
+    },
+    "to": "mjymjwmai@naver.com",
+    "subject": "Fwd: Google for Startups Cloud Program을 신청해 주셔서 감사합니다",
+    "message": "\n---------- Forwarded Message ----------\nFrom: Google for Startups Cloud 프로그램 <googlecloud@google.com>\nTo: surpport@arata.co.kr\nSubject: Google for Startups Cloud Program을 신청해 주셔서 감사합니다\nDate: 2025. 12. 10. 오전 11:39:04\n\n곧 연락드리겠습니다\n\n\n신청해 주셔서 감사합니다. 신청서가 접수되었으며 곧 연락을 드려 다음 단계를 안내해 드리겠습니다.\n\n\n=======================================================================\n\n\n병상님, 안녕하세요.\n\n\nGoogle for Startups Cloud Program을 신청해 주셔서 감사합니다. 영업일 기준 며칠 내로 연락을 드려 신청 상태를 알려드리도록 하겠습니다.\n\n\n다음으로, 스타트업을 위한 Google Cloud 계정 설정 <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc0EJya-9d4nONqQf-W4VutcCfmdla3Zqm7YMvrpeY2RjNhA6i8myEMVdC8TpzWzX_-Y=> 체크리스트를 검토하여 계정이 준비되었는지 확인해야 합니다. 신청이 승인되면 신청서에 기재된 Cloud Billing 계정 ID로 크레딧이 즉시 입금되며 입금 시점부터 크레딧 유효 기간이 시작됩니다.\n\n\n아직 뉴스레터를 구독하지 않으셨다면 신청 <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc-qEGcAynKwA9KHtP4KbUtoj_8_DLrcT4JMx5vL6BOoi7hLSvTN4nSgql1tERBOBcpA=>하여 최신 리소스, 동종 업계 스타트업의 사례, 한 해 동안 열리는 특별 이벤트에 대한 정보를 받아보세요.\n\n\n구름 위에서 뵙겠습니다.\n Google for Startups Cloud Program팀\n\n=======================================================================\n\n\n© 2025 Google Asia Pacific Pte. Ltd.\n 70 Pasir Panjang Road, #03-71, Mapletree Business City, Singapore 117371\n\n\n\n스타트업 프로그램에 등록하셨기 때문에 본 이메일을 수신하고 계십니다.\n\n\nBlog\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc6K8IMS3nR7KbQbYKbJqRopBprdyrEZP28yHV09h1nQ_InC3DeCelaj87pTT2HaB0Hk=>\n\nGitHub\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc894JR2JTHj8C6Plne9DHOdIPUj330Oz_qt0RxrFKVoEVeSqTGVqt0zSD-J6OetXkcA=>\n\nLinkedIn\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc8PXWH7AXv-fwTuQ3kLs2r-JApcVrV8Mx3ePCR5HHMColP5l3RnHCSdCqD8eGN3Tjmk=>\n\nTwitter\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc4xfJEOEsg-aRPMr4cl_uU10w1ig-ZKeHF3W9m9KY6OQYnKR8BK_62cwYnZNsv7ocgs=>\n\nFacebook\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdocwpusSFAsGWrs5YAx2QFLgZgtIVVvR4JB_r7WWtLor-dBf9x6riByB85s5z1jrG3QH0=>\n\nYouTube\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGepwdoc9hg7xeogQs3bs3zYWLdjeg20aUXQ53dQ-xDeNaRLP3x1Pn6KjOA8upweeDYNXYrS_U=>\n\n\n        ",
+    "category": "sent",
+    "status": "sent",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-10T13:31:29.631Z",
+    "replies": [],
+    "forwardedFrom": "2a1a1a51-cb26-44cc-99b7-a412e1efa877"
+  },
+  {
+    "id": "a074c1fb-e506-454e-bd7e-8aa34831bef7",
+    "from": {
+      "name": "문제용 (Google Sheets에서 공유)",
+      "email": "drive-shares-dm-noreply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "‘문테크놀러지 작품 수익관리’ 스프레드시트가 공유됨",
+    "message": "다음 항목을 공유했습니다.\n\n문테크놀러지 작품 수익관리\nhttps://docs.google.com/spreadsheets/d/1XNRawRn4_3qF6bU9lLiUJkr0BMwOMow1SalJVDc4K_k/edit?usp=sharing&ts=693998b9\n\n첨부파일이 아닌 온라인 저장 파일입니다. 항목을 열려면 위의 링크를 클릭하세요.",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-10T15:58:52.686Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-10T22:09:14.531Z"
+  },
+  {
+    "id": "de4e4dd4-1d08-470b-9c00-3545271c0210",
+    "from": {
+      "name": "Google AI Studio",
+      "email": "googleaistudio-noreply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "Hi Surpport, welcome to Google AI Studio",
+    "message": "Email not displaying correctly? View it online<https://notifications.google.com/g/vib/ANnMTcYzfkZRTxtbzggMs4OhQNXKxsmdnAVEMy1QB4RTsJbdn-GyeS02pLjaIvrLUQZn5y3LzalPQ7tGyWs5_tHeAd76hLjD790CPXy4E2DxT2eeYXeDbRHgchnvyNTfjqrM-ZI>\n\nWelcome to Google AI Studio\n\nThe fastest path from prompt to production with Gemini.\n\nBuild with Gemini API<https://c.gle/ANnMTcZ6MpE_Ue-yQoQPE8IBMSXSkXR_VqVcRbRRpdL8YD8BuOzkvjfPBP9EuBMmjzk7zXTOGNqjS1YdX-IoYsVICVgnEB5oG316oq2XyO7ej-2h1apQQ4LuMPWRp_26OoSNYCF88_G3bRdAevlAiZBEF4_Tp55eRZggGLwNureVO0OfJkcND1ZbKCE-K1Zgqu3fQ_F0xwPF2IdaNwPRLIuIJyNgBvDknSDZRA>\n\nHi Surpport, here’s what you can do with Google AI Studio:\n\n- Try our state-of-the-art models<https://c.gle/ANnMTcbWJSyn1Gvyt2W5SNDy85Jla76mYVXHIeLTQEFJ0rik_GiZNaE6bjHWfMjEEe_jKiOwBjmib9Pt1e6YEwJUJQgXlerAdEkEerfflQUbyNxiy85PfVHaerx7EkJKUxEHYgxBDqQTs3-PvkCQ-2g5ZfXFalXq_DwK9DU6bTgGQaNe3BJvV4H1vv2KADi-DelR3PEeMpkCA0UCu0RQCSnwHNJK3Tor5KCUxd1mxeteaLixTmEVAE50guzkW89jeGxMGQ>\nIntegrate the latest models from Google DeepMind in your apps with the Gemini API.\n\n- Create applications from a prompt<https://c.gle/ANnMTcbVS7BTpwTtLcaC9ujMmQliiMExMzn-3bhIqmtir0ze-CFkvRNkcR9f0j7LiMovtcrWPMfCzQZ8sYU-RB0JtGa1X49iU1eHQ2f9uECao7x7ufKu3o7BNC_DlcfduLbOft77jyuKy5yFJ579nk2BWWRKdMWUDs_AMjcHWu04SDE0V5Av3Ld5uk41OW-vq-KnbYoLjAgX0XcIvT8U4_1lByiT7ZPG7kYpvuGBv0Ua8M5lGmGiGA>\nGo from concept to code with a single prompt. Our native code editor is seamlessly integrated with the Google Gen AI SDK, creating an efficient environment to build with the Gemini API.\n\n- Build real-time agents<https://c.gle/ANnMTcb_mhN10QT-8hoT9H4BM_tLAKTEPThKfXWJqr_BYmhqjKCGLlEyZIbi1iVVuAfEzXamAmrNPAwVgfEroi-iiRX-zoKmiJw4dhang0mIazQhGwbjKzVULT6kO8vUEMzo2yixfq-cCj4_IkSajagbvmZC7xc3L86EHuy7lVAjuWUUMDKdg5leOaug8F1Ryu0pqmX6ZuDFFOZVy5Vh6yFB8nGU0KFMyKnRRg6N>\nDevelop conversational AI agents and experiences that feel more intuitive and natural. Use real-time audio and video along with tools like Google Search to provide live, helpful, and context-aware responses.\n\n- Use Veo and other generative media models<https://c.gle/ANnMTcau_Uc-7F4PjtVkO-jghlFDet9Ny5kNz7zXFTuxCmGlF_JltVBnwzdLjoDyHlOCHOPwPFJMTZ70nXf80AW9RT16o2VVAcEKm96CYX2Ml-v0cpyyyllgtGVym_FcDO4JFxtcFrduXk9Z-x9azyxzXaJt8NcyMZile9b4UXjki-SnUSkDUtVOK9d8_JqbpZtsn-iOqvaVRkMSBaSmDvR_Y23oL3UK7hTOK0OOeE1lQ4tWn-hjfsT29AAPhvyTrK5N>\nIntegrate state-of-the-art video with Veo and photo-realistic images with Imagen into your apps.\n\n- Get your Gemini API key<https://c.gle/ANnMTcYnm1yKl1TlkEyHrQUkUnU6Rx4Uk2mf2f8tX02plS4u_8bLayhUmiaSjXm_n6pxrA21hD_jjkHfo9tQJ4_OPTkAGapA7s2ddIi5YXKbJy6inOVXQYN9BASBfcKk-t4nPpW2SI_vI0TTZZGXHvwMxoRjHFTDtGCXZjAMIGCi2uY1Ja81Tzpmz2ehRNT1yx2-FcBamV2FZvRL29gShTrX4r92P2YbA99h1jBF7yY1n_xg>\nStart developing, deploying, and integrating Gemini models in your application with an API key.\n\nExplore the Gemini API docs<https://c.gle/ANnMTcZtgbpZebL1iRSM-uJVbfKC9ExSQFVNX8u17gbKxpyd7VUemevvp1loeRMuqRFx-QL0GB1PNKk2hDij-siHteauZUETNGf0iRX1lMEefJCxIjufWQE4P7I4vTrXmnLU7P_T1XN0X73qy-vDXc9ehlADNCNv9l0CsoCspcabytP7Ak7C-z8hEWiO7qMMkR5H8nP_hIRdRe0O92NHPw5I-Cq7ztj1SgoW4Kg> to learn more about the models and capabilities.\n\nBuild with Gemini API<https://c.gle/ANnMTcbPplu_hvXPSPDUzelxAInN_RNhe1lvbNlCosbsEwxKRxokaAKPlly1czF2gLCCWpO0odByXth7GaVOvIIve7EyOmay-KFJpoAPRDTMmRj4dEt48QpsQspKn2RlWKRetmTnlnXfdrho_Vx3E2MPDvCeK8w9orEe0aJdJpJnqAnmjhEpFNtW2EI2PTSveWsaKW0_duKl4wXFD4Aa6WeqTQq7uIzP_j4kaA>\n\nNeed help? Join the forum<https://c.gle/ANnMTcZR1SDTIGqrSQn8BjSWaAYrnCxxD_125fJkvMiNnOwuT3J5UBob6uy6cjgPT7vjnZkV5rUF8az0w8P-uGJH-2vONmIGCjp34v1Vd-DOWB8nmGIGuBy7Y5vPrwc0A_UWOMloWFmM_GAc-Dvkw2cfFXbxFGBoF-6S27KygJK4TEw6iGaGF44cYdBME2UhqX9WLp8k2u9ewl0kxTE4qhAHQs8A8w2yOmgc> to ask questions and connect with other developers.\n\nThanks,\n\nThe Google AI Studio team\n\nGemini API is built for production scale, but experimental and preview models may have enforced rate limits.\n\nAs a reminder, don’t submit sensitive or personal information to the Unpaid Services, including Google AI Studio, as defined in our Terms<https://c.gle/ANnMTcboZu4g_IaZZH8-X6KwKzLGR9972oT_bavwXA_NwBS-NFfIFkLLdLYXeXjD4AjrYAjRrnatoNOINXqG43HnZPrN_Fo9xY-6wKpMle1wt54dZg_6emvJd9MjkDFhUGM9U7-TtKliLS47KJysOQdMOashxuYfn-gze35V4Pe6zGKrQQtx_BgBLOjS-pKDpFEaM9riUsq4tTToBrNLkGCzbCwY1Q>.\n\nTo help with quality, safety, and to improve our products, human reviewers may read, annotate, and process that data. Google takes steps to protect your privacy as part of this process, including disconnecting the data from your Google Account or API key before reviewers review or annotate it. Learn more about data use<https://c.gle/ANnMTcZ830hPz2CrHuFKB4N0-vS9IGZnI4R2XSK-ccED5eSnwwW7u2pfFvpWm5EMuAfU8SABuXeV6iqTT7xpC_j364KJmnji2QqYeWw1yjEzKGY1Ab2SiuREhrmZG_83c_WtwcLG9wH7Qy-YJ2sjVr42xySTujga-0_N-XkC5Ghfdvf-Nxr_Wn_fYNQ9ZKeZOyhqqLi16D1YF0b1wnFqXK-SaHlhhSrpMWG4SoavWOoOZDP_RaBVIw>.\n\n- Create prompt<https://c.gle/ANnMTcZ3tn28Gi4ub0UmHJYmLHdVQsQFZ7YOJMioYswEzKz8i-fDYngHMKI8I_e5oveKH9A_tSnxrj6p6tDu-xzx23iynKYU0RO7gzMarBrNOU3mViliQUKksgm5FMB1e2Q1S17gA18c0E-ZlqLX5z3M59j4QEqzWhxat89KL9iB2c2Y4oyeYSQW-e0DgrGCY7D7ulfGprm_890lyqZHtX4ZbyCwQaat2WjozSBnBrs3PXvGCjIz>\n\n- Starter apps<https://c.gle/ANnMTcbVr_1OJQiYPIEACmAe9XcT3ZcdG3Gvai1L-lj2X9i_SPqzNKCcwWJtQuoJUavET3OLKaoqOrar9_-zXddxxdUChXA7Qb8g9M9oG3-rV9LlJhnewLgLjIZhcYy4NfQ1VHCktRt77iqvKUyzr8uaknDraejUpW7NudUEJeJ5mFmj9LEI-rfzsgY-k8ixyyGPxkn--9TC4bUloLUg0aGrnbcu-w>\n\n- Documentation<https://c.gle/ANnMTcZZT690y9JAU3T-i7bDXn74ZfjyBEqr8k_WJ4G33QS_6UZNg6tT6pkFX-5KJGsBCclZD_0DQxIJY9IQhKQWKd8AB2DaoZtIa2SShcwBKHDWioNefOiQooFcUNhdR2PJQdjRWzl_MmVmAeEBM9UIt6HxXn5kOBto9gFK586ub55JO1ekA_vbqHi79BshulTCh2Tid6ItpOCq7T1ap_MIMXf86wFmqVKBhvY>\n\n© 2025 Google LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA\n\nThis email was sent to surpport@arata.co.kr because you signed up to try the Gemini API and Google AI Studio.",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-11T09:45:40.136Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-12T01:50:26.895Z"
+  },
+  {
+    "id": "eb45142d-12d2-4a4a-b1cd-435d5ab9e829",
+    "from": {
+      "name": "LeeByoungsang",
+      "email": "carryer123@me.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "1234",
+    "message": "123412\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-12T01:51:28.773Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-12T01:51:35.931Z"
+  },
+  {
+    "id": "a46ebcd9-16d5-49b6-86fe-314a36cf9eba",
+    "from": {
+      "name": "LeeByoungsang",
+      "email": "carryer123@me.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "1123123",
+    "message": "\t123123\t\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-12T01:52:42.180Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-12T01:52:53.718Z"
+  },
+  {
+    "id": "06c127ae-698d-459b-8a32-872924c2e03e",
+    "from": {
+      "name": "Google",
+      "email": "no-reply@accounts.google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "보안 알림",
+    "message": "[image: Google]\n복구 전화번호가 변경됨\n\n\nsurpport@arata.co.kr\n계정의 복구 전화번호가 변경되었습니다. 변경한 적이 없는 경우 계정 활동기록을 확인하시기 바랍니다.\n활동 확인\n<https://accounts.google.com/AccountChooser?Email=surpport@arata.co.kr&continue=https://myaccount.google.com/alert/nt/1765505258996?rfn%3D4%26rfnc%3D1%26eid%3D2890240847823390602%26et%3D0>\n다음 페이지에서 보안 활동도 확인할 수 있습니다.\nhttps://myaccount.google.com/notifications\n이 이메일은 Google 계정 및 서비스의 중요한 변경사항을 알려드리기 위해 발송되었습니다.\n© 2025 Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-12T02:07:44.113Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-12T04:57:07.739Z"
+  },
+  {
+    "id": "75d6abd8-4f3b-4886-9524-4647f3b0e2e0",
+    "from": {
+      "name": "Google Cloud",
+      "email": "googlecloud@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "사전 빌드된 대화형 솔루션을 실행하고 학습하세요",
+    "message": "Google Cloud­<https://c.gle/ANnMTcbB_MfFVGYBkkUbG9xh6kwomWkxg4DNmdA6xoYRUMrdpGkCcwI9ktQfyOqBgRejyt1Jai6yhct6E-VnV7TmNUzcd-NBnJYQc2XUM4t5BK6qtEeOIGfe4eQOOMlecvUY9x4>\n\n사전 빌드된 Google Cloud 솔루션을 클릭 한 번으로 배포하세요\n\nAI, 인프라, 기타 사용 사례를 위한 클릭하여 배포 솔루션으로 단 몇 분 만에 준비하고 실행하세요.\n\n지금 배포<https://c.gle/ANnMTcaBkUqTfCoOJSu_0Rc8NanRuZJjsVpDUCCp4XUt9kdT14ZtzyEIUauUJnadYG6740sUZlS0q4ihI8jnhCq6_6MIb31dfKN1idvXfPM0RMvrOsfckgsMnRVvIC-zTsX0-VbsqazMAmZ3ywaIF6EsM8sEDoqWri1UzaEKt6GWeuGpYw6Trn9S>\n\n솔루션 더보기<https://c.gle/ANnMTcbQ8vpqKyj72txIT19CJNN4HGTbjyD25BC32_J-9ZiEOLQ5g5hXzzeCORrwdbxqY_zvZHGsvlB8WlAvods165ovQIYMIg8SQoNaF7EAJDRx9vyOwqMk-1GK3wsb6H8VkDd7HiCJBFHnFi6byOEks-u2mhx76jhqKkqQ>\n\nSurpport님, 안녕하세요.\n\n동적 웹사이트를 게시하든 사전 구성된 컴퓨팅 인스턴스를 가동하든 생성형 AI로 대용량 문서를 요약하든, Google Cloud 클릭하여 배포 솔루션은 모든 종류의 사용 사례를 지원할 수 있습니다.\n\n점프 스타트 솔루션\n\nVM, 동적 웹사이트, AI 솔루션 등을 배포할 때 Google Cloud 전문가가 추천하는 대화형 솔루션을 실행하고 이에 대해 알아보세요.\n\n지금 배포<https://c.gle/ANnMTcbVaFq8Ki6fMVWuD_UX7ZG3pbEKfmvHb6EVi3787kyofuomeA6f1KMZhWz0wN0TprrSCi1risGl8uX7XOLhFxo8CAnBpGk44z72_buNXITmkHu1CVp4K0R04BuGc8Ykrpzv1Z7Pm0RnxV7bQqnDUrlFwvRGCCw2zJXXPGQG1K6JWpGsIufz>\n\nMarketplace의 클릭하여 배포 솔루션\n\nGoogle Cloud Marketplace에서 서드 파티 솔루션을 탐색, 배포, 관리하세요. 웹 호스팅, 데이터베이스, AI 등 사용 사례별로 필터링할 수 있습니다.\n\nMarketplace 탐색<https://c.gle/ANnMTcbX09HhRrNx8C3kUErgaehWuSjw0ny0OVmVlVRpfoXYz0inz-T9s7-hEhkmOtr1r8YQ9W-ITTIuyl2E2KM4NemA-sz-TTcaKpzrPmJwvvSUsEcCeiurUlSvIHmswCsqLrG6tETJQZVx_PFr-UTj_NozKk2PuswAAM5xvR4>\n\n사전 빌드된 점프 스타트 솔루션은 Google Cloud 전문가가 엄선한 제품을 조합하여 일반적인 사용 사례를 해결하는 방법을 보여줍니다.\n\n지금 배포<https://c.gle/ANnMTcbGoIvbhs6vTQDVaKjgKWCuA_bFNoconftjcOMO1LiamMcmOpmh7eveuZwn_kP08z2Ub15lTUNyetVcCkhavmiFQSon7KgG1MFoA-JKvevAllfEH9zo0zmqE0gXV8SPEAKmnY1w1lUzZlu2IYzUy735fLgq5vbXYktJ-tYRUA2XtdIVBio>\n\n구름 위에서 뵙겠습니다.\n\nGoogle Cloud팀\n\nGoogle Cloud 여정을 한 단계 더 발전시키세요\n\nGoogle Developer Program<https://c.gle/ANnMTca-BJJDmOwxyFbfq49zdllfB3r13BeJDiVhyDofEpoEx5YAmqn1Dlzx2B1MFF_f3Hu6kPXbmUrZAq0HTA3tk7O55T2cEghdpv6EHwsG3-84ZYefGBv8I_-z7M3D5LheibNvwp6oFS_C2kCrO4sH2glci7XK_gtlbGEfbhqPQGhKPWlnPW37aEsOWwr-7_GkCeyBcU2t6v1SLkdex5B5taCLu4BhzWtFBMlckjsnqxHME7C77z9C0ybnghdtMzGz5ZRHhpoRvQZ19m3cfY20djeQpZ6gr5NAi8W3AxEVjfpU0_xug3xu9QfIlBBIc0rp0dZa_oPZcgjk0g>에 가입하여 최신 기술을 배우고 도구를 활용해 혁신적인 아이디어를 실현하세요. 가입 비용은 무료이며, 일반 회원에게는 Google Cloud Skills Boost에서 사용할 수 있는 월간 35 학습 크레딧<https://c.gle/ANnMTcbyvxy-uS5WHLmxO7faXnxN-qf6DQddo8HSxrVhJqYAOp5RepLH7koJUZH5856SEkiWVzyJvoGBy5gVfXxYY5U_-bh5zWXgyTn071G0evU1Mc4CSQhG6_HIa4xB-sxb5nyZLAoQ30FS9yjCb1cmEHycuZu0wvLE-swDyiVzsjXr72zDOW_H9mRsuFpKBod8omSwEUlJvaiZexYXq2wK13K_toB9AP-gE9eVpDqmNy5tmxo80AWpQrNStPBt9zeOG5Dt1pNOFcXHHK9M4WQa6oxzsQ1Q3PDNRFjBqb4vx8uU6G9pphYg-WkE9TMD72wimNfNEgBjfG_763G10GAJdcNdzjTFJEnjgavVo46FXN3uoZKC>이 제공됩니다. Premium 멤버십<https://c.gle/ANnMTcaX9nFkMWdD667430_Hti-zDzENMhmCzJRRFVVBBaZjkaT8Gf9TbWYBBjCSdRWzKoEOMgG0ULH4DNl0x7tobtfQY1Msb0cKz4J0uPPjydCRTWgdNG8kYdOi3GWDFN37pa3lVPukwdvrKJNRYXYG4fm-GlMgtYzIMjl--uQ7qOLbQXfc7Zqzpb4ot7qNHtROu5oeXyDgRe5f_QzTCytKT8HWsns9_NNCClmo_uy6yvC5YUclSFPDsxWMGO9rU2zFUeLBS7Au8aD-ZAfdjHUh2I1-OGC93YsEqT9RLgGWT1EPs4-Ek1H7AWvAdzcXrFst_zZ3IHca-Xxe7IexzpX_>으로 업그레이드하면, Firebase Studio 작업공간 30개와 Gemini Code Assist Standard를 이용해 빌드를 가속화하고 매년 $1,000 이상의 Google Cloud 크레딧을 받아 Vertex AI 등을 탐색할 수 있습니다.\n\nFAQ<https://c.gle/ANnMTcYTBrmIkSDXsB-5gb-JjIhisXrx91RGyTZH9S3KNiX5QpqkWpyp0iYWnL4vBFKJIebie0tcGeLwAnDRLe4HlwcEs4mIbkRlew_uUlsE0uLPcDWTHU6QfX3VcuBPfcEISU1AN_EGJ9llljJKVgqQel0eiYjCl9IuZ8P-5QRp>\n\n문서<https://c.gle/ANnMTcbGxDoq8GjdufADwfEjuC1fVbNtchQQ1Zgd68YCWT3OTc4PRXDhgw6DHSvbNKk1YWG-blXhVFngMyXr-DXoSSmrSIVesLg8noepPXraTgs6Y0bGTNyrbPA0im3wdADsbTE3JjWp2vYz>\n\n포럼<https://c.gle/ANnMTcYFrgSsHBrcBTIeIBsemRr7bGDiY7Kzss1kwJmG8qC0oJnVhSSpiycApPi0DQBCR2yEnUaX78a3M-Whabry5t_yFUM8T_WGqWeNVttMYS8fkNi9VoRM6u9wTYPTam8R5KQvUR2wwl9U>\n\n청구<https://c.gle/ANnMTcbASCUtsQC6YlMAsXImWQUK-EqeWvn4u3TBOF0_-2uHsg7xc64pM2q3GBb6kUPSOjWn1IxneNP-cezUFeDJsZGO3NBne3OKRjb2D9WXSAClf4lHC2rTskxLMG0rnjeenl1ysgeXIxU5gDGy6GDZRWXDariX9f4GwSBhuJ1v8Q>\n\nGoogle Cloud­<https://c.gle/ANnMTcbB_MfFVGYBkkUbG9xh6kwomWkxg4DNmdA6xoYRUMrdpGkCcwI9ktQfyOqBgRejyt1Jai6yhct6E-VnV7TmNUzcd-NBnJYQc2XUM4t5BK6qtEeOIGfe4eQOOMlecvUY9x4>\n\nGoogle LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043\n\n본 이메일은 Google Cloud에 관한 업데이트 및 도움말 수신에 동의하셨기 때문에 surpport@arata.co.kr 주소로 발송되었습니다. 이러한 이메일을 더 이상 받고 싶지 않으시면 여기에서 수신 거부 <https://myaccount.google.com/communication-preferences/unsubscribe/gt/ANnMTcY0h0RdKqb3GaeEb9653c3kO5AEDYw_XBWHldBW5EV29NHNq3dZk_bQzkNCvSOTJr-CIRoOvFjAwSSBZyKsO0R8Zs46gfGX1EVfoqlcr--zU0Lfki7Q6fjN8hl2AsTS_SMMc_8cvAmgm0dXapxL5jjxX4B3JqQo21wfMmUkFIl58eDh0AFP3CMwoNCwkOb2Ai8wkes9o_LxHdxKDoRVadkHZIrgDwMgQU0jDRZl3mGgBoGH5JZq1WIKxrepCXwWovQT8qm__kfUGnJwW2lrOQ?utm_source=gm&utm_medium=email&auto=true>해 주세요. console.cloud.google.com <https://c.gle/ANnMTcaNmmqel02O-SQ7jLHg6FDqdHaOqM2XCOuFpvJX-sx2z6CUGQThTpYehmENeScbFZkD8maxw3zsu1_wLbBsKkjcfJnxJz1BGSzIa_6Xx3ztAtXUykpFoARQwuVr-6eU4gsZGajG9hVciW9KkCqSBVn-i7d-MA> 에서 로그인한 후 계정 프로필 페이지에서 환경설정을 변경하셔도 됩니다.\n\nGoogle Cloud 블로그 <https://c.gle/ANnMTcYoswHSUr3gPRZNI2nAuPY401PsvZeYRF8W2fPrZXBw9cA9i2RoOTP186fh7DFQZkz8GnhQs2YAoXSirp05Pbbdiv4BRgkiRHPETALCnsYzSNdnFd9ldy9b-Fb_NNKV>\n\nGitHub <https://c.gle/ANnMTcaH_PppEJD0tHMro4q13j6b878oaVz4JuU6Spnw844NVmN3I8gqU3b8_HesoB362M0_1VyWiQ6eW73xlj3xpSdrhBfLOEg1Ls08MKuMZwIkWD9-3osBvelfYin49ukZ285X2SxFrD_Cog>\n\nLinkedIn <https://c.gle/ANnMTcaHOkfta75cuaBFpczX2RZqlmH3K43GAZTAfZ4MOjZ8r2gJydTW3t-DUiFyOVV9LicQ58erULXHIf_CugBUkMuoHaGTRMIj8qcakUF0NE5fvEVCT2aViY1zb9Kzv8CTzPH2xPgLa_D3qPeZy_OUAwPjfSMF>\n\nTwitter <https://c.gle/ANnMTcZUDdWp50sp0ODaVqjzVuBV0fRDqbWv-YMaUQ2LfoWwg1MHqyBAlOg8WUKC1FDFRn7YpFSVcj1hIoIOVBJHBG9BhnuT6O_AyAHgd9UskL2W4gUkVPtanZKyuUUUMJOzTfTllQ>\n\nFacebook <https://c.gle/ANnMTcYGLvUH3vhTEXTkFKmk6awPtPe3aktYBSE98CwR0u58Vn_lnlEpa8NrbQT_mntZtovIBiNFFLAHlGlCb7MGXT-IfhhHWqZWvbKcmdqzcLjEw5DoulcMiCNJkgvu9QQLKmFmZfXKAr3UTXE>",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-13T10:14:15.915Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "f9c7eb91-a7f5-4547-90c3-dfe3d35d79ec",
+    "from": {
+      "name": "Google AI Studio",
+      "email": "googleaistudio-noreply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "[Action needed] Complete your billing setup for the Gemini API",
+    "message": "Email not displaying correctly? View it online<https://notifications.google.com/g/vib/ANnMTcY-bnup-jbZNylbouCNzr_INpsD1-z-MS417TvHybvXEGUV-1nHduUvm19KhVwDJBUbr_amgoL5r6jpJ8mhipactO_zRIKj7jTeEzAj4Y9YL5mIhZjyqDp4XJCZJmW4Q_I>\n\nGoogle AI Studio<https://c.gle/ANnMTcbtELNGVVfsJgDjVgSJSrEqqDYHZefR36b1JF4oxXHNtwyDV6ATVyOHta4vw8w4WJMjwUm2CnC6eI9Rs36yByNnjYhgPRe2xFPZPFxcTO1W8SulWQjrGcgLMKfpBldVr-w56IdfR_s>\n\nComplete your Gemini API billing setup by activating your Google Cloud account\n\nActivate your billing account<https://c.gle/ANnMTcbwg9saW7qO5XyjTDnhV0zka-Iihw3aMqrEVnpR5UkPvxFo9U_3iKl84jeQySFxkVAvw-Y11kQH_a3GArdXm0d1vPOZCFHp-mYbMYKJqL8Es7lNzi5yJXDWRTQB4m-ka9oqGjEy0fquW3QfHsPcP7vT_ES9O1agBWrLB2bYztUlHnWGLQY7nj20ZUo_5be57S9plhiwBL5bnQeipA>\n\nHi Surpport,\n\nYour Gemini API billing setup is almost complete. Although you’ve submitted your billing information, there’s one final step to enable billing: Activate your Google Cloud billing account<https://c.gle/ANnMTcZ2OoCVud9aeGW2Qyma_xAPTO_9Oq_ezXANyFXGNCPH5DtkRW3eC3D0NJ1GsAqHBplr4S_p1qDkAJGTYEUFB9KfrTHN8JxxR5ymPp_gFmyxRIjnVVuIe4UUkLf5vJPVap9hG-2ZpSGfyb-eN1PVY1fKffEaeGXxsDVGgt0R-6b3G2y7z3yjriB1BEptHpIHW3CygoQvuufNrEVkQ41tdwM>.\n\nThis step is required because AI Studio uses Google Cloud's billing platform. Activating your account now ensures your Gemini API rate limits remain at the current higher tier after your 90-day Google Cloud trial ends.\n\nActivate your account in seconds\n\nA visual representation of how to activate your account<https://c.gle/ANnMTca_Eaecthg49bzK4qxx_7eqDburflj8SRxN55gdPAJNKiOKWu_gm2XrEHhqu_UxsCzUqxq6UfwKEPVhSMKYD1pNdqfdTedfcSaupcYcEvNBZyFhvx_1wv3PIdientR8FhQMnhHUsSeBRiaWOXamJM4AayDfiyHOEvPMP06sj1FG2DWrjsw>\n\nHappy building,\n\nThe Google AI Studio team\n\n© 2025 Google LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA\n\nYou've received this mandatory service announcement email to update you on important actions to be taken related to your Google AI Studio account.",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-13T12:44:46.372Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "f5f29542-8d8d-4353-8c61-5a84b31ac5fc",
+    "from": {
+      "name": "Google Cloud",
+      "email": "googlecloud@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "Vertex AI에서 AI의 강력한 기능을 확인하세요",
+    "message": "Google Cloud­ <https://c.gle/ANnMTcYsLCH2NPXKwXAun-6FlEFhpIYoEYkQsLD9rBRpHmpex86A7nHPVSAlyezF1qQzbUYG8_d63ZpuQeKyLl90feFutXDo9aY4b6JjiVmaLacxDmMXo1dIAUWYUEoba2OrcEi-x5Xdhk8>\n\n혁신적인 AI 환경 빌드\n\n단일 프롬프트로 실험을 시작하여 Vertex AI에 대해 자세히 알아보세요.\n\n콘솔에서 Vertex AI 사용해 보기 <https://c.gle/ANnMTcYPHKGUAXlm7enZBuzg2nsAV8X08CAYoOSw2_k8r6_PNcqX8gT1_E0QANjWExdt68tokf2Dl5j6GbSNw9DWrnZVFiaNkw4WLsBiP7FilrqOhrMWS5NN1Gar5An8OHTEMsdHkd4ptfeIjEjRTKUpFLU-fYldzMxkWufIeyj1VgZwxAa9-exCZ8skENY2vJNivNTt4DXfTsI8tIC-Fde5Uy37htE>\n\n자세히 알아보기 <https://c.gle/ANnMTca0qxwsb0xyEc7YwJlyfeHtCihteBjHf4m2Wg2D617S9UHooHh3dYwT-d6k_qCP2zHslifsdVS0qf4tgUx2-lSr234jI_S-EOC2oHovdNkE2JIKGs9MmRLmBGAGiLI3MWrRrlJrAvqvBjufaQ>\n\nVertex AI Studio에서 생성형 AI 모델을 살펴보고 조정하고 배포하여 애플리케이션을 개선하세요.\n\nGemini 기반 멀티모달\n\n자연어, 코드, 이미지를 사용하여 간단한 테스트를 실행할 수 있습니다. 예시를 통해 모델에서 어떤 작업을 할 수 있는지 확인하세요.\n\n지금 프롬프트 입력하기 <https://c.gle/ANnMTcYKj6GqdZ00k8YO37hPrcFb0ODo_rcjFTBOmvpkmQWH7VisvLgSn1WAbRRoSfqzHlq_yO7gz25hy3f4qWY4yNZxXYbtZy8VUwzhNNM2CwuuwnM8EX5pWWHLd4gJlPfimgo4fRUFbzCgA2df9seLQMnWkSF9cxDNWA1BeA9XQ50SEGXLE45Q2u6by0yhEkzlbfUn>\n\n언어\n\n코드 생성 등의 비즈니스 업무에 따라 맞춤설정된 프롬프트를 만들 수 있습니다. 자유 형식 텍스트 또는 코드 대화를 이용하거나 특화 모델을 사용해 텍스트를 번역하세요.\n\n텍스트 생성 <https://c.gle/ANnMTcYcdDBRkOLAEueAodEp7E1GZWsadJVOeWXD-NEp9GBJZBKwyHfcj_Wd0b853V-W4U6Z_sJ1J9fk-zaOTQ-3OPadNgp0gwzgUv-IJDSGmXx81jEdYIBqlJ_I76KkxCQRs87JcpzFuqTwKKnEWYknEhkJwZr4FMeG0BuOjLViDqzb9PfFWm4c_5s5hu0EdzXJ>\n\n이미지 생성 및 비전 분석\n\n단일 프롬프트로 이미지를 생성하고 이미지, 문서, 동영상에서 유용한 정보를 도출하세요. 시각적 인식 기능을 애플리케이션 내에 손쉽게 통합할 수 있습니다.\n\n이미지 생성 <https://c.gle/ANnMTcZnge2SUdYC5-I2ew8g6_MthkO55W8OIwJhnfMhUF1zZL52GpKXa5P0o1U3mzFBGFx2sr-jXLCnAjAXo-SbZ_6bZvRvaJIrFrtBC4S8KUbOl7e_96pfy7RQHtA3NZsp5lco3B94gB6LO9lpIW7te1xYKhgChf9ADnAruvS-gcWhYH0O4gEmYQ>\n\n음성\n\n단일 프롬프트로 Vertex AI의 텍스트 음성 변환 및 음성 텍스트 변환 기능을 사용해 보세요.\n\n변환 시작하기 <https://c.gle/ANnMTcaoUlU9QkEv7FJiRw0mFPFHSpdxr9FqMbrp0XYqmcwsXdyZ-oDHa15NVxbzpytY9Ot5pRytumxg6hOlnKQaTow9SW974eeK12rGFvLDass7mP9LoCMPWqvCbXyUm1naEu53qF4ChbxyD_i90jQOA9OiBrgZcD3D75aNHDcaTBgwQHEjWVudcZl8JVtF77_jeUD1bGq7SLj5ZQ>\n\nVertex AI로 AI 개발을 강화하고 몇 분 만에 프로토타입을 프로덕션 단계로 발전시키세요.\n\nGoogle의 강력한 플랫폼에서 AI 애플리케이션의 신속하고 책임감 있는 빌드, 배포, 확장에 필요한 모든 것을 제공합니다. 선행 학습된 모델을 활용하여 빠르게 결과를 얻거나 사용하기 쉬운 도구와 Google의 AI 최적화 인프라를 사용해 자체 모델을 맞춤설정해 보세요. Google Cloud 서비스와의 원활한 통합으로 간단하게 배포하고 확장할 수 있으며, 강력한 모니터링 및 설명 기능으로 AI의 우수한 성능과 투명성이 보장됩니다.\n\n콘솔에서 Vertex AI 사용해 보기 <https://c.gle/ANnMTcZD5LKn-pmbWTALrdN_4T2acBTz_vybhMGkhvhZC9I63Wv0i9mSldMsJs2CpZpKe1S30KECgYfS1xbO9CgVJBRbEjxx1PkdMiT7b5CFve0CbptTNWu_DrxGWKGpMsSpTLJ6_P_LR5TG_xlWrn-2y7TYIX5FZga_9I3b_Scoko4TQG79rrfwGAP9in7xXGl_1Gu3nXmL43wV9A4eN5PnQgUYKw>\n\n자세히 알아보기 <https://c.gle/ANnMTcZ-7dlgcVwEdNYLh2VgCaYIywud6_Xg6Av_N_1sLpnPmxH-xJkMDoujvnbki80VAmRb0P8FF21i9JJbuhxLSpBLcHPYtcF2LyOJQGrHxO9ZLBoLSJ_Xxf_Eb973IjBCgWZKBvXbx4qqrxKW>\n\n구름 위에서 뵙겠습니다.\n\nGoogle Cloud팀\n\nGoogle Cloud 여정을 한 단계 더 발전시키세요\n\nGoogle Developer Program<https://c.gle/ANnMTcbbKlkSnuCnRrE1h34iZKOcTi4sv6ujDyhfKjLdEcg1QXJhKEeXaUSjQciKPpzrB1rdSPDghzuU3TfnJSUrPkE_rdu3dvjkzsU-W98uBc6D6GUd1zO2sFu6vxZkziXmf64bmnVObH8UhvGVyjr8GDt6J6knoY-eS5nWHHhshQ_fXjDkF8zrp9KRKZLK8bWxb_d3Js1vSgJDHSV5gfCMXoYhVB5fJcme96nmEoI93Nb4__tf_f-QV-WzpmAwAGN7R9ldqgksAr4YoYZi7f3JZMUW2fGqUaE9JAwRJrc2MaKihPjUJmCgMOOrz07ANC3al-1Dvy3RxVw4aQ>에 가입하여 최신 기술을 배우고 도구를 활용해 혁신적인 아이디어를 실현하세요. 가입 비용은 무료이며, 일반 회원에게는 Google Cloud Skills Boost에서 사용할 수 있는 월간 35 학습 크레딧<https://c.gle/ANnMTcbM_p9Uhf3bUSXnXEg8GAOjW137lGxKy0UG1WLKmEjfKXAkCjSsLZFg7u_-O4GNebNr5s1MJMAe0ypVjVc_Grhcg3hTZFYtrlKueCgPt9nZFkvAdw5_9X12GflreeQ6Ms-RJJPorlXNVScMt2mMJqhy8FZuflYRCVasoyMfiYVI4M_uKiz2853ozVF9VLo0fR-SKcjttJMmXbFv3NLPG25F-Dj4dfG2S0-isbiUeIG4_p-z2bdkBN8THMsWPSQyz9hHT6PoUK-4dPsSfUx5p3zFbCP4m9hx9UMa8tfR5FUHxqKlbXd1GMMJ5rc2OSSEBunRvnwXbuA6eSu4JsdR3ibUih0Dc9_bXQ3zs6js-16e-zkY>이 제공됩니다. Premium 멤버십<https://c.gle/ANnMTcYOZSAx6_HAeI83QBzwJI44klWXfv0dUdkop0oYJgcIgaCMVUfb1eqQInCIlim7FrwJIrwsTBP41WPKE4AI6_C34cFektvKvYBT2daivpz6Yjw8mfBbPKlYmtSfj1LvarYMp1s7z8lkv7c9_aCUN3WGAwlVTkDDzTTGc0FQeDX2Z2svS71HZaaspm5eFgB6epfhbcKc_POTZRdIKI1C3-brMZfCoUTlvkWZf-ZmjZar8pwCWrOV3-KgIxDgoTsHrcTL2m9ETCTWKSwX8HJ4wxfyw7lXAiwE2MJrf3HtHiDNLwvslp32lvfq5n7ZpNVZZitmnoGgbDXzmgOZq7Jd>으로 업그레이드하면, Firebase Studio 작업공간 30개와 Gemini Code Assist Standard를 이용해 빌드를 가속화하고 매년 $1,000 이상의 Google Cloud 크레딧을 받아 Vertex AI 등을 탐색할 수 있습니다.\n\n커뮤니티 <https://c.gle/ANnMTcYuyiA0U_7fBae7wNJQ6a0ZxQNDNT5QmZPiolEf07cDnY4aZdoQuAJLTDk5uaE2BOtqlU8hGkyQ8MXsmGDi9lfLKuPk9yHHgoe8vSW7sCyn5hFJwdhEQcj50udC8jJSmq38OYgTDYnMTosM3dU0qfhfVL7P-sQJIbg7LuQM0aOVma4icg>\n\n문서 <https://c.gle/ANnMTcaVggDXbSllnURRr8S95o1LR5xEoI8nTEL2mSWNko1prsfyarLra5qGIrIGsOLaoq7_VJsv7epS5kAdJtMDqqT_WZ2WTp1RZrfaMvfQ8dV3LGjZ3j-erznhEwfLemKrL8LHAM64o44R0pXLhGbWeVpt>\n\n튜토리얼 <https://c.gle/ANnMTcbXtdWobfdkBcuEwleEslw-q5qyitEUik-4b70EoVoXYyZQNE69ZhCKKAlnuM_ikL5yEZNmKWcuUdgiVbQCbwtVA7Bf_PdOIRhP-boSOw75y0p94fkzHRClOZLN5BKsROtWSwcf5Of2SXB9jzWwo7LFY89zV2Zg>\n\n지원 <https://c.gle/ANnMTca-da_byqMnlybYwFGNhDdwb8Kai6y3hckIUL_gqQcccBSgr6lJpyxNgTeCXQOTDJpWzww9Wp_rv9m0I-AzyjsprSAi71AgIUcGqdwol_OY9PXLfLjMDBP9fzZmt0ita7G4PfYy1jPA>\n\nGoogle Cloud ­<https://c.gle/ANnMTcYHTPCOGfnAGM_5XeNfh9X8ieO2iyYzVM_i57mlXXO1i9L_5ufXEkIY_tLTE11LhikmCoX5LCNsmbmtjXdXic5zB8bm8iScbpI691eWrN-hn6PMqLsaLX_ZZh4gnwpqWVTEGOFgLrU>\n\nGoogle LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043\n\n본 이메일은 Google Cloud에 관한 업데이트 및 도움말 수신에 동의하셨기 때문에 surpport@arata.co.kr 주소로 발송되었습니다. 이러한 이메일을 더 이상 받고 싶지 않으시면 여기를 클릭하여 수신 거부 <https://myaccount.google.com/communication-preferences/unsubscribe/gt/ANnMTcaZ70NDfX469814YQBtu7mWtbNjYoNH5dmvUmTiSPBNi2L23B_kYAfTVoBdyofsGwhG2cElbYUYjzuAZTtP1u_i4T-r9_Mem-dlh50qQD3R2VZirG43aKwzsJKQ16Hi93QyjtW7jZDxRsyA-cS-9SzKAy4-a3WsJRWaUJY_DKwNdeVq22InGeChYSm_2bBlrXeEHIoHSeewlq7uVxUXJ2xHBUVT4BxBUb3g75l-ZWu4FGbyAUBC6qI5hoduBwjMMXVaE7vs0MJK6QTg1c4ChQ?utm_source=gm&utm_medium=email&auto=true>해 주세요. 다음 페이지에서 로그인한 후 계정 프로필 페이지에서 환경설정을 변경하셔도 됩니다. console.cloud.google.com <https://c.gle/ANnMTcbLo_FPdpRFfoZ4CcOxNkcusrTb0aViNgaLpRXr6uTZHrVKG_jYi-cAGIw2PDry5iXN49dbC4q84SZxaL1PgMEFYMxk4eV1OSMEA4wqQE5tjbS6tIzXg0XuXGZjoPW9uMTHhQc>\n\nGoogle Cloud 블로그 <https://c.gle/ANnMTca0Sv4vFIl43emiRo4iAVdyqExZyEu-1qhyDmr_jRMoBxN_L0OeV6F8pshJugI18DKp5J0cjzzTX23itcenfXRpq_qK6qrEHCUVP85TcKVh52xfv8e2PmyM6F_5Jak3>\n\nGitHub <https://c.gle/ANnMTcaPI9JB22j7ohre9rvCENu2BfJ4QTX08X071akQVfW-i0fw0fBzksEg8Qz97GA5zDIg5ixi9aq_rsc-vCLkl8wpllQb7On3k13WR4Bbx6PYjApbcmr-iGlYfgIqN3VbkZkoVBepm-pIug>\n\nLinkedIn <https://c.gle/ANnMTcalW4VUBYHEc1IIsCfEwpqrxm05HxG-SWK3d8-rMKdpFmNw_BX3HEOVKj5aU6EzGWin55uf5qKurSABsIu-yOr_DD0J9slPlq8N8g9MnxsCVynv-u4LmABIRNU8vL0Q6bEolMEzBZ1zLM5BOqFnxTbG-b9o>\n\nX <https://c.gle/ANnMTcZQwXzdiSHRSFJjk_lTY8hMaqluHhFlfoCVDAzdAf_XA9KrWZADEjCvuomGIqN7FMOMm3ReNgcp9QiyIqLQJCUKXE5Vqi-6n1GodeQgbqQ-9wD8ubVUOTGYnyye9F1o_bgVrA>\n\nFacebook <https://c.gle/ANnMTca7nrBmZhP_zisQsfJE3QTJlBaFdCFcOy-v3hBvpbEWDzXfhAZOtSrr3ACXIXuUI_Qrtx1uSqXukLz6fv3f4NXAHyahqF5OIJeKs0c_RvlwX-5jq35lTL_y-zetsWJojYo_w0mUqToeUwo>",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-14T10:14:16.041Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "b21af46c-b2ba-43a3-bda0-f7aa6adf449e",
+    "from": {
+      "name": "Google AI Studio",
+      "email": "googleaistudio-noreply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "[조치 필요] Gemini API의 결제 설정을 완료하세요",
+    "message": "이메일이 제대로 표시되지 않나요? 온라인으로 보기<https://notifications.google.com/g/vib/ANnMTcbmF5pXauSVzgU8Z9fbZiZ3kx76e1iAyExmozAom9xhLydTTraWOHHCI3wD5KVKIexeTp5xPEymjsc2Snk9xCj7cvfPhU2MhllYlUa3eoarxizDScRcwQcda74sbq6XJX0>\n\nGoogle AI Studio<https://c.gle/ANnMTcbrmOx8XRxsCnlPErdHoiJkECNYzmjfLqLBHUHx1k_RNA8pHvlb8k_21uexb-4xepbwAhIg1ii9i5-1_ya5AiHm0OIWXPWdo8x7wbr1w_hd1Dj5-9AT8esZ1bXGT1LSBSoe9s4F8ko>\n\nGoogle Cloud 계정을 활성화하여 Gemini API 결제 설정을 완료하세요\n\n결제 계정 활성화<https://c.gle/ANnMTcYkBSf43fzkWf-VBU72RKrudZaroDuAd4JYdKMbDKDvGfKVAXHWu4pIvaPI5H63Augv2qndHjqnKC9CwyKS7zak2uVZo8R7GWVskDMuA9jW875aiklRM0QYmmGPIF7cNrJ7EzEInOPNshBo3LRbL8O6uBjKgXdC8vKxD0hyGj5-VAuQQH6rqhNjgBitNnLx-ra8NBWRvsP0Mh_cbA>\n\nSurpport님, 안녕하세요.\n\nGemini API 결제 설정이 거의 완료되었습니다. 결제 정보를 제출하셨지만 결제를 사용 설정하려면 마지막 단계를 완료해야 합니다. Google Cloud 계정을 활성화하세요<https://c.gle/ANnMTcYnZw7oAVJ1lxZpF4KSjJbQqCU0lRP9lrhhwWM-tBZqXX4espB3Lr6aiBLoZhaTmGOuCfMpnQnopGShzhlN15PQYyJbEmU2IBTkxvhryZrTZPLAJAO3bq6J8baAy-yUFmvHjfu2id1deFeoVA1XSluFm_um9ji2wYhErXF2MI2irndl7-pphxROjs-hpgQsgJsNUt0XtUSsN0HpFBfok6c>.\n\n지금 계정을 활성화하면 90일간의 Google Cloud 무료 체험이 종료될 때 Gemini API 비율 제한이 다운그레이드되는 것을 방지할 수 있습니다.\n\n몇 초 만에 계정 활성화\n\n하나의 프롬프트로 Veo 3를 사용하여 대화와 오디오가 포함된 동영상을 제작한 예시입니다.<https://c.gle/ANnMTcYL-_X-E6Uh06fmquQSMeTJYaQ7dneMiHlMryqZWNgkxtMlhbEWyeeD8Z9NgEJaopNb5_LG_4SgysbV1fqBIaZuAeW2cN7DPHubIBtE2mHoBM_V0ez9Yc9aEnF_yuGaoxYnCMUOp0AKw181>\n\n즐거운 빌드 되세요!\n\nGoogle AI Studio팀\n\n© 2025 Google LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA\n\nGoogle AI Studio 계정과 관련하여 취해야 할 중요한 조치를 알려드리기 위한 필수 서비스 공지 이메일입니다.",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-14T12:44:47.382Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "c098c048-c717-4e6b-9575-7443a5874cf6",
+    "from": {
+      "name": "Google Cloud",
+      "email": "googlecloud@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "Google Cloud를 통해 기술을 향상시키고 성공을 일구세요",
+    "message": "Google Cloud­ <https://c.gle/ANnMTcbhEVFLqjnLHq-V-F4eBR6qHrES0pcnKQWJOzOlWwTzlYawvL983lrOjwrB-IOcGrkQ6yNc1FXVgAzRMI3mAZC1JHyrRydw_I7iPkW-yE4hQTFijW6z8pAD4hYqqOoU_wg>\n\n새로운 학습 기회를 활용해 기술을 향상시키세요\n\n나만을 위한 Google Cloud 학습 기회가 제공됩니다\n\n콘솔로 이동 <https://c.gle/ANnMTcY2aqrCoA5ezeHv2OwoxlA3i5EWqaVpKnLGNuocUjNUWn7l9QU9LU3-VJKK-mzxRXirV9RuIsHbJ1GjsAvPO0lpXhxRJI9ZRAWZlv_W3p6UjKPTzIkxmSlvyU9AT-CzIWvZTjCJ9r4_PSB_FXA>\n\nSurpport님, 안녕하세요.\n\nGoogle Cloud를 통해 기술을 향상시키고 성공을 일구고 싶으신가요? 사용자의 배경, 경험 수준, 목표에 관계없이 Google Cloud는 모두에게 유용한 리소스를 제공합니다.\n\nGoogle Cloud OnAir\n\n주간 웹 세미나에서 Google Cloud를 최대한 활용하는 방법을 알려드립니다. 새로운 소식과 기능을 살펴보세요.\n\n무료 등록 <https://c.gle/ANnMTcb5oBYwDaxXYSMyKmRyNXOrUZim8qMSN0ujMLrRZyhxnBcmV16ON3VP2P9jDV-9MktssWgEKmpHxZGdByo0eMUxP-lgSBHnFhD2y2miEFMnDD87WmwHz_CUczAa6j9iSVPYoxp8cLGnOSqFesmpwzHt6xUx-uqmf52jHdNlszU>\n\nGoogle Cloud 학습 및 자격증\n\n역할 기반 학습 과정, 기술 배지 및 인증서를 살펴보세요.\n\n학습 시작 <https://c.gle/ANnMTcbCOaStZda-wP7dZidXXyh01cQlWi_cUQltHWhj3uKXX0_6aCU0BekFT9zm96IaNWIbvW-yiDDz5opA7piXN3G5Uiame4iLynLLVX1Kpe7Pj7UfFGsxsJla_ynOFw3h1tMn2uODb9RF>\n\nGoogle Cloud Skills Boost\n\n짧은 분량의 실습과 멀티 모듈 과정을 포함한 700여 개의 학습 활동 중에서 선택하세요.\n\n지금 탐색 <https://c.gle/ANnMTcbwQOQ0OBoApqr9jTjtc4uesB3z4cf25lTT4Uzes3kJRalHpIC1EzO8bwxTuZ7ArPP2cF7H-vi5a0wueb865QC1btlOJqq1bQy4YiXreoOClUyWhfj_sTsQ2KsEKqqEjdxSjhD7MHMO_lVgB1kcewWWSw>\n\nGoogle Cloud는 클라우드 플랫폼을 최대한 활용할 수 있도록 다양한 학습 및 자격증 취득 기회를 제공합니다. 주간 웹 세미나 시리즈인 Google Cloud OnAir에 참여하여 역할 기반 학습 과정, 기술 배지, 자격증에 대해 알아보고 기술을 한 단계 더 발전시키세요.\n\n콘솔로 이동 <https://c.gle/ANnMTcbOVfcA0B_KDp-bHz-8q2-ZO1zTHkIz3_th90QVE3CiN7jYxkm2UcjiDRlvwAB30apusbkna7z2gHNut6d4rmfG2Y5vmV_u-faXwrjLVDjseAUh21Uxss_QWYYHgbDgl-9uJGlO95Aul19HkA>\n\n구름 위에서 뵙겠습니다.\n\nGoogle Cloud팀\n\nGoogle Cloud 여정을 한 단계 더 발전시키세요\n\nGoogle Developer Program<https://c.gle/ANnMTcavQkLHBEctpVjeNsSF4BXkl-nPFia0KF_9rlcfcGGymvHbyA-BA-oRSm2ZhDRkMj3mrEjGhGsWB8ImObbaW3ZChtpd2PQmnS-ItaID811GZBR90sEu2lV5dFcqc6E7TPYV9lyD3gGoaeWRMia15x3iVburBePx1QO9t7-zcbJ1cxL7zyJEgvPvYnorzOIt9jTiBSrI-zbDkPg7nN7YQD1a330a4AIwtT6a0kPckp8XDQmjSffjYd1NV5jGwiOV4qTIzifskFIApga_UNtt6B2FA8XhSjPdB-mhpbrOS4YPZ8g6EWWJi2v84P4kqGSH6luILdacmEeHnw>에 가입하여 최신 기술을 배우고 도구를 활용해 혁신적인 아이디어를 실현하세요. 가입 비용은 무료이며, 일반 회원에게는 Google Cloud Skills Boost에서 사용할 수 있는 월간 35 학습 크레딧<https://c.gle/ANnMTcbffISAaI3n8kW9Xq7Oqk9c77dVwlZor413oIxsGFHx9fEAU_GQFYhY1zRbp5IyTro4CDnyW0U7r2L2ZFF71VS8DYj5kbcUi_nC3a2lnBZGUfRISfBIr7shb1Mooh5hjcVao1ZAEbLxCDiOCENmpu2VG6psuJKisHopwKLzSdD4AnLq5VO0gAIfnprU0JGcSeSV91tebLAQzd97oEsmKit0QPdBkM9aWrGcJ93kpCj_RljsiAECqvMpdemzREVZoAnkWSeTuCNzSOaakv-MUwER8KDrcxII0uHmoqrS_8cvhXz6gaJ1QgliOObwQHpKFzRk8ci5qaeO5L5b5YzTDBxUTOJd7Jl1u6-OuNK_KzFJBPbG>이 제공됩니다. Premium 멤버십<https://c.gle/ANnMTcavkWE51tJjq_kBHGl16un4M6335biWSkqfckHkChai4yb0uBCauSLX_bPKI75QTcg3txQHp-x61aovP5ZAGuLk9rv8ersLtz6XCze7pcHD16TiHIgbEPTJl5tG0XjZ3JL9h2AaMRvUlAUDX7V-b-wCRL9shhQIdInLjLwOO7_9gjez6dYZ1Q9zq6238QV4o3QfilHqv5oD06zmw7p0RDq-zm5QP_a7M2GP1A0rS-EtIITXpFgRKoLXsenw-3gI8G5mYAFntDSqq97hshjnDZzC07Dr-Guk2axg5hChPaHdu0bJmo4dT3f7SK3GDoe_zfpahM6q-cXDGJiD3ahd>으로 업그레이드하면, Firebase Studio 작업공간 30개와 Gemini Code Assist Standard를 이용해 빌드를 가속화하고 매년 $1,000 이상의 Google Cloud 크레딧을 받아 Vertex AI 등을 탐색할 수 있습니다.\n\nFAQ <https://c.gle/ANnMTcZOuy1zS1V5eKBu8HrEl52o4JaydMwWLqrQiVqnrLwnt7yZ8haDatk9oR4RSvxDWSeXgpBvxuuU9PVFKoLeEf0X43yH-lic-ArqP8nstqXvnNqN9Yupq7f97ilM-QgxNCNLIonjBtd6Rzb0pR6OQaEqDvtssspnH2n2uLOO>\n\n문서 <https://c.gle/ANnMTcaJTWcqOJ8qazMv6rSEQiWNw-R71Di487s3kVBMAlBlpvXB6gV21SWGom-wJSpsJKCILuY8Dzc5OXYSpTCOSJfuaiEW72z6hYB-v6gcWaAy8xLmsnlU70xVfOCjoCnR95Zzwd91BXG_>\n\n포럼 <https://c.gle/ANnMTcbcRNjoYogJkmJsmjzsvIFm_-NRj4fvqY8fuUSf-aCpA-na3YenL5Bw2KXH1lG9-iKeeh9Fv3mDrPdV77RXqWMeJ_Orc1DpsOOX4jyIfSVaJfzP2kZaLt3XElAS_bSwDZNvE0v_MUa4>\n\n청구 <https://c.gle/ANnMTcagrhyPU-Pq5-j8ishinhBvYcGhwafHmLJJBEnVRudqCyvNlOKIrlq5Fnxf1NU_vzVJUAiovNxTEoFXB6O3kvDFYPRlUP8DIhgUjhUt-8sgi2Oln5jurKfyDNpgvzyrBf3OeK7hXKyVNUh3r4Qv-uAC6PP2J40Dte7H7pe4hg>\n\nGoogle Cloud­ <https://c.gle/ANnMTcbhEVFLqjnLHq-V-F4eBR6qHrES0pcnKQWJOzOlWwTzlYawvL983lrOjwrB-IOcGrkQ6yNc1FXVgAzRMI3mAZC1JHyrRydw_I7iPkW-yE4hQTFijW6z8pAD4hYqqOoU_wg>\n\nGoogle LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043\n\n본 이메일은 Google Cloud에 관한 업데이트 및 도움말 수신에 동의하셨기 때문에 surpport@arata.co.kr 주소로 발송되었습니다. 이러한 이메일을 더 이상 받고 싶지 않으시면 여기에서 수신 거부 <https://myaccount.google.com/communication-preferences/unsubscribe/gt/ANnMTcZCGXfSnbzIKxZP1YNlnD7lS6BSYcvlLxeNP1H2WN-YKWS54qgjVjYlgPv2ciM0Kdf7QkcNT3RHUbrrF5V2sDR3Rl-DkhP8FAbllFeJBbtM_dD6Tzt7cqeU61Tgof2gOGcwu-mF8PxArW97DDyyFkZu5GdmRj3jRrojHuoi3wtCqV2JE0qZQnUw0omnEem1wLYMtj9LDPjkhHOS8SDNLDn4wx1xUADz0W5tNdoYJJV74V4wYe8FeBchHlkthyCy2x8nOY0mu-vTbvbXqM7ubA?utm_source=gm&utm_medium=email&auto=true>해 주세요. console.cloud.google.com <https://c.gle/ANnMTcaluJyrdxDWweKcB2qH9F_ztw5JBIElnL2h46KWVWBkhlyqFMdcLXR183HeDIfROu4MTcIbZ_RJdAHwOraRexQy84qRGzX2_Nm6iT5U2ThdJBwRee4PBmVbZ2d6Ho5bqhaZK7fle_fVXLIlYyzSOrq6v2Elyg> 에서 로그인한 후 계정 프로필 페이지에서 환경설정을 변경하셔도 됩니다.\n\nGoogle Cloud 블로그 <https://c.gle/ANnMTcZR3Dcqks0HETh5z66CeauOvGuQd2lJMfRatdwy9GZG4fhTtM-roKUzJ6-GTyTHKb1JhQgKAnf-88E83fwqc3z2Qu6oZDOHeAzY4TWb4jTwAd138e2XbQC1o5V_hUDd>\n\nGitHub <https://c.gle/ANnMTcaoGL8Jlmd0EpUIHLkQ3MDiWMCqm4naky7tV2V6GkTpt06NYjrNLrsKak5RTrvRiQv_qrl2g-GmKePP53WxtqY4ZbeEtNgDrnhGYbStyYz84BQ_vxM_iK7aViO5bVITMiX_Gw_js-l3ZQ>\n\nLinkedIn <https://c.gle/ANnMTcaRqlN4CSi1_D24IiKn9F2wobV7Y-Wb4dlBnVlv7xZB2jEZ92ZL8fRyf9Fnzq_fV5SGLe-AArgnKAhSTkWtKUWtuysxHFPzhqPSk6hoAa_EjuCwicYaX6BDktz2_w5rpcuNXZuD76OL6tvUBzJN4uePkOnx>\n\nTwitter <https://c.gle/ANnMTcY-y9TQyfL3AfjWohDLeFCpIB0opaH-4EsLdMU8I38jjVE_9H1N-ihqN0du_Ubo50S4yLyGkd-t7DlI22pZqo9GNeH6WbC3XBUHjHmeCgoIgBa0GiTfEo7ajFThWd7l7eoN_g>\n\nFacebook <https://c.gle/ANnMTcYd1XmiyH42dckIMpmZAwxbAiZSDhkwWuvOxeID5GOrTYMeFxITdgri-rX-tCe5uc1TgKwweXo6AENdE64xX-euNrESOyooJiRc3dkLVDM6xN7eNrUVxfC40So2XdNfN2ja7G5iBGwvZZw>",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-15T10:14:18.140Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-17T03:58:49.126Z"
+  },
+  {
+    "id": "9b447620-2780-4be9-8806-073f67b3a80d",
+    "from": {
+      "name": "Google for Startups Cloud Program Team",
+      "email": "cloudstartupsupport-noreply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "[조치 필요] 문테크놀러지: Google for Startups Cloud Program  업데이트",
+    "message": "\n\nGoogle for Startups Cloud Program 을 신청해 주셔서 감사합니다. 신청서 처리를 마무리하기 위해서는 아래와 같은 조치가 필요합니다.\n\n\n신청 시 기재하신 회사 웹사이트가 확인되지 않습니다. 즉, 링크가 로드되지 않거나, 귀사의 도메인과 일치하지 않는 다른 페이지로 연결되거나, 웹사이트에 귀사의 제품에 관한 정보가 충분하지 않습니다.\n\n\n귀하의 스타트업이 스텔스 모드(stealth mode)인 경우, 투자자의 협조를 구해 Google Cloud 담당자에게 투자 사실을 증명하거나 이 이메일에 직접 회신해 투자 사실을 확인할 수 있는 방법을 Google Cloud의 지원팀과 논의하시기 바랍니다.\n\n\n스텔스 모드가 아니라면 Google Cloud팀에서 검토할 수 있는 온라인 자료가 추가로 있을 때 다시 신청하거나 이 이메일에 회신해 알려주시면 신청서를 다시 처리해 드리겠습니다.\n\n\n\n그전까지는 <https://c.gle/ANnMTcZWgy7-g4PQ0RgtCD6qnwGOsIElzhZMMnW7Zk-prAtdVZHVy-pJflkFpGQCQbV880yhJqDEJ47Kpb0AdUz9b6Lb3HhStKJlw9FSBAF9IIU0lu66qvxreRksrH-NNhhL76d5waGsWqhD583hZ5w60Z0Xz0QnczUNltH65QuOVHNkPdjYVsNHsjTV5sd4L7uucs6mw1_KXN8l_JrZWEyW446igMHSvGLW>여기에서 Google for Startups Cloud Program 과 관련된 중요한 업데이트를 받아보실 수 있습니다.\n\n\n감사합니다\n\n\nGoogle for Startups Cloud Program 팀\n\n\n\n\n",
+    "category": "email",
+    "status": "replied",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-15T13:40:10.240Z",
+    "replies": [
+      {
+        "id": "b771b9c4-c17e-4c1e-99fc-e542f29935e8",
+        "message": "안녕하세요 문테크놀러지 CTO 이병상 입니다. \r\n\r\n신주 인수계약서 파일로 첨부드립니다. \r\n\r\n그리고 저희 자체적으로 개발하고 잇는 플랫폼이 https://arata.co.kr 이 주소이고, \r\n\r\n회사 주소는 https://moontech.co.kr/ 입니다! \r\n\r\n감사합니다!\r\n",
+        "attachments": [
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_áá®áá¡ áá¨áá£á¨áá¥(áá³á«áá¡á«ááµáá¢á«ááµ).pdf",
+            "size": 7311039,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(áá¡á«áá®á¨áá¡á«áá¥á¸áá³á«áá¢á¼).pdf",
+            "size": 7273096,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµá¨áá³áá©á«ááµáá§áá³).pdf",
+            "size": 6218317,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµáá¥á«áá¡áá¡á«áá®á«áá­á¼).pdf",
+            "size": 6357687,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµáá¥á«áá¦á«áá§áá³).pdf",
+            "size": 5938603,
+            "mimetype": "application/pdf"
+          }
+        ],
+        "from": "support@arata.co.kr",
+        "to": "cloudstartupsupport-noreply@google.com",
+        "cc": [
+          "mjymjwzlzl@gmail.com"
+        ],
+        "createdAt": "2025-12-17T04:19:45.901Z"
+      }
+    ],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-17T03:57:57.313Z",
+    "lastReplyAt": "2025-12-17T04:19:45.901Z"
+  },
+  {
+    "id": "06eadcbb-092c-45f8-8780-2d0662743c2b",
+    "from": {
+      "name": "Google Developer Profile",
+      "email": "googledev-noreply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "Welcome to your Google Developer Profile!",
+    "message": "Complete your profile‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌ ‌\n\n\n\n\nImage\n\n\n\n\nWelcome to your Google Developer Profile!\n\n\n\n\n\nGoogle Developer Profile, is a way to learn about Google technologies and unlock achievements. Your profile captures your achievements with badges and saves your progress as you complete pathways, which include codelabs and videos.\n\n\n\nTo better personalize your experience please visit your developer profile settings page and fill out your profile settings.\n\n\nComplete Your Profile\n\n\n\n\nThis email was sent to surpport@arata.co.kr because you've created a Google Developer Profile.\n\n\n\n© Google LLC. 1600 Amphitheatre Parkway, Mountain View, CA 94043.\n\n\n\n\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-16T03:29:52.579Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-17T03:57:52.405Z"
+  },
+  {
+    "id": "2e278c32-0673-4983-b7d2-826e2cee0d4c",
+    "from": {
+      "name": "Charles Anderson",
+      "email": "charles.anderson.leadstream@gmail.com"
+    },
+    "to": "info@muamla.com, 44292573info@ghb-emea.com, info@ghb-emea.com, \tcontact@moustachir.dz, abdou.bh.2002@gmail.com, info@moontech.ae, \tsupport@arata.co.kr, hello@moontech.co.za, 5545hello@moontech.co.za, \tsupport@monexo.ai",
+    "subject": "Web Summit Qatar 2026: Attendee List and Details",
+    "message": "Hi,\n\nHope you’re doing well.\n\nThe *Web Summit Qatar 2026 *is scheduled for *01 - 04 Feb 2026 *at the *Doha\nExhibition and Convention Center (DECC) in Doha, Qatar*.\n\nA compiled and verified list of *24,500 **registered attendees* is\navailable to help you enhance your networking and outreach efforts ahead of\nthe event.\n\nThe list features key details such as:\n\n   - Company Name,\n   - Contact Person & Role,\n   - Business Contact Information (Email, Phone, Address),\n   - Location Details.\n\nWould you like to receive additional information about this attendee list at\nan exclusive price?\n\nPlease confirm your preference:\n· Yes, I am Interested, please share pricing and details.\n· No, thank you\n\n\nThanks and Regards,\nCharles Anderson\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-19T05:17:11.924Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-22T06:02:10.987Z"
+  },
+  {
+    "id": "143e4e0a-9861-4fa3-9bd2-8137c44e6037",
+    "from": {
+      "name": "박명지 기자",
+      "email": "pmj@newseconomy.kr"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "문테크놀러지(주) 강태석, 문제용 대표님 인터뷰 취재 요청드립니다. - 경제IN뉴스",
+    "message": "p{margin-top:0;margin-bottom:0}\n    \n\n\n    안녕하세요,\n기업 혁신바우처 홍보지원 수행기관 경제in뉴스 박명지 기자입니다.\n\n\n\n\n경제in뉴스는 기업&CEO 전문 언론사로,\n대표님의 경영 철학과 서비스 하고 계신 사업에 대해 인터뷰를 요청드리고자 공문서를 송부드립니다.\n\n\n본 기획 취지는 대한민국 기업 대표님을 인터뷰하고 양질의 기사를 언론에 송출하기 위함입니다. \n대한민국 기업의 잠재력과 가능성에 주목한 뜻 깊은 인터뷰에 대표님께서 참여해주시길 바랍니다. (약 1시간 소요)\n\n\n[CEO 특집] 이슈&컬쳐 대한민국 기업의 힘! 기획에 대표님을 모시고 인터뷰 뉴스를 제작하려 합니다.\n전액 무료 기획 취재 건으로 직접 선정하였으니 긍정적인 검토를 부탁드립니다. (광고 메일 아닙니다.)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n※인터뷰 기사 참고 예시\n\n\n\n\nhttps://www.newseconomy.kr/news/articleList.html?sc_section_code=S1N2&view_type=sm\n\n\n\n\n\n\n\n\n\n※인터뷰 프로세스\n\n\n\n\n\n\n\n\n\n1. 인터뷰 일정 조율 및 사전 질문지 발송​\n\n2. 인터뷰 진행(녹취)\n3. 대표님 사진 촬영\n4. 뉴스 제작 및 담당자 컨펌 (초안 완성기간 최소2주)\n\n5. 기사 게재 (네이버 노출)\n\n\n\n\n※인터뷰 취지\n\n취재는 인터뷰 형식을 통해 대표의 경영 철학, 귀사의 제품 및 서비스, 사업 내용에 대한 이야기를 담습니다.\n\n대표님과의 인터뷰를 통해 귀사의 기업 가치를 높이고 관련 분야 최상의 경쟁력과 성과를 알리고자 합니다.\n\n\n\n인터뷰 과정은 소개/홍보 하는 형식으로써 자연스러운 대화(녹취)로 취재가 이루어지며\n\n취재가 확정되면 귀사에서 원하시는 뉴스 제작 형식으로 조율을 진행하게 됩니다.\n\n(기사는 네이버 검색 시 보여지게 됩니다.)\n\n\n\n\n\n\n※ 인터뷰 비용\n\n인터뷰/네이버 뉴스 언론보도 모두 무료(전액 면제)로 제작되며\n\n\n\n\n※ 본 기획과 관련하여 어떠한 광고 요구나 일체의 협찬 비용이 발생하지 않습니다.(인터뷰, 사진 촬영, 편집, 기사 게재 등)\n\n\n\n\n\n\n\n\n또한, 기사 게재 후 뉴스 보도 자료를 캡쳐하여 귀사의 마케팅 또는 영업 자료로 적극 활용하시기 바랍니다.\n\n\n※인터뷰 신청\n\n\n대표님 인터뷰 가능하신 날짜와 시간 회신하여 주시면 직접 사업장으로 방문하여 인터뷰 진행 도와드리도록 하겠습니다.\n\n\n\n마지막으로 귀사의 번창을 기원하며,이번 취재 건에 대한 긍정적인 답변을 바랍니다.\n\n\n\n\n\n\n\n▼네이버 송출 예시\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n상기 메일은 지정 된 수신인만을 위한 것으로 부정경쟁 방지 및 영업비밀 보호에 관한 법률을 포함하여 관련 법령에 따라 보호의 대상이 되는 영업비밀, 상업기술 등을 포함하고 있을 수 있습니다. 본 문서에 포함된 정보의 전부 또는 일부를 무단으로 제 3자에게 공개, 배포, 복사, 사용하는 것은 엄격히 금지됩니다. 본 메일이 잘못 전송된 경우, 발신인에게 알려주시고 즉시 삭제하여 주시기 바랍니다.\n\n\nThe above message is intended solely for the named addresses and may contain trade secret, industrial technology or privileged and confidential information otherwise protected under applicable law including the Unfair Competition Prevention and Trade Secret Protection Act. Any unauthorized dissemination, distribution, copying or use of the information contained in this communication is strictly prohibited. If you have received this communication in error, please notify the sender by email and delete this communication immediately.",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-19T06:48:45.002Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-22T06:01:20.192Z"
+  },
+  {
+    "id": "ffc83525-ec4f-46f5-9ee2-5bbb498468a6",
+    "from": {
+      "name": "jason.clark.leadrise",
+      "email": "jason.clark.leadrise@gmail.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "Who’s Attending the Web Summit Qatar 2026? Find Out Here",
+    "message": "Clean\n  Clean\n  false\n  \n  \n  6 pt\n  6 pt\n  0\n  3\n  \n  false\n  false\n  false\n  false\n  \n  \n  EN-US\n  X-NONE\n  X-NONE\n  \n  \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n  \n  \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n  \n\n \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n \n\n\n\n\n\n\n /* Style Definitions */\n table.MsoNormalTable\n\t{mso-style-name:\"Table Normal\";\n\tmso-tstyle-rowband-size:0;\n\tmso-tstyle-colband-size:0;\n\tmso-style-noshow:yes;\n\tmso-style-priority:99;\n\tmso-style-parent:\"\";\n\tmso-padding-alt:0in 5.4pt 0in 5.4pt;\n\tmso-para-margin-top:0in;\n\tmso-para-margin-right:0in;\n\tmso-para-margin-bottom:8.0pt;\n\tmso-para-margin-left:0in;\n\tline-height:115%;\n\tmso-pagination:widow-orphan;\n\tfont-size:12.0pt;\n\tfont-family:\"Aptos\",sans-serif;\n\tmso-ascii-font-family:Aptos;\n\tmso-ascii-theme-font:minor-latin;\n\tmso-hansi-font-family:Aptos;\n\tmso-hansi-theme-font:minor-latin;\n\tmso-font-kerning:1.0pt;}\n\n\n \n\n \n  \n \n\n\n\n\n\n\nHi,\n\n\nHow are you?\n\n\n\nWeb Summit Qatar 2026,\na pre-registered 24,965\nAttendee list is now available! to fulfil your promotional efforts.\n\nDate: 01 - 04 Feb 2026\n\nVenue: Doha Exhibition & Convention Center (DECC), Doha, Qatar\n\n\n \n\n\nCould you let me know if you want to\nreceive the Attendee List with the Exclusive fee?\n\n\n\nList Includes: - Contact information, email address, company Title,\nURL/website, mobile number, and title/designation etc.****\n\n\n\nKindly describes your response:\n\n\n\n· Yes, I am Interested,\nsend me exclusive Fee and More information\n\n· Not Interested\n\n\n \n\n\n\n\n\n\n\n\n\nThanks & Regards\nJason Clark",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-19T07:06:14.971Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-22T06:01:57.153Z"
+  },
+  {
+    "id": "5841560d-0952-4e16-9d93-6fa8b61c67b9",
+    "from": {
+      "name": "camila.morgan.leadspro",
+      "email": "camila.morgan.leadspro@gmail.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "Web Summit Qatar 2026: Who’s Attending? Find Out Here",
+    "message": "Clean\n  Clean\n  false\n  \n  \n  6 pt\n  6 pt\n  0\n  3\n  \n  false\n  false\n  false\n  false\n  \n  \n  EN-US\n  X-NONE\n  X-NONE\n  \n  \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n  \n  \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n   \n  \n\n \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n \n\n\n\n\n\n\n /* Style Definitions */\n table.MsoNormalTable\n\t{mso-style-name:\"Table Normal\";\n\tmso-tstyle-rowband-size:0;\n\tmso-tstyle-colband-size:0;\n\tmso-style-noshow:yes;\n\tmso-style-priority:99;\n\tmso-style-parent:\"\";\n\tmso-padding-alt:0in 5.4pt 0in 5.4pt;\n\tmso-para-margin-top:0in;\n\tmso-para-margin-right:0in;\n\tmso-para-margin-bottom:8.0pt;\n\tmso-para-margin-left:0in;\n\tline-height:115%;\n\tmso-pagination:widow-orphan;\n\tfont-size:12.0pt;\n\tfont-family:\"Aptos\",sans-serif;\n\tmso-ascii-font-family:Aptos;\n\tmso-ascii-theme-font:minor-latin;\n\tmso-hansi-font-family:Aptos;\n\tmso-hansi-theme-font:minor-latin;\n\tmso-font-kerning:1.0pt;}\n\n\n \n\n \n  \n \n\n\n\n\n\n\nHi,\n\n\nHow are you?\n\n\n\nWeb Summit Qatar 2026,\na pre-registered 24,893\nAttendee list is now available! to fulfil your promotional efforts.\n\nDate: 01 - 04 Feb 2026\n\nVenue: Doha Exhibition & Convention Center (DECC), Doha, Qatar\n\n\n \n\n\nCould you let me know if you want to\nreceive the Attendee List with the Exclusive fee?\n\n\n\nList Includes: - Contact information, email address, company Title,\nURL/website, mobile number, and title/designation etc.****\n\n\n\nKindly describes your response:\n\n\n\n· Yes, I am Interested,\nsend me exclusive Fee and More information\n\n· Not Interested\n\n\n \n\n\n\n\n\n\n\n\n\nThanks & Regards\nCamila Morgan",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-19T07:34:34.199Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2025-12-22T06:01:57.968Z"
+  },
+  {
+    "id": "3acf7b0d-9af4-4509-9654-288a8046da22",
+    "from": {
+      "name": "Google Cloud",
+      "email": "googlecloud@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "Your Startup Holiday Toolkit: Credits, extended trials, and Gemini 3 Flash",
+    "message": "Build fast, spend less. Your holiday toolkit has arrived.\n\n------------------------------------------------------------\n\nHi 병상,\n\n\nThe holidays are a great time to recharge, but if you're shipping a new feature before year-end or mapping out your Q1 architecture, here is what you can unwrap today:\n\n\nNew and noteworthy\n\n\n- Gemini 3 Flash on Vertex AI: <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqieZjjLX0W9qgclmRQTCDJ9RlErOdtHY7sV6Qhw2xXSzHThtDlJxDw6touvORJh7LYpm_BElqEUJOvCF1bjsE48sykJvlZpxwXUD3Fo_oOSBZKj3iz3ywSajlmBMDa4Yqdld9ysmp4tAJ2Bx0iMyHSeY1fhOJEZLY7fqxOdEuLENuLkXB7_G4tC9xqUEF51XBmWSFtnM654T-W94vWOQUDP9Ycc1Eldyuro8iL6j3HEKi3UZ8Ddo-EscrwOPsJLeB937-AiK-eCxjNQU8Svce7lxmjw4UvrQ07Lb2dDMbAwKT/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=> Pro-grade reasoning and near-real-time responses at a fraction of the cost—perfect for building engaging, low-latency experiences on a budget.\n - Gemini Live API on Vertex AI: <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqiUSOgXzu5d9qwIKSl-QhkAexeggc6tIoZCG-OtqnsyuNSZjtEFiebmC8gXTA_b7Ru-2_PvkAfRiPg3MFBQ46OtZ_5vbN8c31AJkwAOO0vNq7fY8wpNVXcSpSuszmV_o3hFWkq5T-spM1f9eQBgzMZPoLTxAK-2_LSv_kTkTglJgV_OGz_TEcOXaI9srvJa2rPW3RjcSVtgTfXeuoZflm21NsTy4K_2fC6DUVHx1Cj-Br0GXaDIt89-UdXSAH8fKG0J8lozVzKeEWE875osExIoRmuhOvPs4YkrwzcC6jV1ZuiFHfYtTLv45mbeeE-PrzUQSKb4dwFrzAmiwCORUSF24=/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=> Eliminate latency and build real-time conversational agents for voice and video, creating immersive experiences that feel natural, human, and instant.\n - Agent Builder Update: Take agents from prototype to production with an upgraded toolkit—featuring the Cloud API Registry, State Management rewinds, and visual Agent Designer—enabling you to build faster and scale efficiently at lower costs.\n - Gemini 3 Pro <https://go.cloudplatformonline.com/dc/fccew7v9lzh4qm7VF7OiRxjwT9qfn7LIdP0QSURDMxU88Q519SP0i6lu1FIhoUN7oXjH1wRQw0v4ycDv8dTB2nFqsDhfVR17HZAfWV0ShcRLpv7GGGsElNR1ffz1Ax2JMF0i59XaN1czziQ0Q1n0F8WVfSFhlKx1s7uAEuqdCpqElhTAJ2xjiEHeB_llte-Y1f9LB0KGFvhKeCWlnvnJkO6lyafqcg-oxizd0D_H0Hs=/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=>: Experience our most capable multimodal model yet. Now available to test and build directly in Vertex AI and Google AI Studio.\n - Nano Banana Pro <https://go.cloudplatformonline.com/dc/fccew7v9lzh4qm7VF7OiR87iqlhV0f-JV4gQI5jHA-1fW6NA-WY8NNLij6PIHeFe-mUYIk7cmU2jGy42_1QnAQWgThl9KkZDlc2AzwGdohQnP7qPsVDhPTpkt08ZGhQEuIQtAJElp0Dl0JWd81thJyQUe6MJn6kmyXCpdGxKFzlyZRObbKpLFj18lnaVZqzQ9FcIgwrQfzAbSn2QICbriw==/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=>: Create studio-quality visual assets in seconds. It features advanced text rendering, consistent character generation, and 4K upscaling—perfect for mocking up UIs or creating marketing materials on the fly.\n - Next ‘26 <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDlmD-UwN8SOPWSi40Ur7DMh40hiigV8tfrjJjyzwt9DH2ehBjoHvzEfDT155Und_IUo=>: Join us in Las Vegas from April 22–24, 2026, for our most interactive Google Cloud Next yet—register now for just $799 USD using code 799STARTUP.\n\nWant to test out our newest releases and build your own agentic workflow? Our updated AI Agent Guide <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDt4jOTR32RejJBI1LT4VRjN4hxFfbDPSNemZnFYPPgB78VHi8g20ZX7KXFHQ7RmHgtk=> covers everything from architecture to deployment.\n\n\nExtended trials\n\n\n- Spanner <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDvf0J7tpYMq_gxSOogZP0yL9oqZ_UM94Z76gBKQGSS0lXAyu_H4u5tw76rHBLTtl7zI=>: Get a 90-day free trial of the database with unlimited scale and up to 99.999% availability.\n - AlloyDB for PostgreSQL <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDs_E4npdJrEYIF4bOXJS8mCkdEzDwwfg1PS8PLRFXkxwOLHc4gDfK9lRVZzjWYqzOt8=>: Try our fully managed, PostgreSQL-compatible database free for 30 days.\n - GKE (Google Kubernetes Engine) <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDkpWTnk6Yv1ORbdeL5o4AcAC4cu-jALML27wPAsngNvGAAV181RBYZ3ZAxxOwCfmI0g=>: Start with $300 in free credits for new customers, plus one free zonal or Autopilot cluster per month.\n - Looker <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqicQe6rysKgzGknNiL6WEWtL-Fl0UGqUWzLZt4cTqCZvns1gMPSR_lwiZOMxsg_MRFlQ69P5xnM77DKWRelCtTCAHZuni1Mkobp1sKH6m6vmH8ec0_drlFiSEAeOPLFS5zeK8ZFlDlWgXaqG4Ohnd8pJEkFM5_WQHEEDJ3vvWR4oC8OoQh-_ZbvR9mq1ZzDV6s4B0DbvEPtnDnGveJLDWaUc=/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=>: Turn data into insights with a 30-day free trial of Looker Studio Pro.\n\n\nBuild your foundation\n\n\n- Google for Startups Cloud Program member perks <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqiYS27oCTiVtFNAsgUexFI4jCIq5g7318unZvfA4VgVvuqrLgnYXBzBvwiHuFTMS_zHFAbPNhG2EnYZRd9WhCiJ-1WwdSn243ydCPDtfUDQmEf4WJJe---knHGz31e3mkpQJhp6FkcJkdvvYq7WM3I3B4SDVzkkDD1fH2GmcOksI_C2iYt56-Zz7KD0hfyvYVlqGw6anucI8DJ36EUWimzfQsBhIeNXszY0ILpPTB5Xqs/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=>: Unlock exclusive offers from top partners like Anthropic, ElevenLabs and Elastic to power your AI and data capabilities in the new year.\n - Pre-built solutions <https://go.cloudplatformonline.com/dc/05bvKMhbAn99mMxYB4-g6J4V_bYzt6dTalLkgq1W0wFGbzqYDZ_Gg5WiUKbpApsZXDXicSzOHmGDq1FQqm1cY1QSqSvddhP4HZDVbEJAjUjK0sxyXSW-vDbJsFB8WEGpkRwmD1z1INjtCRQhiicw7lorX7_UNsYVME22HDp6UmeCPkDdLRZy2sAdrt624t9E5jqFbfXsbX_gdhdvybkGKEwx1H2yXzfYpMFwh_L8-XpG2Pie2MUXldHZvS0SoRrN9rD5rxRylPXDYLUotOrBxQ==/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=>: Don't start from scratch. Deploy jump-start solutions for common use cases like RAG, chatbots, and ecommerce recommendations instantly.\n - Updated Technical Guide <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDqHkzJGGSCo_lS6FrlILypf8CrzfSutz4RXMJ0I3VfWWDLW7u8OcuEYUHyC0032nKx8=>: Ready to build your own agentic workflow? Our AI Agent Guide covers everything from architecture to deployment.\n\n\nAlways available\n\n\nKickstart your next project with the Google Cloud Free Tier <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqieu82Ysq8gtiX7GksBCvD91-7NQ2btpaUA87raUpQEF4z7FJz-qdEKY-aZiQNgaQypKdHTZam1Q0TgVQKdXxN-u2U3JSa7d9-naQjKET60u36QK4aJsaHpW56QI5PuVwibACzlL3pFzpxrrLIMIOM1023q6XSqPDbTxF0J4QupDcfkPntj-qOd8D4J2UVvqfozYP-Hs4tPIrxVg6e0fi55NdFQLHhEoWp4Ia9Qeznueb/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=>. Get monthly free usage of 20+ popular products, including:\n\n\n- Compute Engine\n - Cloud Storage\n - BigQuery\n - AI APIs\n\n\nContact us <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqiYCY_WqdvlGke0e00zseTY9j_x42Yfd_PSTvdoqNqGrdy9QH5gcUgHfqpEruS_2VNeEmFUuTI1rpd_3MCMvWugld_SsD9T5dSPB_lgKnvwt4RZ_g2DyJFbOZvIEcVkhmnoBx9ffGePujGzAXFlFq9LNSt9PXmKxbX3HVx9QsE0m4moR024YmsdgddRFANCe8eHuq33cz9puNqHZTJ6Fm-38=/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=>\n\n\nHappy building, and happy holidays,\nThe Google Cloud Team\n\n----------------------------------------------------\n\nGoogle Cloud Next 26 <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDuM6D649Rkfk86DJa434EGkfgV44c-XPcf_UvcPe-sOsU4uL-T87DI03dVex4-LzRBE=>\n\n\n\n© 2025 Google Asia Pacific Pte. Ltd.\n 70 Pasir Panjang Road, #03-71, Mapletree Business City, Singapore 117371\n\n\nWe sent you this email because you have indicated that you are willing to receive periodic emails on news, product updates, and invitations to events from the Google Cloud team. If you no longer wish to receive these emails, click on the following link to unsubscribe <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqifthbYqnCveUjQWzTAy-DQ4O-23YJ-Vi_rQVP9lcz0MDQq8q1LF63UDwBInbVGekD0LDPPlvl3rAqsU6e7AQt9BBB7ZlAzDcc8AJSXPYA2fLU6VRZIwhlmhFqpkGNM4AqslUte-zH3HfSdSFq9N0qiRNiIHFNM2N9_FmeVXnMQcAPhDi4Hv-LbNHKYWglEi2gK4w7I7_1Yz3ZCLWvzYQXJMmh4ldSdh41YWWXsnCy5Xz24UkCdTNWwgk7DiXDvRwqf5s68FTQBcbvPoq0hFGH45WEIdkZ3dkImlsAmBgLD_EaXXWt7Z0UrfhlcxHGji0gWsgWXlJAX6CjjkcEubuVrJ2Sjt1Js49gC8fkhme1xlY8CgqOElsNdKVrRUvFKNrOCkcbTTvxxZGBR-8WJQHXWpmiVooqoEWZ5a9ZkAvwLIfYt4CngDgcBsXTK5cxYfcaHHuPPPd_afjtA9CKWFDisqdqaGTnB0L3_IawAEho82J5s4rPvDuLafir5uEdGaYXD_CrZv0xSDQxzIUnKM83p8B74GSIfwBUV6ONxL8jLpyqwP1mtnHi59wlMgMbpP0fg==/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=> or customize your communication preferences <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqifthbYqnCveUjQWzTAy-DQ5ko5ry5oZ9ORE4EUlBn9vnzVVF7HdbN1uxX__QeRbMyGyk1CjJLs-dYC3yuxScNh2E05SwW8GDtLfZES7sHbVHZrv5yPOM_2uQRySV9jWCfNctQtbenvzfVJLXzNwGYvpjYDDmhUqzANjAN8qHc3AghwOCDYNey3C0VELMnMXcMS2Dv4dsQiNpBe-0m2XyGqV1Zz4yqO47_E1SL3m0upPsgK3WfvVkbpVaFNEztfcxTxZmRZev2-TDt68oCMCmuwUsy6WbkxfaWh8haFjsBprRvuRNPG0xUTVzFyKmzjPX_lSdcPfm9pqVOaXdPR412LmNAasXGZULSICnMqozxRAi/ODA4LUdKVy0zMTQAAAGe5c3CDv1Ij5b7F5KV5HlSI38266Egeu0s2nG32XPKE0sXVKzdjAg1nvRGDW7JEDp9W7gJHho=>.\nBlog\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDmfEvWIcpLXGkOKbFJA5OagOcsnuUQgr8Zms-009m8URkWJkgv12no1MlKvsJn4t-Vc=>\n\nGitHub\n <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDtzxJPKJcyGSS3lMwzJ-ckCiEYkwEkD5l4qUjFLp8XggDdzwyG44mpYSp5K-a0QnPLc=>\n\nLinkedIn\n <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDhF699P_Or21w5uQhFIfDnPVBFSgz3S5GaCqA2f_AZUiwTnNcjckDeur8n_ub4hFSSw=>\n\nTwitter\n <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDoPGKMlujxrbZLenW4MnnbyBCRy982WQKkP62xXWXaMg2dYhpWxAxtIygwfFo5lWsbw=>\n\nFacebook\n <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c3CDqbUaVItR_wrTEuBM5gw9HvbtWXrH4LGLOafEF4gLGY_F514r2lE8q2uh6Rv2dZ8Qgk=>\n\n.\n",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-22T16:12:11.050Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "fe99ec26-1b91-47ba-a3a7-829cb1c3c39a",
+    "from": {
+      "name": "Google Cloud",
+      "email": "googlecloud@google.com"
+    },
+    "to": "support@arata.co.kr",
+    "subject": "Your Startup Holiday Toolkit: Credits, extended trials, and Gemini 3 Flash",
+    "message": "Build fast, spend less. Your holiday toolkit has arrived.\n\n------------------------------------------------------------\n\nHi 병상,\n\n\nThe holidays are a great time to recharge, but if you're shipping a new feature before year-end or mapping out your Q1 architecture, here is what you can unwrap today:\n\n\nNew and noteworthy\n\n\n- Gemini 3 Flash on Vertex AI: <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqieZjjLX0W9qgclmRQTCDJ9RlErOdtHY7sV6Qhw2xXSzHThtDlJxDw6touvORJh7LYpm_BElqEUJOvCF1bjsE48sykJvlZpxwXUD3Fo_oOSBZKj3iz3ywSajlmBMDa4Yqdld9ysmp4tAJ2Bx0iMyHSeY1fhOJEZLY7fqxOdEuLENuLkXB7_G4tC9xqUEF51XBmWSFtnM654T-W94vWOQUDP9Ycc1Eldyuro8iL6j3HEKi3UZ8Ddo-EscrwOPsJLeB937-AiK-eCxjNQU8Svce7lxmjw4UvrQ07Lb2dDMbAwKT/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=> Pro-grade reasoning and near-real-time responses at a fraction of the cost—perfect for building engaging, low-latency experiences on a budget.\n - Gemini Live API on Vertex AI: <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqiUSOgXzu5d9qwIKSl-QhkAexeggc6tIoZCG-OtqnsyuNSZjtEFiebmC8gXTA_b7Ru-2_PvkAfRiPg3MFBQ46OtZ_5vbN8c31AJkwAOO0vNq7fY8wpNVXcSpSuszmV_o3hFWkq5T-spM1f9eQBgzMZPoLTxAK-2_LSv_kTkTglJgV_OGz_TEcOXaI9srvJa2rPW3RjcSVtgTfXeuoZflm21NsTy4K_2fC6DUVHx1Cj-Br0GXaDIt89-UdXSAH8fKG0J8lozVzKeEWE875osExIoRmuhOvPs4YkrwzcC6jV1ZuiFHfYtTLv45mbeeE-PrzUQSKb4dwFrzAmiwCORUSF24=/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=> Eliminate latency and build real-time conversational agents for voice and video, creating immersive experiences that feel natural, human, and instant.\n - Agent Builder Update: Take agents from prototype to production with an upgraded toolkit—featuring the Cloud API Registry, State Management rewinds, and visual Agent Designer—enabling you to build faster and scale efficiently at lower costs.\n - Gemini 3 Pro <https://go.cloudplatformonline.com/dc/fccew7v9lzh4qm7VF7OiRxjwT9qfn7LIdP0QSURDMxU88Q519SP0i6lu1FIhoUN7oXjH1wRQw0v4ycDv8dTB2nFqsDhfVR17HZAfWV0ShcRLpv7GGGsElNR1ffz1Ax2JMF0i59XaN1czziQ0Q1n0F8WVfSFhlKx1s7uAEuqdCpqElhTAJ2xjiEHeB_llte-Y1f9LB0KGFvhKeCWlnvnJkO6lyafqcg-oxizd0D_H0Hs=/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=>: Experience our most capable multimodal model yet. Now available to test and build directly in Vertex AI and Google AI Studio.\n - Nano Banana Pro <https://go.cloudplatformonline.com/dc/fccew7v9lzh4qm7VF7OiR87iqlhV0f-JV4gQI5jHA-1fW6NA-WY8NNLij6PIHeFe-mUYIk7cmU2jGy42_1QnAQWgThl9KkZDlc2AzwGdohQnP7qPsVDhPTpkt08ZGhQEuIQtAJElp0Dl0JWd81thJyQUe6MJn6kmyXCpdGxKFzlyZRObbKpLFj18lnaVZqzQ9FcIgwrQfzAbSn2QICbriw==/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=>: Create studio-quality visual assets in seconds. It features advanced text rendering, consistent character generation, and 4K upscaling—perfect for mocking up UIs or creating marketing materials on the fly.\n - Next ‘26 <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8egySDjReXfuc77lOG-BdU0tTtfjakEzR8wElnERBBB0HR0k6dgFCKH3Y8ICr3HK7A7wE=>: Join us in Las Vegas from April 22–24, 2026, for our most interactive Google Cloud Next yet—register now for just $799 USD using code 799STARTUP.\n\nWant to test out our newest releases and build your own agentic workflow? Our updated AI Agent Guide <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8egzDV4kvgrTNQi6iC9cB8X8_Z1MQwNdpI-TxXGqhfb4lxdsQJHtP2KA09YSlppfKb3d8=> covers everything from architecture to deployment.\n\n\nExtended trials\n\n\n- Spanner <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg-RFoDuLU7POT1MxZoaM9p4Leph4oGa-soxO0xPw45oleHi_76urOoCUsUmS8BZgZVI=>: Get a 90-day free trial of the database with unlimited scale and up to 99.999% availability.\n - AlloyDB for PostgreSQL <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg3w2_GD5YGMPBJbc8mREw4vWw7S2jOajdYLXL5n3E8Z6vbY3GERTWcqFkrKz2R-vaZs=>: Try our fully managed, PostgreSQL-compatible database free for 30 days.\n - GKE (Google Kubernetes Engine) <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg5fuaOksxN6rlQg46UQ1CQBO5baYtU-B-ugsp6-pi62_KiL7F3H1cIpXIY_UKc2-0C0=>: Start with $300 in free credits for new customers, plus one free zonal or Autopilot cluster per month.\n - Looker <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqicQe6rysKgzGknNiL6WEWtL-Fl0UGqUWzLZt4cTqCZvns1gMPSR_lwiZOMxsg_MRFlQ69P5xnM77DKWRelCtTCAHZuni1Mkobp1sKH6m6vmH8ec0_drlFiSEAeOPLFS5zeK8ZFlDlWgXaqG4Ohnd8pJEkFM5_WQHEEDJ3vvWR4oC8OoQh-_ZbvR9mq1ZzDV6s4B0DbvEPtnDnGveJLDWaUc=/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=>: Turn data into insights with a 30-day free trial of Looker Studio Pro.\n\n\nBuild your foundation\n\n\n- Google for Startups Cloud Program member perks <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqiYS27oCTiVtFNAsgUexFI4jCIq5g7318unZvfA4VgVvuqrLgnYXBzBvwiHuFTMS_zHFAbPNhG2EnYZRd9WhCiJ-1WwdSn243ydCPDtfUDQmEf4WJJe---knHGz31e3mkpQJhp6FkcJkdvvYq7WM3I3B4SDVzkkDD1fH2GmcOksI_C2iYt56-Zz7KD0hfyvYVlqGw6anucI8DJ36EUWimzfQsBhIeNXszY0ILpPTB5Xqs/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=>: Unlock exclusive offers from top partners like Anthropic, ElevenLabs and Elastic to power your AI and data capabilities in the new year.\n - Pre-built solutions <https://go.cloudplatformonline.com/dc/05bvKMhbAn99mMxYB4-g6J4V_bYzt6dTalLkgq1W0wFGbzqYDZ_Gg5WiUKbpApsZXDXicSzOHmGDq1FQqm1cY1QSqSvddhP4HZDVbEJAjUjK0sxyXSW-vDbJsFB8WEGpkRwmD1z1INjtCRQhiicw7lorX7_UNsYVME22HDp6UmeCPkDdLRZy2sAdrt624t9E5jqFbfXsbX_gdhdvybkGKEwx1H2yXzfYpMFwh_L8-XpG2Pie2MUXldHZvS0SoRrN9rD5rxRylPXDYLUotOrBxQ==/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=>: Don't start from scratch. Deploy jump-start solutions for common use cases like RAG, chatbots, and ecommerce recommendations instantly.\n - Updated Technical Guide <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg8JcQWTbga2PkgUI65XUvP9qFlwWsZXlYTfCeo_DLD1t6_049F1zj2Yu9_FgHa-UoZU=>: Ready to build your own agentic workflow? Our AI Agent Guide covers everything from architecture to deployment.\n\n\nAlways available\n\n\nKickstart your next project with the Google Cloud Free Tier <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqieu82Ysq8gtiX7GksBCvD91-7NQ2btpaUA87raUpQEF4z7FJz-qdEKY-aZiQNgaQypKdHTZam1Q0TgVQKdXxN-u2U3JSa7d9-naQjKET60u36QK4aJsaHpW56QI5PuVwibACzlL3pFzpxrrLIMIOM1023q6XSqPDbTxF0J4QupDcfkPntj-qOd8D4J2UVvqfozYP-Hs4tPIrxVg6e0fi55NdFQLHhEoWp4Ia9Qeznueb/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=>. Get monthly free usage of 20+ popular products, including:\n\n\n- Compute Engine\n - Cloud Storage\n - BigQuery\n - AI APIs\n\n\nContact us <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqiYCY_WqdvlGke0e00zseTY9j_x42Yfd_PSTvdoqNqGrdy9QH5gcUgHfqpEruS_2VNeEmFUuTI1rpd_3MCMvWugld_SsD9T5dSPB_lgKnvwt4RZ_g2DyJFbOZvIEcVkhmnoBx9ffGePujGzAXFlFq9LNSt9PXmKxbX3HVx9QsE0m4moR024YmsdgddRFANCe8eHuq33cz9puNqHZTJ6Fm-38=/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=>\n\n\nHappy building, and happy holidays,\nThe Google Cloud Team\n\n----------------------------------------------------\n\nGoogle Cloud Next 26 <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg5SJrHJO5brsYaCpYl1N0U2nJkWJ9lgleOjWU-QyYwyeWywjItfCbBBeEC9M7C6bqnA=>\n\n\n\n© 2025 Google Asia Pacific Pte. Ltd.\n 70 Pasir Panjang Road, #03-71, Mapletree Business City, Singapore 117371\n\n\nWe sent you this email because you have indicated that you are willing to receive periodic emails on news, product updates, and invitations to events from the Google Cloud team. If you no longer wish to receive these emails, click on the following link to unsubscribe <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqifthbYqnCveUjQWzTAy-DQ4O-23YJ-Vi_rQVP9lcz0MDQq8q1LF63UDwBInbVGekD0LDPPlvl3rAqsU6e7AQt9BBB7ZlAzDcc8AJSXPYA2fLU6VRZIwhlmhFqpkGNM4AqslUte-zH3HfSdSFq9N0qiRNiIHFNM2N9_FmeVXnMQcAPhDi4Hv-LbNHKYWglEi2gK4w7I7_1Yz3ZCLWvzYQXJMmh4ldSdh41YWWXsnCy5Xz24UkCdTNWwgk7DiXDvRwqf5s68FTQBcbvPoq0hFGH45WEIdkZ3dkImlsAmBgLD_EaXXWt7Z0UrfhlcxHGji0gWsgWXlJAX6CjjkcEubuVrJ2Sjt1Js49gC8fkhme1xlY8CgqOElsNdKVrRUvFKNrOCkcbTTvxxZGBR-8WJQHXWpmiVooqoEWZ5a9ZkAvwLIfYt4CngDgcBsXTK5cxYfcaHHuPPPd_afjtA9CKWFDisqdqaGTnB0L3_IawAEho82J5s4rPvDuLafir5uEdGaYXD_CrZv0xSDQxzIUnKM83p8B74GSIfwBUV6ONxL8jLpyqwP1mtnHi59wlMgMbpP0fg==/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=> or customize your communication preferences <https://go.cloudplatformonline.com/dc/i9aUyq_pA-1GPdIKBLIqifthbYqnCveUjQWzTAy-DQ5ko5ry5oZ9ORE4EUlBn9vnzVVF7HdbN1uxX__QeRbMyGyk1CjJLs-dYC3yuxScNh2E05SwW8GDtLfZES7sHbVHZrv5yPOM_2uQRySV9jWCfNctQtbenvzfVJLXzNwGYvpjYDDmhUqzANjAN8qHc3AghwOCDYNey3C0VELMnMXcMS2Dv4dsQiNpBe-0m2XyGqV1Zz4yqO47_E1SL3m0upPsgK3WfvVkbpVaFNEztfcxTxZmRZev2-TDt68oCMCmuwUsy6WbkxfaWh8haFjsBprRvuRNPG0xUTVzFyKmzjPX_lSdcPfm9pqVOaXdPR412LmNAasXGZULSICnMqozxRAi/ODA4LUdKVy0zMTQAAAGe5c8eg6zihdwRBPZrMMLRfAJReyJV1Z0MFugDg8V4eHUbwXQzcRm4Q8YZaC5PesOgR-XbQIQ=>.\nBlog\n<https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg6FphPmPDjJdJtMrWf_Vw9OYFmyW7N4Lx2Z-IuzghbuwGvAtcFrlkJIGNCQNr6EbC8M=>\n\nGitHub\n <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg54XVkCbA59BcYZAVHlnvnMjSHKyzjQotZch9WYarz_07GPdtltqRuWuZBLt2CmSsRk=>\n\nLinkedIn\n <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg73IedxuxNYY1XX8y9sg-AVidb9qMpSKOCzNJ3umbLjYkgf8WeLV06tBOhwOr7CwdzM=>\n\nTwitter\n <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg0w44jHhkqvollOeNAbsVeMHeTjM2vDw1D7IBT9KIRhhBVwBb1GvbJJBKmXSRRb298k=>\n\nFacebook\n <https://go.cloudplatformonline.com/ODA4LUdKVy0zMTQAAAGe5c8eg1YWOkt35r-SJfBwXg7120PFu44_wnaPHj219SeXDOYVguGmkB8ydi7ocRbDeiBHiDA=>\n\n.\n",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-22T16:13:39.952Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "70bf6ce7-ed79-4c25-8df3-24032ab8bee4",
+    "from": {
+      "name": "Google",
+      "email": "no-reply@accounts.google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "보안 알림",
+    "message": "[image: Google]\nApple iPhone 13 Pro에서 새로 로그인함\n\n\nsurpport@arata.co.kr\nApple iPhone 13 Pro 기기에서 내 Google 계정에 새로 로그인했습니다. 직접 로그인한 것이 맞다면 아무런 조치를\n취하지 않아도 됩니다. 본인이 아니라면 안내에 따라 계정을 보호하세요.\n활동 확인\n<https://accounts.google.com/AccountChooser?Email=surpport@arata.co.kr&continue=https://myaccount.google.com/alert/nt/1766635948000?rfn%3D325%26rfnc%3D1%26eid%3D2676750630485180527%26et%3D0>\n다음 페이지에서 보안 활동도 확인할 수 있습니다.\nhttps://myaccount.google.com/notifications\n이 이메일은 Google 계정 및 서비스의 중요한 변경사항을 알려드리기 위해 발송되었습니다.\n© 2025 Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-25T04:12:32.430Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "b819f5ca-4386-43a8-85ee-6709b2a248d2",
+    "from": {
+      "name": "Google",
+      "email": "no-reply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "✅ Surpport님, iPhone 기기에서 최신 Google 앱 설정을 완료하세요.",
+    "message": "Surpport님, 안녕하세요.\n\niPhone 기기에서 Google 사용을 시작해 보세요\n\n잠시 시간을 내어 기기에 Google 앱을 설정하세요.\n\n시작하기<https://c.gle/ANnMTcYuns2S58lRhkmxs6wyNs0g43P5M8vKo518qkBvyZof7A4A3RYrBjeoKSwxrm1xlYUaiuxQPzmXuN_HPaTTjzfPbySKCu7uW8EzoNdFjPMcHQR5v3bYtMZQqkHtyeex_tVoUKgPHSQP90gDxgk_jeazSCuVoBwP-CJ8B7W9w56QZR-cE7pRWMuuRc7rxosOf3T_bpzar2_-D7VVwfKE9VtbLojclM0dj1nXuOV746Kro9kSlywaVzsq1rA4doDh2r5v99QdB4qUGBam5hALZzrNa6nHHeU8m83B4czdBWcbtJbyeQ?sAs=1>\n\n최근에 iPhone 기기에서 Google 계정에 로그인했기 때문에 surpport@arata.co.kr <surpport@arata.co.kr> 주소로 발송된 이메일입니다. 기기에서 처음으로 계정에 로그인했을 때 기기의 Google 서비스를 설정하는 방법을 안내하는 이메일을 받고 싶지 않다면 수신 거부 <https://c.gle/ANnMTcZcbw6Izmn90LBT3sUif9WhS4wG_tirmCKiMo2ZTzZgTpLP_DMd2TsTRBcgtvDXJYnC01RF3uqO3n2OBMxKT-ktPCVm_CJQ9KFkKz8agOYGbiB23Z4YGA_hKlKHcoh6iWLDT4C1R57Ay7uoMC32JY2UTzAXtoicHM4V5KC5jUtSj3av9YMRZsJzTwoGOFDdNsO0tr03UxHZbJ0ZgpvhFnGtOwwUNGmxOd6BKBzMfIab3TJBVJzN9ISqaZxElVRdBV86Wq0XhRM6gYUoT60NQbYcC5Q_MG8GKks3durMhKF6FHA46IKjUqpPXChYyZZyXsHVqqghOkwWJNAGAh0BeILs3zZLTJsoSGp-JoOKGkIS-BUEMagFbvoN2BsIp6Blx-iKgF7dRf-GqfAn6SdJP4vAAhvNtB5GI0wBwb4TD6_4NMV9FSrPW-dgmxt0ES6PPjsfsjgjgQzLMyFCwt0R4aTQ4xMgJNagnVR7Tr5VhXORzwRlNYIbnvroOfg_0Xr-3U2Ufcc0D5HtUPLG35ud91dTPglFl1RquXIv8qibGkcDDGzaUaAWk9iildaV>해 주세요.\n\n© 2025 Google LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-25T04:13:35.190Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "013031d5-ebcd-4459-8f12-f326f0b0e2dc",
+    "from": {
+      "name": "Google",
+      "email": "no-reply@accounts.google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "보안 알림",
+    "message": "[image: Google]\nMac에서 새로 로그인함\n\n\nsurpport@arata.co.kr\nMac 기기에서 내 Google 계정에 새로 로그인했습니다. 직접 로그인한 것이 맞다면 아무런 조치를 취하지 않아도 됩니다. 본인이\n아니라면 안내에 따라 계정을 보호하세요.\n활동 확인\n<https://accounts.google.com/AccountChooser?Email=surpport@arata.co.kr&continue=https://myaccount.google.com/alert/nt/1766636836614?rfn%3D325%26rfnc%3D1%26eid%3D-8920753231483934541%26et%3D0>\n다음 페이지에서 보안 활동도 확인할 수 있습니다.\nhttps://myaccount.google.com/notifications\n이 이메일은 Google 계정 및 서비스의 중요한 변경사항을 알려드리기 위해 발송되었습니다.\n© 2025 Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA",
+    "category": "email",
+    "status": "new",
+    "isRead": false,
+    "isStarred": false,
+    "createdAt": "2025-12-25T04:27:20.783Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass"
+  },
+  {
+    "id": "6dcc1392-da7e-44e4-be04-e70d50e46fde",
+    "from": {
+      "name": "Google",
+      "email": "no-reply@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "Surpport님, Google 계정 설정을 확인해 주세요",
+    "message": "\nSurpport 님 안녕하세요.\n\n새로운 컴퓨터에서 Google을 사용해 주셔서 감사합니다. 계정 이용과 관련한 유용한 도움말을 아래에서 확인해 보세요.\n\n계정 관리하기\n\n나에게 꼭 맞는 옵션을 선택하세요. 개인 정보 보호 및 보안 설정은 언제든지 검토하고 조정할 수 있습니다.\n\n계속 <https://c.gle/ANnMTcb1aKnXKq_REnaXAGaL5SpX3YhWpBLbR8PjM8TyYeqMPZUuBEE2Zzo9rChEi8EKE8rRsM-cHDITpJg8FdJORjk-NXRGPqYJJkNM9ahUEtPwY9iPlkZtphxWNerkQscxG6opDrSZ8QJlp0RGEInPVhWPyITK52SGepVGTCCFA-fknVgDSXsvUKegP-V8459qJkPeI7wOD-VkGymTzQjZ-XlQN5U>\n\nChrome을 사용하여 웹 탐색하기\n\nGoogle이 만든 브라우저인 Chrome을 선택하세요\n\nChrome은 4주마다 업데이트되므로 항상 최신 보안 기능과 수정사항을 이용할 수 있으며, 멀웨어나 피싱과 같은 보안 위협으로부터 사용자를 보호합니다.\n\nChrome 다운로드 <https://c.gle/ANnMTcZWaaWK572cqQM2URo_4v4IEiQBS_YYzFsOZsJ8Smrwx4gc2uPnwa8nj8IZlTdaUdfRenirOiVkw7s1KGPoQLGGS8aQWFL-wusubzeFYPL20rwWR-1_pI9oWmPio4RkUXeRvFX-Sh_RQiWvJ5SDxO3yG1MMauBlZ-8yruLZ3gO3eSsbeWwcpW83651b1NX0QHjdw8sck0t-yD4cKzA1jqL7poVJjys34WzaCqMMUTSy6iXsUZq19SGa02qvt7l4lQFos-nzAUA9PXeFGDVYjcjnLrRJ3A>\n\nGoogle 계정을 최대한 활용하세요\n\nGoogle에서 맞춤 도움말, 뉴스, 추천 항목을 보내 드립니다.\n\n예, 최신 소식을 받습니다 <https://c.gle/ANnMTcbqCQwr6hzbKegUtaJ_dAr16N8-6UJ5d3r3bODXNVlMyrxkEaSNeiiPoXeEbBFJhU-HC1GSGJspXheddu-zwfXGKwF2jLBGwrw0_VDZjxc96ej37odYg_OfQLEVAJRd2N0U2paL0ONqavm4oddvV5buyWQDP1qh5FdYiBpDC7MRZwI5eJ6FbgXm_R9fMC5etbcSdMlxyAG7oCgWAv1EvvREJ42eku4Rk3dilgITCsJ4HmDXZ3PqV_UyoQgr6ibGkYLXIgfOG0VMZN5UXAPAzqRijhCHPv9mmm07OIQWt1HlZdhRqMDEtjrwIVISZfMbVbBCVJTNTtDsoLWc9pLa3oR5yCoiHfQvZ1xYmlJcCW3Qqw6TP1IdG67FyO-lZrDydL3wtJG0cbKjE3W-PqsBZDLoIZgdBOvBnpSKDhI4WGmyk77Giiu4W8bi-k0h8i_8SAf9IzEFEC70G9_ucSh029r1TMLZI4os9IlapzrYB0RE5GNGoiXvvjGfREM0R59lEkwo5TfrIlcdAXzAv1iO2t7pHXeOX29NeftAsHiBi6Hi21fthK6APdmh_8s>\n\n최근에 Mac 기기에서 Google 계정에 로그인했기 때문에 surpport@arata.co.kr <surpport@arata.co.kr> 주소로 발송된 이메일입니다. 기기에서 처음으로 계정에 로그인했을 때 기기의 Google 서비스를 설정하는 방법을 안내하는 이메일을 받고 싶지 않다면 수신 거부 <https://c.gle/ANnMTcYKfxQFWxPg42ig_4rxMWMwHHuslVNU4jUMMvn7Zd22_NM8aWN8Yzz6I43lq79nz7miVQAloI8T5gfGZvtyA4estzvouHNE9KApMNjJThBUXs3CKH-zXbPX19oYq41TFbT0BHGNopcTGN7EcJM_vKL6V8cCLbO2U_S7MyAl8-SHLpE6XnlVjqW48KBCfayntAARCByCsCIvaRWS5fFTql1fIDc91-vegSpmhma0r6ofr7lqFhrkNc4bhFbW8q0GEx3N_EzBPYHp231MWUGzBtHa5h7wHwBNEykv9V5ivJ-ON0QSFKlLm3CvE_5nWm8HOxqSJplN7MFJ-bAiiPcfRRxNcvKusGaLbA_bHaWs9sWlPb-PGgVbvb7MjMXgSlgRFynQuNoukViNeaPF_JRbrckfTKUnHtFpyuugxK3xrOQyh_-enG70Od0YKqOA1YyuI_0oTMJilSMuXkRlf86fQvRRlIqYvJfYigJnBFk4rwZkTS7TARBeWnOY64_5z0cbehSCDFD5_EpVsYQqhz6Qm-p1dRDhXUeFnHybunMImbWR_8lD-CWhnF_ASjUo>해 주세요.\n\n© 2025 Google LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-25T04:28:22.488Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-06T07:48:40.501Z"
+  },
+  {
+    "id": "622bc58f-616e-4deb-a274-065cf073ef11",
+    "from": {
+      "name": "Google",
+      "email": "no-reply@accounts.google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "2단계 인증이 사용 설정됨",
+    "message": "[image: Google]\n2단계 인증이 사용 설정됨\n\n\nsurpport@arata.co.kr\n\n내 Google 계정(surpport@arata.co.kr)이 이제 2단계 인증으로 보호됩니다. 새로운 기기나 신뢰할 수 없는 기기에서\n로그인하시는 경우 두 번째 인증 수단으로 본인 확인을 해야 합니다.\n\n*계정에 액세스하지 못할 경우에 대비하세요*\n두 번째 인증 수단이 없을 때 사용할 백업 전화번호를 추가하시거나 백업 코드를 받으실 수 있습니다.\n설정을 변경하시려면 2단계 인증 설정을 검토\n<https://accounts.google.com/AccountChooser?Email=surpport@arata.co.kr&continue=https://myaccount.google.com/signinoptions/two-step-verification?rfn%3D16%26rfnc%3D1%26eid%3D3660913513069633000%26et%3D0>\n하세요.\n다음 페이지에서 보안 활동도 확인할 수 있습니다.\nhttps://myaccount.google.com/notifications\n이 이메일은 Google 계정 및 서비스의 중요한 변경사항을 알려드리기 위해 발송되었습니다.\n© 2025 Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043, USA",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-25T04:29:22.831Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-06T07:48:40.894Z"
+  },
+  {
+    "id": "15b209ce-f351-45d4-88a6-8537b9d1f246",
+    "from": {
+      "name": "Grace Lila",
+      "email": "lila.grace.salesleads@gmail.com"
+    },
+    "to": "prajith.k@menahub.com, info@sp-titanium.com, n@mework.work, \tmail@metastory.ai, marketing@mocion.io, devops@mocion.io, info@moontech.ae, \thello@moontech.co.za, 5545hello@moontech.co.za, support@arata.co.kr",
+    "subject": "Interested in Connecting with Web Summit 2026 Attendees?",
+    "message": "Hi,\n\nHope you’re doing well.\n\n\n\nWe’d like to inform you that *Web Summit 2026* — taking place from *February\n01–04, 2026*, at the *Doha Exhibition & Convention Center (DECC), Doha,\nQatar* — has a *pre-registered attendee base of 2,578 professionals* from\nacross the *technology, startups, SaaS, AI, fintech, digital\ntransformation, and investment sectors*.\n\n\n\nIf you’re exploring ways to enhance your *networking, lead generation, or\npromotional outreach* around the event, we can provide *verified attendee\ninsights* (including *company names, job titles, websites, and professional\ncontact details*) under an *exclusive fee*.\n\n\n\nWould you like to receive more details about this offer?\n\n\n\nPlease let us know your preference:\n\n*· Yes, I’m interested — please share the exclusive fee and more\ninformation. *· No, thank you.\n\n\nBest Regards\n\nGrace\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2025-12-31T10:41:26.494Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-06T07:48:41.463Z"
+  },
+  {
+    "id": "19ce7947-312c-4a69-8ec4-de090e2dbb4b",
+    "from": {
+      "name": "Ellie White",
+      "email": "ellie.white.fusionleads@gmail.com"
+    },
+    "to": "adil.bouhouch@mygatepass.com, hello@houseofmuannas.com, info@moontech.ae, \thello@moontech.co.za, support@arata.co.kr, 2019moontech@gmail.com, \tprivacy@versai.com, contact@versai.world, support@versai.world",
+    "subject": "Who’s Attending the Web Summit Qatar 2026 ?",
+    "message": "*Hi, I’m reaching out to offer the exclusive attendee list for the\nupcoming Web Summit Qatar 2026, taking place from 01 - 04 Feb 2026 at Doha\nExhibition & Convention Center (DECC), Doha, Qatar. The list includes\ndetailed contact information for over 25,400 attendees:*\n\n\n\n·         *Contact Information*\n\n·         *Email Address*\n\n·         *Company Title*\n\n·         *URL/Website*\n\n·         *Mobile Number*\n\n·         *Title/Designation*\n\n\n\n*This list can help you connect directly with professionals who are\nactively engaged in your field—ideal for promoting your products, services,\nor brand.*\n\n\n\n*Kindly describe your response:*\n\n\n\n*·         Yes, I am Interested, send me Exclusive Fee and More\ninformation.*\n\n\n\n*·         opt out*\n\n\n\n*Looking forward to your Response.*\n\n\n*Best Regards,*\n\n*Ellie White*\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2026-01-05T11:15:05.885Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-06T07:48:42.275Z"
+  },
+  {
+    "id": "3e622a1d-964e-49d6-9e2a-7a751a894f47",
+    "from": {
+      "name": "Google Cloud",
+      "email": "googlecloud@google.com"
+    },
+    "to": "surpport@arata.co.kr",
+    "subject": "일반 계정이 활성화되었습니다",
+    "message": "Google Cloud <https://c.gle/ANnMTcYzDxhMF129xRQZcXdckju_52f6S5wuQEfgtdHD3NrTES-oHEx2nUesiR7kFafMfVL2ao0Wn_5S1JhZiLva-7p3JuCIAWdl8v6Ak338om1KiYXKj-yCTncVxZf4wQYXsn3TB34UtAMZTQNfuke5gGgQE4seu-azCPV7_eKZO7U7pWovfGm_t1z7qsGDfFTotXY7miYy0oxaq2xezBRSmc67Bk30F4X4MN5ALIQvr3qMtkjNqushuW_AFYDa_QR6CfnMNDaZvMCJ8Yhu>\n\n일반 계정을 활성화해 주셔서 감사합니다.\n\n이제 무료 등급 프로그램<https://c.gle/ANnMTcZJw0Rh-oO0VyIHYXPYNOLhQ8DCWOvkKClNMi_EXq1lkGYftjA3IPViXTFPz2xTyR5fGtMl7ikdxPJcVTfk8hLAbINe6FrY1KZPTfhFgnMeh7aCv9KG05r-mlE8zy2t9cXBw_kh-_yMWuYJMEELN8PwZp1__yI9bTmoydl8dkPMYuSTI7ShLId_ckc9MSUB0HobnMLsJnIRcZFBNqceamRuQdIiv7HwNoK2uJeMKmdyFt70siMWRFVEb_hnziLlXOiQ6ZbZnQpdxvlq9n5KsorOzVuwjwPU0DPEIvzADj-IZJrUmyd_erOH-Og>의 서비스 월간 사용량 등 Google Cloud 제품에 대한 전체 액세스 권한이 부여되었습니다.\n\n결제 계정에 청구된 요금을 추적하려면 예산 알림<https://c.gle/ANnMTcZik7ktFp3OCnOkZOKU6PNS-GsNiKGMjlAQ4AE6ErsijHvuVu4Und4PZUtomZfbSM0kTDkCwxzHgtqNNxYodtOG7iBektfqtgL2m11Q0SwsGNxF36tHIb_wz-YFkUGkdmjIKbSfk8kZgOUuD1VpYWJPf5m97-6yod8xHtw_EAGlLw_zFkiqq-2e-LuZiKigIdBm709t7K12U0vTu_tTZ_kg2E9i071J0jNaC6MSc5aDj577asabdA0SgZgOrcF2kINAuQlwDt-1hTW0I-xlMxFGaA4swxrAMLgoaiEQbg> 받기를 설정하세요.\n\n콘솔로 이동<https://c.gle/ANnMTcZapzO2O4xrEZ6hG106vQ2AqhSvF3qBrCeDAcIct1wLII_-W8jd6l9xyGfL2vfCPRdv3o_37WX3neM8M6CZKAURaaSf0npJv0NzFstLeHjIOqtoa2OGkDEKUGJAZlAhfMaZVuRf5uNredTtqH2jj8qjFoPm-6nsusRWnZlRWtUDw-_aZOCOVOnAG0Mujv7wv6RhRayaA83chAtCXP97Jx4ZCnq4JvBub--fe1jEEUYa10fGBjeeqwvFLcp21HE6irK7vuUlaZ4GyWkadH_Q5EZUCw>\n\n구름 위에서 뵙겠습니다.\n\nGoogle Cloud팀\n\nFAQ<https://c.gle/ANnMTcYvm7wiFmWnlAM7sJrZb_H95j-Caduvi56S_WI95dUyY3jY_drx-Wyze-HSmLK5DZN_95I1u-WplvW_PMtIAcsdApjIV0gQkuPcP9Tc9AjhLu05_Id3gCBhqNG75WeXOI5cL1QQqrVCHBZ1c3ditdxT547RdCIvK2IBvQUmBUAFyAGyNbjFOR775PTClKW9qZ6htKa_Z3btRkx8VQOHNXhTgFDjM7t3rFVflkHWd4dOAvEHPMe81aXR3onUC9U8zNKAsay2t5Hc_IkM7jeU05YeUyMKWonBAbZKjFDAdLbnCbc>\n\n문서<https://c.gle/ANnMTcalDepqsU7eLrUMoQC55-VeSp9fLpACHYZsH6L8OukGajJIVzPV-vrBXSv03DaTzjJWSnvB6qzsXYvx3FBH6UxG145QGBO9MnOPEXw4tSvZVYlFfnJ9GCuu6Thy0kA5o-ldesurvrSY-FXIy2035OufOSbeCWuJXYaq98VcOHIHMqcDO5hkJ40EPSIldPcb85EAhjeFGUFSf5iBd086vsI0pBm3ITbsA1zmDM1u_Ci5vVBMapf9_ikFRhz4swUx0naN2JBjOENolQ5ooQo>\n\n포럼<https://c.gle/ANnMTca47zGwz8Q8-zEsjchaQUDx7Neui4VKu9XvT47iOZ1HCiLdfP-5pHlMyTEY6XAfXzbsMxFcmDctxbYxRAgf2lSW9jdy4UFC4blul-tizJ9y52QTyzKFw8WA40QweCK56VnjKyLqXI4Uq0_s37aCf53B-yxNZxNevzWa_KgE7i1bu0m_S5Xbbh5E6cBUCi_OHN9LQguwihfpQkhqudumRXJ94L5uf6dshO1epaEAdg2G02ZlsWqNmmNzK1kE1-fsSHXJZSF1UqgnRmTzEk8>\n\n청구<https://c.gle/ANnMTcaVKuCf3UnRnRQ6NWid9vc2GhquD5VZ9oOLy-mo8YGBqsyqS6XpQEDhd8S4h3rgBVNnQZnFoVLFtNwY_qR743i_2graE1MJ_N04-Pme2eD4qG_p3iBOq4M9nPz9wF5IagF4GpXCi2hekTzXrTIs15eEAu2-8BZL-qMQwrg1_anhsHjMOFhuV-O_dasZFvLkAO2-zuWmv6GyryIgKzjjpFpaxJM8CzyJVyu5bnBbeVCBumH90iyFSGFlEKBUcwy9mdEsd3Fb6sFwq3G0Yd1VhQdEqv8dyv9OdZcfFDrhwnjLInnv>\n\nGoogle Cloud <https://c.gle/ANnMTcbqzGHXt-nmbwZitWHgFxWFDZF25V9TrMJR5boxldWJJOrASrvXS9s1JSVOwVXKh2EEkK1UsKxdx8rWkSLxSNZIry_Z8gJ_HXLZ-sQgGCZpidJiaZy8uQZDtG4sB4aRqsIVz5jDhggF87FkJJq9LknBmAKkiU3wKJx-Mu6VN0Jdmw7aeVtcWGK_LakvQSh0m7EHSPwJYPoKnC8xBwIabqyW-zKyhG9f-U9-_LEix_6kW63Dt2vyPbmWMaMjfrZm6K6OQqZIHyCmSzqU>\n\nGoogle LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043\n\n본 이메일은 Google Cloud 계정에 관한 중요한 정보를 알려드리기 위해 발송되었습니다.\n\nGoogle Cloud 블로그 <https://c.gle/ANnMTcZHwiVpkKm_HjRea0NCgL1FloEdFsNhwc7aaBq_3ui045oLUeqNAuSZgT1ixAx-Z2pYwDRC9voW5Rj32q2lj3wCCpQG3Re5uRbpcdldQT7ysfLG_1esIYWsb6ut4ExT>\n\nGitHub <https://c.gle/ANnMTcZvGb_dPzD5tLIpgKxDp3VQFzsaeff7iFWCGTZ7k44zc_8JNb99e7lOT3ktKXC_U9EifVsZDh-3tm-euvYFk3a5-jSVO02S6aZqjhQJWe8i3OqApJX0ANshewxxP6QXxStetPLeJdxS2g>\n\nLinkedIn <https://c.gle/ANnMTcYF20BySqIa9dVk3vHEbXmwoq2b5KmIuFa6AuawvoXtag36Wx64GDqacCQ4jOGtkjbySXouf7xFWcBMpAEhb0q5k_t3ZU5nIXTIqjbjNs0FzQmn91vS_WcM3nUe6LXTDLa8fBUcA_zC_n6C1lDAjXrRwsfF>\n\nTwitter <https://c.gle/ANnMTcaHnw2nyVKZ2Z81NNyJrGEZNvB39MOVQqSBqigF0bT8_vxOCn8cK2pQNON75W7t8ii5dPyc6JxM-cZQeFMgfImrmfZ3N9y1aobScabSwiofekFDljbDu0qVdrZ06_ibTRUMRw>\n\nFacebook <https://c.gle/ANnMTcbUcMZMwSTG0jFf1qfqPywQg7Xq1uyD-od4gpRI23OWm2qr6IA1mDbONlSa_osuRXBfDYrt18D5iPFSH1KcwkRitw8EkF6W_69rSzHQ2_skVSltpW_g5XhGVbADlAV44sFy_bfFITkXcTs>",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2026-01-06T05:38:42.507Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-06T07:48:33.404Z"
+  },
+  {
+    "id": "f73c21d7-e494-4191-8f9c-f4f3a7e9b825",
+    "from": {
+      "name": "Garam Park (xWF)",
+      "email": "garamp@xwf.google.com"
+    },
+    "to": "surpport@arata.co.kr, support@arata.co.kr",
+    "subject": "구글 클라우드 스타트업 프로그램 관련 메일 전달드립니다",
+    "message": "안녕하세요 CTO님,\n\n구글 클라우드 스타트업 팀 BD 담당 박가람 입니다.\n\n\n최근 제출해주신 구글 클라우드 스타트업 지원 프로그램 신청서가 반려된 것으로 확인되어 연락드립니다. 하기 내용 공유주시면, 다시 한번\n심사팀에 재심사 요청하도록 하겠습니다!\n\n\n- 최근 VC 투자 내역 및 투자 시점:\n\n- 크레딧 사용 방안 & 관심있으신 GCP 제품:\n\n- 월 예상 크레딧 비용:\n\n- 크레딧 사용 시점:\n\n\n그럼 시간되실 때 확인 부탁드립니다.\n\n\n감사합니다.\n\n박가람 드림\n\n\n*박가람 Garam Park *(+82 02-2184-1871‬)\n\nSchedule a meeting with me <https://calendar.app.google/ZSUi8XRQiMtCihcCA>\n\nConcentrix, Business Development for GCP Startup Team, on behalf of Google\nCloud\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2026-01-07T07:26:21.381Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-08T05:57:03.340Z"
+  },
+  {
+    "id": "88795882-5d0d-4314-8fe8-d6d82deb5894",
+    "from": {
+      "name": "Garam Park (xWF)",
+      "email": "garamp@xwf.google.com"
+    },
+    "to": "surpport@arata.co.kr, support@arata.co.kr",
+    "subject": "구글 클라우드 스타트업 프로그램 관련 메일 전달드립니다",
+    "message": "안녕하세요 CTO님,\n\n구글 클라우드 스타트업 팀 BD 담당 박가람 입니다.\n\n\n최근 제출해주신 구글 클라우드 스타트업 지원 프로그램 신청서가 반려된 것으로 확인되어 연락드립니다. 하기 내용 공유주시면, 다시 한번\n심사팀에 재심사 요청하도록 하겠습니다!\n\n\n- 최근 VC 투자 내역 및 투자 시점:\n\n- 크레딧 사용 방안 & 관심있으신 GCP 제품:\n\n- 월 예상 크레딧 비용:\n\n- 크레딧 사용 시점:\n\n\n그럼 시간되실 때 확인 부탁드립니다.\n\n\n감사합니다.\n\n박가람 드림\n\n\n*박가람 Garam Park *(+82 02-2184-1871‬)\n\nSchedule a meeting with me <https://calendar.app.google/ZSUi8XRQiMtCihcCA>\n\nConcentrix, Business Development for GCP Startup Team, on behalf of Google\nCloud\n",
+    "category": "email",
+    "status": "replied",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2026-01-07T07:26:21.509Z",
+    "replies": [
+      {
+        "id": "3985db3f-2366-4f72-b1c4-6eb25fb12502",
+        "message": "- 최근 VC 투자 내역 및 투자 시점:\r\n2024. 1. 22 비전벤쳐스 \r\n2024. 1. 25 비전자산운용\r\n2024. 6. 28 은산이앤씨\r\n2024. 11. 22 산업은행\r\n2024. 11. 22 빅스톤 픽쳐스 \r\n입니다. \r\n\r\n- 크레딧 사용 방안 & 관심있으신 GCP 제품:\r\nGemini 3 pro 를 가장많이 사용할것같습니다. 또한 운영중인 플랫폼 arata.co.kr 도 마이그레이션 할 계획입니다. 현재 AWS, cloudflare CDN 사용중입니다. \r\n\r\n- 월 예상 크레딧 비용:\r\n월 600만원 이상 사용할 것으로 예상됩니다. \r\n\r\n- 크레딧 사용 시점:\r\n지금도 월 200만원 넘게 사용하고있습니다. 바로 사용가능합니다. \r\n\r\n감사합니다. \r\n\r\n이병상 드림 ",
+        "attachments": [
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµáá¥á«áá¦á«áá§áá³).pdf",
+            "size": 5938603,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµáá¥á«áá¡áá¡á«áá®á«áá­á¼).pdf",
+            "size": 6357687,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµá¨áá³áá©á«ááµáá§áá³).pdf",
+            "size": 6218317,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(áá¡á«áá®á¨áá¡á«áá¥á¸áá³á«áá¢á¼).pdf",
+            "size": 7273096,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_áá®áá¡ áá¨áá£á¨áá¥(áá³á«áá¡á«ááµáá¢á«ááµ).pdf",
+            "size": 7311039,
+            "mimetype": "application/pdf"
+          }
+        ],
+        "from": "support@arata.co.kr",
+        "to": "garamp@xwf.google.com",
+        "cc": [
+          "mjymjwzlzl@gmail.com"
+        ],
+        "createdAt": "2026-01-08T06:04:24.185Z"
+      },
+      {
+        "id": "28696694-e6c2-4030-ba9e-6c74f908bbc8",
+        "message": "- 최근 VC 투자 내역 및 투자 시점:\r\n2024. 1. 22 비전벤쳐스 \r\n2024. 1. 25 비전자산운용\r\n2024. 6. 28 은산이앤씨\r\n2024. 11. 22 산업은행\r\n2024. 11. 22 빅스톤 픽쳐스 \r\n입니다. \r\n\r\n- 크레딧 사용 방안 & 관심있으신 GCP 제품:\r\nGemini 3 pro 를 가장많이 사용할것같습니다. 또한 운영중인 플랫폼 arata.co.kr 도 마이그레이션 할 계획입니다. 현재 AWS, cloudflare CDN 사용중입니다. \r\n\r\n- 월 예상 크레딧 비용:\r\n월 600만원 이상 사용할 것으로 예상됩니다. \r\n\r\n- 크레딧 사용 시점:\r\n지금도 월 200만원 넘게 사용하고있습니다. 바로 사용가능합니다. \r\n\r\n감사합니다. \r\n\r\n이병상 드림 ",
+        "attachments": [
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµáá¥á«áá¦á«áá§áá³).pdf",
+            "size": 5938603,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµáá¥á«áá¡áá¡á«áá®á«áá­á¼).pdf",
+            "size": 6357687,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµá¨áá³áá©á«ááµáá§áá³).pdf",
+            "size": 6218317,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(áá¡á«áá®á¨áá¡á«áá¥á¸áá³á«áá¢á¼).pdf",
+            "size": 7273096,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_áá®áá¡ áá¨áá£á¨áá¥(áá³á«áá¡á«ááµáá¢á«ááµ).pdf",
+            "size": 7311039,
+            "mimetype": "application/pdf"
+          }
+        ],
+        "from": "support@arata.co.kr",
+        "to": "garamp@xwf.google.com",
+        "cc": [
+          "mjymjwzlzl@gmail.com"
+        ],
+        "createdAt": "2026-01-08T06:04:37.101Z"
+      },
+      {
+        "id": "031b9b45-6d32-44ae-acf8-a3b5c2cfd66f",
+        "message": "투자 계약서 첨부드립니다! \r\n\r\n감사합니다. \r\n\r\n이병상 드림",
+        "attachments": [
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµáá¥á«áá¦á«áá§áá³).pdf",
+            "size": 5938603,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµáá¥á«áá¡áá¡á«áá®á«áá­á¼).pdf",
+            "size": 6357687,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(ááµá¨áá³áá©á«ááµáá§áá³).pdf",
+            "size": 6218317,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_ááµá«áá®ááµá«áá®áá¨áá£á¨áá¥(áá¡á«áá®á¨áá¡á«áá¥á¸áá³á«áá¢á¼).pdf",
+            "size": 7273096,
+            "mimetype": "application/pdf"
+          },
+          {
+            "filename": "áá®á«áá¦áá³áá©á¯áá¥ááµ_áá®áá¡ áá¨áá£á¨áá¥(áá³á«áá¡á«ááµáá¢á«ááµ).pdf",
+            "size": 7311039,
+            "mimetype": "application/pdf"
+          }
+        ],
+        "from": "support@arata.co.kr",
+        "to": "garamp@xwf.google.com",
+        "createdAt": "2026-01-08T06:16:12.615Z"
+      }
+    ],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-08T05:56:49.217Z",
+    "lastReplyAt": "2026-01-08T06:16:12.615Z"
+  },
+  {
+    "id": "44037bcf-cb49-4461-96ab-84f60e199aee",
+    "from": {
+      "name": "Isabella Lewis",
+      "email": "leadwaveglide@gmail.com"
+    },
+    "to": "hello@houseofmuannas.com, info@moontech.ae, hello@moontech.co.za, \tsupport@arata.co.kr, 2019moontech@gmail.com, privacy@versai.com, \tcontact@versai.world, support@versai.world, info@versai.world",
+    "subject": "Web Summit Qatar 2026 Visitor Insights",
+    "message": "*Hi,How are you? Web Summit  Qatar 2026**,*\n\n* a pre-registered 25,400 Attendee list is available! to fulfil your\npromotional efforts.**Date: **01 - 04 Feb 2026*\n\n\n*Venue: *\n*Doha Exhibition & Convention Center (DECC), Doha, Qatar.*\n\n\n\n\n\n\n\n\n*Could you let me know if you want to receive the Attendee List with\nthe Exclusive fee?List Includes: - Contact information, email address,\ncompany Title, URL/website, mobile number, and title/designation.\netc.Kindly describes your response:· Yes, I am Interested, send\nme Exclusive Fee and More information· OPT-OUT*\n\n\n\n*Looking forward to your Response.*\n\n\n*Best regards,*\n\n*Isabella Jones*\n",
+    "category": "email",
+    "status": "replied",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2026-01-07T10:24:29.669Z",
+    "replies": [
+      {
+        "id": "4463688d-3420-4980-9796-4787f9f1bbe2",
+        "message": "Test reply with attachment from automation",
+        "attachments": [
+          {
+            "filename": "test-attachment.txt",
+            "size": 87,
+            "mimetype": "text/plain"
+          }
+        ],
+        "from": "support@arata.co.kr",
+        "to": "leadwaveglide@gmail.com",
+        "cc": [
+          "carryer123@naver.com"
+        ],
+        "createdAt": "2026-01-08T06:14:40.890Z"
+      },
+      {
+        "id": "c7a5084d-5be6-4315-8eb5-0ba6d5199a1b",
+        "message": "파일명 인코딩 테스트",
+        "attachments": [
+          {
+            "filename": "테스트_파일명_한글.txt",
+            "size": 26,
+            "mimetype": "text/plain"
+          }
+        ],
+        "from": "support@arata.co.kr",
+        "to": "leadwaveglide@gmail.com",
+        "createdAt": "2026-01-08T11:16:27.084Z"
+      },
+      {
+        "id": "fc5f71a3-a58d-4c96-b543-04d077e870d1",
+        "message": "파일명 인코딩 테스트",
+        "attachments": [
+          {
+            "filename": "테스트_파일명_한글.txt",
+            "size": 26,
+            "mimetype": "text/plain"
+          }
+        ],
+        "from": "support@arata.co.kr",
+        "to": "leadwaveglide@gmail.com",
+        "createdAt": "2026-01-08T11:16:38.903Z"
+      }
+    ],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-08T05:56:46.079Z",
+    "lastReplyAt": "2026-01-08T11:16:38.903Z"
+  },
+  {
+    "id": "ed78f028-e405-4bcb-a714-77e646382313",
+    "from": {
+      "name": "Isabella Jones",
+      "email": "isabella.jones.nexusleads@gmail.com"
+    },
+    "to": "fred.smith@apps365.com, info@aquivio.com, accounts@aquivio.com, \tdanielh@aquivio.com, support@arabvesta.com, info@arabvesta.com, \tsupport@arata.co.kr, sales@arcware.com, info@arcware.com, support@arkesel.com",
+    "subject": "Web Summit Qatar 2026 Visitors List",
+    "message": "*Hi, I’m reaching out to offer the exclusive attendee list for the\nupcoming Web Summit Qatar 2026, taking place from 01 - 04 Feb 2026 at Doha\nExhibition & Convention Center (DECC), Doha, Qatar. The list includes\ndetailed contact information for over 25,400 attendees:*\n\n\n\n·         *Contact Information*\n\n·         *Email Address*\n\n·         *Company Title*\n\n·         *URL/Website*\n\n·         *Mobile Number*\n\n·         *Title/Designation*\n\n\n\n*This list can help you connect directly with professionals who are\nactively engaged in your field—ideal for promoting your products, services,\nor brand.*\n\n\n\n*Kindly describe your response:*\n\n\n\n*·         Yes, I am Interested, send me Exclusive Fee and More\ninformation.*\n\n\n\n*·         opt out*\n\n\n\n*Looking forward to your Response.*\n\n *Best Regards,*\n\n*Isabella Jones*\n",
+    "category": "email",
+    "status": "new",
+    "isRead": true,
+    "isStarred": false,
+    "createdAt": "2026-01-08T08:02:06.129Z",
+    "replies": [],
+    "source": "email",
+    "spf": "pass",
+    "readAt": "2026-01-08T11:19:36.489Z"
+  }
+]

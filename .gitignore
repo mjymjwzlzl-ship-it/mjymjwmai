@@ -1,0 +1,47 @@
+# Environment variables
+.env
+.env.local
+.env.production
+**/.env.production
+**/.env.local
+admin-center/.env.local
+
+# Build outputs
+.next/
+.next-claude/
+dist/
+out/
+
+# Uploads & Data
+backend/uploads/
+character/
+
+# Corrected path for database
+backend/prisma/dev.db
+backend/prisma/dev.db.backup
+
+# Dependencies
+node_modules/
+
+# Windows specific
+nul
+
+# Cloudflare Tunnel
+cloudflared.exe
+
+# Temporary scripts and files
+commit_message.txt
+*.tgz
+*.tar
+*.tar.gz
+*.zip
+*.log
+*.tmp
+.tmp-*
+tsconfig.tsbuildinfo
+.claude/
+backend/check-thumb.js
+backend/debug-categories.js
+backend/delete-shindomisi.js
+backend/temp-assign.js
+backend/test-frontend-api.js

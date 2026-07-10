@@ -1,0 +1,68 @@
+tunnel: arata-main
+credentials-file: C:\Users\user\.cloudflared\83b55054-fd5c-4a70-83f8-277eae5b1f1f.json
+
+originRequest:
+  # IPv4 우선 사용으로 라우팅 지연 감소
+  preferIPv4: true
+  # Next.js/Node 기본 HTTP/1.1 호환성 위해 HTTP/2 원본 연결 비활성화
+  http2Origin: false
+  # keepalive를 늘려 연결 재생성 비용 감소
+  keepAliveTimeout: 30s
+  connectTimeout: 10s
+  disableChunkedEncoding: true
+
+ingress:
+  # API 라우트 (백엔드로 직접 연결) - 가장 우선순위 높음
+  - hostname: arata.co.kr
+    path: /api/*
+    service: http://127.0.0.1:8000
+    originRequest:
+      httpHostHeader: localhost
+  - hostname: www.arata.co.kr
+    path: /api/*
+    service: http://127.0.0.1:8000
+    originRequest:
+      httpHostHeader: localhost
+      
+  # 이미지 및 정적 파일 (백엔드로 직접 연결)
+  - hostname: arata.co.kr
+    path: /uploads/*
+    service: http://127.0.0.1:8000
+    originRequest:
+      httpHostHeader: localhost
+  - hostname: www.arata.co.kr
+    path: /uploads/*
+    service: http://127.0.0.1:8000
+    originRequest:
+      httpHostHeader: localhost
+      
+  # 메인 사이트 (Next.js로 직접 연결 - Windows nginx 문제 우회)
+  - hostname: arata.co.kr
+    service: http://127.0.0.1:4000
+    originRequest:
+      httpHostHeader: localhost
+  - hostname: www.arata.co.kr  
+    service: http://127.0.0.1:4000
+    originRequest:
+      httpHostHeader: localhost
+    
+  # 작가센터
+  - hostname: creator.arata.co.kr
+    service: http://127.0.0.1:4001
+    originRequest:
+      httpHostHeader: localhost
+    
+  # 관리자센터  
+  - hostname: admin.arata.co.kr
+    service: http://127.0.0.1:5000
+    originRequest:
+      httpHostHeader: localhost
+    
+  # 백엔드 API
+  - hostname: api.arata.co.kr
+    service: http://127.0.0.1:8000
+    originRequest:
+      httpHostHeader: localhost
+    
+  # 404 처리
+  - service: http_status:404

@@ -1,0 +1,75 @@
+{
+  "banner": [
+    "cmfkt0q1a0001142ov9e5yqch",
+    "cmfkt9a7w000j142oi8vh7tm0"
+  ],
+  "realtime": [],
+  "daily": [],
+  "week": {
+    "monday": [
+      "cmfkt9a7w000j142oi8vh7tm0",
+      "cmfkt0q1a0001142ov9e5yqch",
+      "cmfgk80p2000nhfzdetd5jkg6"
+    ],
+    "tuesday": [],
+    "wednesday": [],
+    "thursday": [],
+    "friday": [],
+    "saturday": [],
+    "sunday": []
+  },
+  "complete": [
+    "cmhd1wrdp0000dtqp2vqkumzx",
+    "cmhd1z63y00h3dtqp6d0rsnuc",
+    "cmhcw1u3d0000wcdwylb39b6i",
+    "cmh1rwttp013nvuynwvlbqgv0",
+    "cmh1rr8ty012hvuyn243w8xpx",
+    "cmh1rm3yy011fvuyntrzye23d",
+    "cmh1rj5zj00zzvuynmyqo3oi0",
+    "cmh1rj5qq00zxvuynw1m99649",
+    "cmh1rhlqe00z5vuyndaegvxsu",
+    "cmh1rg63c00ynvuynm4cwzx7o",
+    "cmh1r7vwn00xhvuynkzzpzgiu",
+    "cmh1r6ioj00wtvuynnymilcfe",
+    "cmh1r0ngt00vdvuynwm3ntqk9",
+    "cmh1r0n6400vbvuyns6bwqm04",
+    "cmh1qmjqx00tbvuyno0fe0ojd",
+    "cmh1qixu600rnvuyn6rt234c0",
+    "cmh1qg5gf00qhvuynmo1dts24",
+    "cmh1qdrfq00orvuyngoyuhm2q",
+    "cmh1q9sor00n1vuynmehsrii5",
+    "cmh1q9sfv00mzvuynr1mdy9an",
+    "cmh1q9ncp00kpvuyn06p795xn",
+    "cmh1q60kj00jhvuynodqwdg7q",
+    "cmh1q3j0400hrvuynqz9fjyub",
+    "cmh1pyyuh00fxvuynx53jlhr0",
+    "cmh1pxmtf00f7vuyno2zgw8xg",
+    "cmh1puoeh00e3vuynz3781ix2",
+    "cmh1prfra00cdvuyn8rxhw4l8",
+    "cmh1pp63p00b7vuynhztl72up",
+    "cmh1pndbq00a5vuynfv223pyu",
+    "cmh1pnd1x00a3vuynp5g3yxil",
+    "cmh1plpmj0001rpvatfvvc2bu",
+    "cmh1pkisy008xvuyndjqcnwt0",
+    "cmh1pgcas0077vuyns4wzzeg1",
+    "cmh1peo2b006lvuyn1egl19gw",
+    "cmh1p9tfv005tvuynaw1vm573",
+    "cmh1p5rdr003hvuyn94il4fxk",
+    "cmh1p29rg001rvuynf3us2b6c",
+    "cmh1onx3l00035igrisc00ctu"
+  ],
+  "latest": [
+    "cmhd1wrdp0000dtqp2vqkumzx",
+    "cmhd1z63y00h3dtqp6d0rsnuc",
+    "cmhcw1u3d0000wcdwylb39b6i",
+    "cmfgk7zw60000hfzdcb4xi7ie",
+    "cmfgk80p2000nhfzdetd5jkg6",
+    "cmfkt0q1a0001142ov9e5yqch",
+    "cmfkt9a7w000j142oi8vh7tm0"
+  ],
+  "new": [
+    "cmfgk7zw60000hfzdcb4xi7ie",
+    "cmfgk80p2000nhfzdetd5jkg6"
+  ],
+  "finished": []
+}

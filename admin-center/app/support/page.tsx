@@ -1,0 +1,953 @@
+'use client'
+
+import React, { useState, useEffect } from 'react';
+import { Mail, Star, Clock, CheckCircle, Reply, Trash2, Search, X, PenSquare, Inbox, SendIcon, Archive, MessageSquare, Forward, Users, Paperclip } from 'lucide-react';
+import AdminHeader from '@/components/AdminHeader';
+
+interface SupportMail {
+  id: string;
+  from: {
+    name: string;
+    email: string;
+  };
+  to: string;
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  message: string;
+  category: string;
+  status: 'new' | 'replied' | 'resolved' | 'sent';
+  isRead: boolean;
+  isStarred: boolean;
+  createdAt: string;
+  replies: Array<{
+    id: string;
+    message: string;
+    from: string;
+    to: string;
+    cc?: string[];
+    bcc?: string[];
+    attachments?: Array<{
+      filename: string;
+      size: number;
+      mimetype: string;
+    }>;
+    createdAt: string;
+  }>;
+}
+
+export default function SupportPage() {
+  const [mails, setMails] = useState<SupportMail[]>([]);
+  const [filteredMails, setFilteredMails] = useState<SupportMail[]>([]);
+  const [selectedMail, setSelectedMail] = useState<SupportMail | null>(null);
+  const [folder, setFolder] = useState<'inbox' | 'sent' | 'starred' | 'trash'>('inbox');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [replyMessage, setReplyMessage] = useState('');
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [showComposeModal, setShowComposeModal] = useState(false);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [newMail, setNewMail] = useState({
+    to: '',
+    cc: '',
+    bcc: '',
+    subject: '',
+    message: ''
+  });
+  const [replyCC, setReplyCC] = useState('');
+  const [replyBCC, setReplyBCC] = useState('');
+  const [replyAttachments, setReplyAttachments] = useState<File[]>([]);
+  const [forwardData, setForwardData] = useState({
+    to: '',
+    cc: '',
+    bcc: '',
+    message: ''
+  });
+
+  // 메일 목록 불러오기
+  const fetchMails = async () => {
+    try {
+      // 관리자 토큰 가져오기
+      const token = localStorage.getItem('adminToken') || 'admin-authenticated';
+      
+      // 프록시를 통해 백엔드 연결
+      const response = await fetch('/api/proxy/support/mails', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMails(data.mails || []);
+      } else {
+        console.error('메일 불러오기 실패:', response.status);
+      }
+    } catch (error) {
+      console.error('메일 불러오기 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMails();
+    // 5초마다 새로고침
+    const interval = setInterval(fetchMails, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    filterMails();
+  }, [mails, folder, searchQuery]);
+
+  const filterMails = () => {
+    let filtered = [...mails];
+
+    // 폴더별 필터링
+    switch (folder) {
+      case 'inbox':
+        filtered = filtered.filter(m => m.category !== 'sent' && m.category !== 'trash');
+        break;
+      case 'sent':
+        filtered = filtered.filter(m => m.category === 'sent' || m.status === 'sent');
+        break;
+      case 'starred':
+        filtered = filtered.filter(m => m.isStarred);
+        break;
+      case 'trash':
+        filtered = filtered.filter(m => m.category === 'trash');
+        break;
+    }
+
+    // 검색어 적용
+    if (searchQuery) {
+      filtered = filtered.filter(m => 
+        m.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.from.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.from.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.message.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredMails(filtered);
+  };
+
+  const handleMailClick = async (mail: SupportMail) => {
+    setSelectedMail(mail);
+
+    // 읽음 처리
+    if (!mail.isRead) {
+      try {
+        const token = localStorage.getItem('adminToken') || 'admin-authenticated';
+        await fetch(`/api/proxy/support/mails/${mail.id}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 메일 목록 새로고침
+        fetchMails();
+      } catch (error) {
+        console.error('읽음 처리 실패:', error);
+      }
+    }
+  };
+
+  const handleStarToggle = async (e: React.MouseEvent, mailId: string) => {
+    e.stopPropagation();
+    const mail = mails.find(m => m.id === mailId);
+    if (!mail) return;
+
+    try {
+      const token = localStorage.getItem('adminToken') || 'admin-authenticated';
+      await fetch(`/api/proxy/support/mails/${mailId}/star`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isStarred: !mail.isStarred })
+      });
+      fetchMails();
+    } catch (error) {
+      console.error('별표 처리 실패:', error);
+    }
+  };
+
+  const handleStatusChange = async (mailId: string, status: string) => {
+    try {
+      const token = localStorage.getItem('adminToken') || 'admin-authenticated';
+      await fetch(`/api/proxy/support/mails/${mailId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      });
+      fetchMails();
+      if (selectedMail?.id === mailId) {
+        setSelectedMail({ ...selectedMail, status: status as any });
+      }
+    } catch (error) {
+      console.error('상태 변경 실패:', error);
+    }
+  };
+
+  const handleReply = async () => {
+    if (!selectedMail || !replyMessage.trim()) return;
+
+    try {
+      const token = localStorage.getItem('adminToken') || 'admin-authenticated';
+
+      const cc = replyCC.split(',').map(e => e.trim()).filter(e => e);
+      const bcc = replyBCC.split(',').map(e => e.trim()).filter(e => e);
+
+      // FormData 사용 (파일 첨부 지원)
+      const formData = new FormData();
+      formData.append('message', replyMessage);
+      formData.append('cc', JSON.stringify(cc));
+      formData.append('bcc', JSON.stringify(bcc));
+
+      // 첨부 파일 추가
+      replyAttachments.forEach(file => {
+        formData.append('attachments', file);
+      });
+
+      const response = await fetch(`/api/proxy/support/mails/${selectedMail.id}/reply`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Content-Type은 자동으로 설정됨 (multipart/form-data)
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        setReplyMessage('');
+        setReplyCC('');
+        setReplyBCC('');
+        setReplyAttachments([]);
+        setShowReplyForm(false);
+        alert('답장이 전송되었습니다.');
+        fetchMails();
+      }
+    } catch (error) {
+      console.error('답장 전송 실패:', error);
+      alert('답장 전송에 실패했습니다.');
+    }
+  };
+
+  const handleForward = async () => {
+    if (!selectedMail || !forwardData.to.trim()) {
+      alert('전달할 이메일 주소를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('adminToken') || 'admin-authenticated';
+
+      const cc = forwardData.cc.split(',').map(e => e.trim()).filter(e => e);
+      const bcc = forwardData.bcc.split(',').map(e => e.trim()).filter(e => e);
+
+      const response = await fetch(`/api/proxy/support/mails/${selectedMail.id}/forward`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to: forwardData.to,
+          message: forwardData.message,
+          cc,
+          bcc
+        })
+      });
+
+      if (response.ok) {
+        setForwardData({ to: '', cc: '', bcc: '', message: '' });
+        setShowForwardModal(false);
+        alert('메일이 전달되었습니다.');
+        fetchMails();
+      }
+    } catch (error) {
+      console.error('메일 전달 실패:', error);
+      alert('메일 전달에 실패했습니다.');
+    }
+  };
+
+  const handleDelete = async (mailId: string) => {
+    if (!confirm('이 메일을 삭제하시겠습니까?')) return;
+
+    try {
+      const token = localStorage.getItem('adminToken') || 'admin-authenticated';
+      const response = await fetch(`/api/proxy/support/mails/${mailId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        fetchMails();
+        if (selectedMail?.id === mailId) {
+          setSelectedMail(null);
+        }
+      }
+    } catch (error) {
+      console.error('메일 삭제 실패:', error);
+    }
+  };
+
+  const handleComposeMail = async () => {
+    if (!newMail.to || !newMail.subject || !newMail.message) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('adminToken') || 'admin-authenticated';
+
+      const cc = newMail.cc.split(',').map(e => e.trim()).filter(e => e);
+      const bcc = newMail.bcc.split(',').map(e => e.trim()).filter(e => e);
+
+      const response = await fetch('/api/proxy/support/send-email', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to: newMail.to,
+          subject: newMail.subject,
+          message: newMail.message,
+          cc,
+          bcc
+        })
+      });
+
+      if (response.ok) {
+        alert(`메일이 ${newMail.to}로 전송되었습니다.`);
+        setShowComposeModal(false);
+        setNewMail({ to: '', cc: '', bcc: '', subject: '', message: '' });
+        fetchMails();
+      }
+    } catch (error) {
+      console.error('메일 전송 실패:', error);
+      alert('메일 전송에 실패했습니다.');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'new':
+        return <span className="px-2 py-1 bg-red-600 text-white text-xs rounded-full">새 문의</span>;
+      case 'replied':
+        return <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">답변 완료</span>;
+      case 'resolved':
+        return <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">해결됨</span>;
+      case 'sent':
+        return <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded-full">발송됨</span>;
+      default:
+        return null;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    
+    if (hours < 1) return '방금 전';
+    if (hours < 24) return `${hours}시간 전`;
+    if (hours < 48) return '어제';
+    return date.toLocaleDateString('ko-KR');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      <AdminHeader />
+      <div className="flex h-[calc(100vh-64px)]">
+        {/* 사이드바 - 메일 목록 */}
+        <div className="w-96 border-r border-gray-800 flex flex-col">
+          {/* 헤더 */}
+          <div className="p-4 border-b border-gray-800">
+            {/* 메일 작성 버튼 */}
+            <button
+              onClick={() => setShowComposeModal(true)}
+              className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center space-x-2 transition-colors mb-4"
+            >
+              <PenSquare className="w-5 h-5" />
+              <span className="font-medium">메일 작성</span>
+            </button>
+            
+            {/* 폴더 메뉴 */}
+            <div className="space-y-1 mb-4">
+              <button
+                onClick={() => setFolder('inbox')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                  folder === 'inbox' ? 'bg-purple-600 text-white' : 'hover:bg-gray-800 text-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <Inbox className="w-5 h-5" />
+                  <span>받은편지함</span>
+                </div>
+                <span className="text-sm">
+                  {mails.filter(m => m.category !== 'sent' && m.category !== 'trash' && !m.isRead).length}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => setFolder('sent')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                  folder === 'sent' ? 'bg-purple-600 text-white' : 'hover:bg-gray-800 text-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <SendIcon className="w-5 h-5" />
+                  <span>보낸편지함</span>
+                </div>
+                <span className="text-sm">
+                  {mails.filter(m => m.category === 'sent' || m.status === 'sent').length}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => setFolder('starred')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                  folder === 'starred' ? 'bg-purple-600 text-white' : 'hover:bg-gray-800 text-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <Star className="w-5 h-5" />
+                  <span>중요편지함</span>
+                </div>
+                <span className="text-sm">{mails.filter(m => m.isStarred).length}</span>
+              </button>
+            </div>
+            
+            {/* 검색바 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="메일 검색..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
+              />
+            </div>
+          </div>
+          
+          {/* 메일 목록 */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="p-8 text-center text-gray-400">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-3"></div>
+                <p className="text-sm">메일을 불러오는 중...</p>
+              </div>
+            ) : filteredMails.length === 0 ? (
+              <div className="p-8 text-center text-gray-400">
+                <Mail className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">메일이 없습니다</p>
+              </div>
+            ) : (
+              filteredMails.map((mail) => (
+                <div
+                  key={mail.id}
+                  onClick={() => handleMailClick(mail)}
+                  className={`p-4 border-b border-gray-800 cursor-pointer hover:bg-gray-800 transition-colors ${
+                    !mail.isRead ? 'bg-gray-800/50' : ''
+                  } ${selectedMail?.id === mail.id ? 'bg-purple-900/30 border-l-4 border-purple-500' : ''}`}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={(e) => handleStarToggle(e, mail.id)}
+                        className="text-yellow-500 hover:text-yellow-400"
+                      >
+                        <Star className={`w-4 h-4 ${mail.isStarred ? 'fill-current' : ''}`} />
+                      </button>
+                      <span className={`font-medium ${!mail.isRead ? 'text-white' : 'text-gray-300'}`}>
+                        {folder === 'sent' ? mail.to : mail.from.name}
+                      </span>
+                      {folder !== 'sent' && getStatusBadge(mail.status)}
+                    </div>
+                    <span className="text-xs text-gray-400">{formatDate(mail.createdAt)}</span>
+                  </div>
+                  <div className="ml-6">
+                    <div className={`text-sm mb-1 ${!mail.isRead ? 'font-semibold' : ''}`}>
+                      {mail.subject}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {folder === 'sent' ? `To: ${mail.to}` : mail.from.email}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate mt-1">
+                      {mail.message.substring(0, 50)}...
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        
+        {/* 메인 컨텐츠 - 메일 상세 */}
+        <div className="flex-1 flex flex-col">
+          {selectedMail ? (
+            <>
+              {/* 메일 헤더 */}
+              <div className="p-4 border-b border-gray-800">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-xl font-semibold">{selectedMail.subject}</h2>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={selectedMail.status}
+                      onChange={(e) => handleStatusChange(selectedMail.id, e.target.value)}
+                      className="bg-gray-800 border border-gray-700 rounded px-3 py-1 text-sm"
+                    >
+                      <option value="new">새 문의</option>
+                      <option value="replied">답변 완료</option>
+                      <option value="resolved">해결됨</option>
+                      <option value="sent">발송됨</option>
+                    </select>
+                    {selectedMail.category !== 'trash' && (
+                      <>
+                        <button
+                          onClick={() => setShowReplyForm(!showReplyForm)}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center space-x-2"
+                        >
+                          <Reply className="w-4 h-4" />
+                          <span>답장</span>
+                        </button>
+                        <button
+                          onClick={() => setShowForwardModal(true)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center space-x-2"
+                        >
+                          <Forward className="w-4 h-4" />
+                          <span>전달</span>
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => handleDelete(selectedMail.id)}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg flex items-center space-x-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>삭제</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-400">
+                  <div>
+                    <span className="text-gray-500">From:</span> {selectedMail.from.name} &lt;{selectedMail.from.email}&gt;
+                  </div>
+                  <div>
+                    <span className="text-gray-500">To:</span> {selectedMail.to}
+                  </div>
+                  {selectedMail.cc && selectedMail.cc.length > 0 && (
+                    <div>
+                      <span className="text-gray-500">CC:</span> {selectedMail.cc.join(', ')}
+                    </div>
+                  )}
+                  <div>
+                    <Clock className="inline w-3 h-3 mr-1" />
+                    {new Date(selectedMail.createdAt).toLocaleString('ko-KR')}
+                  </div>
+                </div>
+              </div>
+              
+              {/* 메일 본문 */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="bg-gray-800 rounded-lg p-4 mb-4">
+                  {selectedMail.message ? (
+                    <>
+                      {/* HTML 이메일인 경우 iframe으로 렌더링 */}
+                      {selectedMail.message.includes('<style') || selectedMail.message.includes('<html') || selectedMail.message.includes('<!DOCTYPE') || selectedMail.message.includes('<div') || selectedMail.message.includes('<table') ? (
+                        <iframe
+                          srcDoc={selectedMail.message}
+                          className="w-full min-h-[500px] bg-white rounded border-0"
+                          sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                          title="Email content"
+                        />
+                      ) : (
+                        <div className="whitespace-pre-wrap">{selectedMail.message}</div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-gray-500 italic">
+                      (메일 본문이 비어있습니다. 이메일 서비스에서 본문을 전송하지 않았을 수 있습니다.)
+                    </div>
+                  )}
+                </div>
+                
+                {/* 답장 목록 */}
+                {selectedMail.replies && selectedMail.replies.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-2">답장 내역</h3>
+                    {selectedMail.replies.map((reply) => (
+                      <div key={reply.id} className="bg-gray-800/50 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm text-gray-400">
+                            <span className="text-purple-400">support@arata.co.kr</span> → {reply.to}
+                            {reply.cc && reply.cc.length > 0 && (
+                              <span className="ml-2 text-gray-500">(CC: {reply.cc.join(', ')})</span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => {
+                                setForwardData({
+                                  to: '',
+                                  cc: '',
+                                  bcc: '',
+                                  message: ''
+                                });
+                                setShowForwardModal(true);
+                              }}
+                              className="p-1.5 bg-blue-600/20 hover:bg-blue-600/40 rounded text-blue-400 transition-colors"
+                              title="이 답장 전달하기"
+                            >
+                              <Forward className="w-3.5 h-3.5" />
+                            </button>
+                            <div className="text-xs text-gray-500">
+                              {new Date(reply.createdAt).toLocaleString('ko-KR')}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="whitespace-pre-wrap">{reply.message}</div>
+
+                        {/* 첨부파일 목록 표시 */}
+                        {reply.attachments && reply.attachments.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-700">
+                            <div className="text-xs text-gray-400 mb-2">첨부파일 ({reply.attachments.length}개)</div>
+                            <div className="space-y-1">
+                              {reply.attachments.map((attachment: any, idx: number) => (
+                                <div key={idx} className="flex items-center space-x-2 text-sm bg-gray-700/50 px-3 py-2 rounded">
+                                  <Paperclip className="w-4 h-4 text-gray-400" />
+                                  <span className="flex-1 truncate">{attachment.filename}</span>
+                                  <span className="text-xs text-gray-500">
+                                    {(attachment.size / 1024).toFixed(1)} KB
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* 답장 폼 */}
+                {showReplyForm && (
+                  <div className="mt-6 border-t border-gray-800 pt-4">
+                    <h3 className="text-lg font-semibold mb-2">답장 작성</h3>
+                    <textarea
+                      value={replyMessage}
+                      onChange={(e) => setReplyMessage(e.target.value)}
+                      placeholder="답장 내용을 입력하세요..."
+                      className="w-full h-32 p-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
+                    />
+                    <div className="mt-2 space-y-2">
+                      <input
+                        type="text"
+                        value={replyCC}
+                        onChange={(e) => setReplyCC(e.target.value)}
+                        placeholder="CC (쉼표로 구분)"
+                        className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 text-sm"
+                      />
+                      <input
+                        type="text"
+                        value={replyBCC}
+                        onChange={(e) => setReplyBCC(e.target.value)}
+                        placeholder="BCC (쉼표로 구분)"
+                        className="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 text-sm"
+                      />
+                    </div>
+
+                    {/* 파일 첨부 */}
+                    <div className="mt-3">
+                      <label className="flex items-center space-x-2 cursor-pointer w-fit px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+                        <Paperclip className="w-4 h-4" />
+                        <span className="text-sm">파일 첨부</span>
+                        <input
+                          type="file"
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            setReplyAttachments(prev => [...prev, ...files]);
+                            e.target.value = ''; // 같은 파일도 다시 선택 가능하도록
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {/* 첨부 파일 목록 */}
+                      {replyAttachments.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {replyAttachments.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-gray-700 rounded text-sm">
+                              <div className="flex items-center space-x-2">
+                                <Paperclip className="w-3 h-3" />
+                                <span className="truncate">{file.name}</span>
+                                <span className="text-gray-400 text-xs">
+                                  ({(file.size / 1024).toFixed(1)} KB)
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setReplyAttachments(prev => prev.filter((_, i) => i !== index));
+                                }}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end space-x-2 mt-3">
+                      <button
+                        onClick={() => {
+                          setShowReplyForm(false);
+                          setReplyMessage('');
+                          setReplyCC('');
+                          setReplyBCC('');
+                          setReplyAttachments([]);
+                        }}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleReply}
+                        disabled={!replyMessage.trim()}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center space-x-2 disabled:opacity-50"
+                      >
+                        <SendIcon className="w-4 h-4" />
+                        <span>답장 보내기</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-400">
+              <div className="text-center">
+                <Mail className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>메일을 선택하여 내용을 확인하세요</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* 메일 작성 모달 */}
+      {showComposeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center">
+                <PenSquare className="w-5 h-5 mr-2" />
+                새 메일 작성
+              </h2>
+              <button
+                onClick={() => setShowComposeModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">받는 사람</label>
+                <input
+                  type="email"
+                  value={newMail.to}
+                  onChange={(e) => setNewMail({ ...newMail, to: e.target.value })}
+                  placeholder="example@email.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">CC (선택사항)</label>
+                <input
+                  type="text"
+                  value={newMail.cc}
+                  onChange={(e) => setNewMail({ ...newMail, cc: e.target.value })}
+                  placeholder="email1@example.com, email2@example.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">BCC (선택사항)</label>
+                <input
+                  type="text"
+                  value={newMail.bcc}
+                  onChange={(e) => setNewMail({ ...newMail, bcc: e.target.value })}
+                  placeholder="email1@example.com, email2@example.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">제목</label>
+                <input
+                  type="text"
+                  value={newMail.subject}
+                  onChange={(e) => setNewMail({ ...newMail, subject: e.target.value })}
+                  placeholder="메일 제목을 입력하세요"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">내용</label>
+                <textarea
+                  value={newMail.message}
+                  onChange={(e) => setNewMail({ ...newMail, message: e.target.value })}
+                  placeholder="메일 내용을 입력하세요..."
+                  rows={8}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setShowComposeModal(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleComposeMail}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center space-x-2 transition-colors"
+                >
+                  <SendIcon className="w-4 h-4" />
+                  <span>메일 보내기</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 메일 전달 모달 */}
+      {showForwardModal && selectedMail && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center">
+                <Forward className="w-5 h-5 mr-2" />
+                메일 전달
+              </h2>
+              <button
+                onClick={() => setShowForwardModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">받는 사람</label>
+                <input
+                  type="email"
+                  value={forwardData.to}
+                  onChange={(e) => setForwardData({ ...forwardData, to: e.target.value })}
+                  placeholder="example@email.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">CC (선택사항)</label>
+                <input
+                  type="text"
+                  value={forwardData.cc}
+                  onChange={(e) => setForwardData({ ...forwardData, cc: e.target.value })}
+                  placeholder="email1@example.com, email2@example.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">BCC (선택사항)</label>
+                <input
+                  type="text"
+                  value={forwardData.bcc}
+                  onChange={(e) => setForwardData({ ...forwardData, bcc: e.target.value })}
+                  placeholder="email1@example.com, email2@example.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">추가 메시지 (선택사항)</label>
+                <textarea
+                  value={forwardData.message}
+                  onChange={(e) => setForwardData({ ...forwardData, message: e.target.value })}
+                  placeholder="전달 시 추가할 메시지를 입력하세요..."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div className="border-t border-gray-700 pt-4">
+                <h3 className="text-sm font-medium mb-2 text-gray-400">원본 메일</h3>
+                <div className="bg-gray-900 rounded-lg p-4 space-y-2">
+                  <div className="text-sm">
+                    <span className="text-gray-400">보낸 사람:</span> {selectedMail.from.name} &lt;{selectedMail.from.email}&gt;
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-gray-400">제목:</span> {selectedMail.subject}
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-gray-400">날짜:</span> {new Date(selectedMail.createdAt).toLocaleString('ko-KR')}
+                  </div>
+                  <div className="text-sm mt-3 pt-3 border-t border-gray-800">
+                    <div className="whitespace-pre-wrap">{selectedMail.message}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => {
+                    setShowForwardModal(false);
+                    setForwardData({ to: '', cc: '', bcc: '', message: '' });
+                  }}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleForward}
+                  disabled={!forwardData.to.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50"
+                >
+                  <Forward className="w-4 h-4" />
+                  <span>전달하기</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

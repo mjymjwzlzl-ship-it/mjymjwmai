@@ -1,0 +1,124 @@
+# ARATA 웹툰 플랫폼 - Nginx 설정 (대규모 트래픽 대비)
+
+# HTTP/2 및 HTTP/3 설정
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    # HTTP/3 지원 (QUIC)
+    listen 443 quic reuseport;
+    listen [::]:443 quic reuseport;
+    
+    server_name arata.co.kr api.arata.co.kr;
+    
+    # SSL 설정
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    
+    # HTTP/2 Server Push
+    http2_push_preload on;
+    
+    # HTTP/3 광고
+    add_header Alt-Svc 'h3=":443"; ma=86400';
+    
+    # 이미지 전용 location
+    location ~ ^/uploads/.*\.(jpg|jpeg|png|webp|gif)$ {
+        # 캐시 설정 (1년)
+        expires 365d;
+        add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options "nosniff";
+        
+        # CORS 허용 (CDN 사용 시)
+        add_header Access-Control-Allow-Origin "*";
+        add_header Access-Control-Allow-Methods "GET, OPTIONS";
+        
+        # Cloudflare 캐시 최적화
+        add_header CF-Cache-Tag "images";
+        
+        # 압축 비활성화 (이미지는 이미 압축됨)
+        gzip off;
+        
+        # 대역폭 제한 (악성 다운로드 방지)
+        limit_rate_after 5m;  # 5MB까지는 제한 없음
+        limit_rate 1m;        # 그 이후 1MB/s로 제한
+        
+        # 직접 파일 서빙
+        root /var/www/arata/backend;
+        try_files $uri @backend;
+    }
+    
+    # API 프록시
+    location /api {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        
+        # Keep-alive 연결 유지
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # 캐싱 설정
+        proxy_cache api_cache;
+        proxy_cache_valid 200 30m;
+        proxy_cache_valid 404 1m;
+        proxy_cache_use_stale error timeout updating;
+        proxy_cache_background_update on;
+        proxy_cache_lock on;
+    }
+    
+    # 정적 파일 (Next.js)
+    location /_next/static {
+        expires 365d;
+        add_header Cache-Control "public, immutable";
+        root /var/www/arata/.next;
+    }
+    
+    # 메인 애플리케이션
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+# 업스트림 서버 풀 (로드 밸런싱)
+upstream backend_servers {
+    least_conn;  # 연결 수가 적은 서버로 분산
+    
+    server localhost:8000 weight=3;     # 메인 서버
+    server localhost:8001 weight=2;     # 백업 서버 1
+    server localhost:8002 weight=1;     # 백업 서버 2
+    
+    # 헬스체크
+    keepalive 32;
+    keepalive_requests 100;
+    keepalive_timeout 60s;
+}
+
+# 캐시 존 설정
+proxy_cache_path /var/cache/nginx/api levels=1:2 keys_zone=api_cache:100m max_size=10g inactive=60m use_temp_path=off;
+proxy_cache_path /var/cache/nginx/images levels=1:2 keys_zone=image_cache:200m max_size=50g inactive=365d use_temp_path=off;
+
+# 연결 제한 (DDoS 방어)
+limit_conn_zone $binary_remote_addr zone=addr:10m;
+limit_conn addr 100;  # IP당 최대 100개 연결
+
+# 요청 속도 제한
+limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+limit_req zone=api burst=20 nodelay;
+
+# Gzip 압축 (텍스트 파일만)
+gzip on;
+gzip_vary on;
+gzip_min_length 1024;
+gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss application/rss+xml application/atom+xml image/svg+xml text/x-js text/x-cross-domain-policy application/x-font-ttf application/x-font-opentype application/vnd.ms-fontobject image/x-icon;
+
+# Brotli 압축 (더 나은 압축률)
+brotli on;
+brotli_comp_level 6;
+brotli_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss application/rss+xml application/atom+xml image/svg+xml;

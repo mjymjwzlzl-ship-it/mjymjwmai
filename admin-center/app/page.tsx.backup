@@ -1,0 +1,1261 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Star, TrendingUp, Eye, Heart, Users, BookOpen, LogOut, Plus, Edit, Trash2, Shield } from 'lucide-react';
+import { categoryAPI, comicsAPI } from '@/lib/api-axios';
+
+interface Webtoon {
+  id: string;
+  title: string;
+  authorName: string;
+  genre: string;
+  thumbnail: string;
+  viewCount: number;
+  likeCount: number;
+  status: string;
+  createdAt: string;
+  ageRating?: number | string; // 연령 등급 (숫자 또는 문자열)
+}
+
+export default function AdminDashboard() {
+  const router = useRouter();
+  const [webtoons, setWebtoons] = useState<Webtoon[]>([]);
+  const [adultWebtoons, setAdultWebtoons] = useState<Webtoon[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mainTab, setMainTab] = useState<'general' | 'adult'>('general');
+  const [subTab, setSubTab] = useState<'management' | 'statistics'>('management');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'popular' | 'editors' | 'new' | 'waitfree'>('all');
+  const [refreshKey, setRefreshKey] = useState(0); // 강제 리렌더링용
+  
+  // 일반 웹툰 카테고리
+  const [allWebtoons, setAllWebtoons] = useState<string[]>([]);
+  const [popularWebtoons, setPopularWebtoons] = useState<string[]>([]);
+  const [editorsWebtoons, setEditorsWebtoons] = useState<string[]>([]);
+  const [newWebtoons, setNewWebtoons] = useState<string[]>([]);
+  const [waitfreeWebtoons, setWaitfreeWebtoons] = useState<string[]>([]);
+  
+  // 성인 웹툰 카테고리
+  const [adultAllWebtoons, setAdultAllWebtoons] = useState<string[]>([]);
+  const [adultPopularWebtoons, setAdultPopularWebtoons] = useState<string[]>([]);
+  const [adultEditorsWebtoons, setAdultEditorsWebtoons] = useState<string[]>([]);
+  const [adultNewWebtoons, setAdultNewWebtoons] = useState<string[]>([]);
+  const [adultWaitfreeWebtoons, setAdultWaitfreeWebtoons] = useState<string[]>([]);
+  
+  // 저장 상태 추적 (저장 후 일정 시간 동안 자동 로드 방지)
+  const [lastSaveTime, setLastSaveTime] = useState<number>(0);
+
+  useEffect(() => {
+    // 클라이언트 사이드에서만 실행
+    if (typeof window !== 'undefined') {
+      checkAuth();
+      fetchWebtoons();
+      fetchAdultWebtoons();
+      loadCategories(true); // 페이지 로드 시에는 항상 강제 로드
+    }
+  }, []);
+
+  const checkAuth = () => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('adminToken');
+      if (!token) {
+        router.push('/login');
+      }
+    }
+  };
+
+  const fetchWebtoons = async () => {
+    try {
+      setLoading(true);
+      
+      // 백엔드에서 모든 웹툰 가져오기
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
+      
+      const response = await fetch(`${API_BASE_URL}/admin/comics`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // 일반 웹툰 필터링 (genre가 'adult'가 아닌 것들)
+        const allComics = data.comics || [];
+        const generalWebtoons = allComics.filter((comic: Webtoon) => {
+          // genre 기준으로 필터링
+          if (comic.genre === 'adult') return false;
+          
+          // ageRating이 있다면 추가 체크
+          const rating = comic.ageRating || 0;
+          const numericRating = typeof rating === 'string' ? parseInt(rating) : rating;
+          return numericRating < 19; // 19세 미만은 일반 웹툰
+        });
+        
+        setWebtoons(generalWebtoons);
+      } else {
+        // API 실패 시 테스트 데이터 사용
+        const testWebtoons = [
+          {
+            id: '1',
+            title: '테스트 웹툰 1',
+            authorName: '테스트 작가1',
+            genre: 'romance',
+            viewCount: 1500,
+            likeCount: 230,
+            status: 'ongoing',
+            createdAt: new Date().toISOString(),
+            thumbnail: '/test-thumbnail1.jpg'
+          },
+          {
+            id: '2', 
+            title: '테스트 웹툰 2',
+            authorName: '테스트 작가2',
+            genre: 'action',
+            viewCount: 2300,
+            likeCount: 450,
+            status: 'ongoing',
+            createdAt: new Date().toISOString(),
+            thumbnail: '/test-thumbnail2.jpg'
+          }
+        ];
+        setWebtoons(testWebtoons);
+      }
+    } catch (error) {
+      
+      // 에러 발생 시 테스트 데이터 사용
+      const testWebtoons = [
+        {
+          id: '1',
+          title: '테스트 웹툰 1 (오프라인)',
+          authorName: '테스트 작가1',
+          genre: 'romance',
+          viewCount: 1500,
+          likeCount: 230,
+          status: 'ongoing',
+          createdAt: new Date().toISOString(),
+          thumbnail: '/test-thumbnail1.jpg'
+        }
+      ];
+      setWebtoons(testWebtoons);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAdultWebtoons = async () => {
+    try {
+      
+      // 백엔드에서 성인 웹툰 가져오기
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
+      
+      const response = await fetch(`${API_BASE_URL}/admin/comics/adult`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      
+      if (response.ok) {
+        const data = await response.json();
+        // 성인 웹툰 필터링 (genre가 'adult'인 것들)
+        const adultOnly = (data.comics || []).filter((webtoon: Webtoon) => {
+          // genre 기준으로 필터링
+          if (webtoon.genre === 'adult') return true;
+          
+          // ageRating이 있다면 추가 체크
+          const rating = webtoon.ageRating || 0;
+          const numericRating = typeof rating === 'string' ? parseInt(rating) : rating;
+          return numericRating >= 19; // 19세 이상은 성인 웹툰
+        });
+        setAdultWebtoons(adultOnly);
+      } else if (response.status === 404) {
+        // 성인 전용 API가 없으면 일반 API에서 19+ 필터링
+        const generalResponse = await fetch(`${API_BASE_URL}/admin/comics`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (generalResponse.ok) {
+          const generalData = await generalResponse.json();
+          const adultOnly = (generalData.comics || []).filter((webtoon: Webtoon) => {
+            // genre 기준으로 필터링
+            if (webtoon.genre === 'adult') return true;
+            
+            // ageRating이 있다면 추가 체크
+            const rating = webtoon.ageRating || 0;
+            const numericRating = typeof rating === 'string' ? parseInt(rating) : rating;
+            return numericRating >= 19; // 19세 이상은 성인 웹툰
+          });
+          setAdultWebtoons(adultOnly);
+        } else {
+          setAdultWebtoons([]);
+        }
+      } else {
+        setAdultWebtoons([]);
+      }
+    } catch (error) {
+      setAdultWebtoons([]);
+    }
+  };
+
+  // localStorage 클리어 함수 제거 - 데이터 보존을 위해
+
+  const loadCategories = async (forceLoad = false) => {
+    // 브라우저 환경 체크 - 반드시 클라이언트에서만 실행
+    if (typeof window === 'undefined') {
+      console.log('서버 사이드 렌더링 중이므로 loadCategories 스킵');
+      return;
+    }
+    
+    // 토큰 체크
+    const token = localStorage.getItem('adminToken');
+    if (!token || token === 'null' || token === 'undefined') {
+      console.log('토큰이 없어서 loadCategories 스킵');
+      return;
+    }
+    
+    // 강제 로드가 아닌 경우에만 최근 저장 체크 (페이지 새로고침 시에는 항상 로드)
+    if (!forceLoad) {
+      const timeSinceLastSave = Date.now() - lastSaveTime;
+      if (timeSinceLastSave < 5000 && lastSaveTime > 0) { // 5초 이내 저장했으면 스킵
+        console.log('최근 저장 후 5초 이내이므로 loadCategories 스킵');
+        return;
+      }
+    }
+    
+    console.log('loadCategories 실행 중... (forceLoad:', forceLoad, ')');
+    
+    try {
+      // 백엔드에서 카테고리 설정 가져오기
+      console.log('일반 카테고리 로드 시작...');
+      const backendCategories = await categoryAPI.getCategories();
+      console.log('백엔드에서 카테고리 데이터 로드됨:', backendCategories);
+      
+      // 백엔드 데이터를 상태에 설정 (안전한 접근)
+      const data = backendCategories?.data || backendCategories || {};
+      setAllWebtoons(data.all || []);
+      setPopularWebtoons(data.popular || []);
+      setEditorsWebtoons(data.editors || []);
+      setNewWebtoons(data.new || []);
+      setWaitfreeWebtoons(data.waitfree || []);
+      
+      // 강제 리렌더링 트리거
+      setRefreshKey(prev => prev + 1);
+      console.log('일반 웹툰 카테고리 데이터 업데이트됨');
+    } catch (error) {
+      console.error('백엔드 연결 실패 상세 정보:', error);
+      if (error instanceof Error) {
+        console.error('에러 타입:', error.name);
+        console.error('에러 메시지:', error.message);
+      }
+      
+      // 더 자세한 에러 메시지 표시
+      if (error instanceof Error) {
+        alert(`백엔드 서버 연결 실패:\n${error.message}`);
+      } else {
+        alert('백엔드 서버 연결 실패');
+      }
+      
+      // 백엔드 실패 시 빈 배열로 초기화
+      setAllWebtoons([]);
+      setPopularWebtoons([]);
+      setEditorsWebtoons([]);
+      setNewWebtoons([]);
+      setWaitfreeWebtoons([]);
+    }
+    
+    // 성인 웹툰 카테고리도 백엔드에서 가져오기
+    try {
+      console.log('성인 카테고리 로드 시작...');
+      const adultCategories = await categoryAPI.getAdultCategories();
+      console.log('백엔드에서 성인 카테고리 데이터 로드됨:', adultCategories);
+      
+      // 성인 웹툰 카테고리 업데이트 (안전한 접근)
+      const adultData = adultCategories?.data || adultCategories || {};
+      setAdultAllWebtoons(adultData.all || []);
+      setAdultPopularWebtoons(adultData.popular || []);
+      setAdultEditorsWebtoons(adultData.editors || []);
+      setAdultNewWebtoons(adultData.new || []);
+      setAdultWaitfreeWebtoons(adultData.waitfree || []);
+      
+      console.log('성인 웹툰 카테고리 데이터 업데이트됨');
+    } catch (error) {
+      console.error('성인 카테고리 백엔드 연결 실패:', error);
+      
+      // 백엔드 실패 시 빈 배열로 초기화
+      setAdultAllWebtoons([]);
+      setAdultPopularWebtoons([]);
+      setAdultEditorsWebtoons([]);
+      setAdultNewWebtoons([]);
+      setAdultWaitfreeWebtoons([]);
+    }
+  };
+
+  // localStorage 데이터를 백엔드로 이전하는 함수
+  const migrateLocalStorageToBackend = async (popular: string[], editors: string[], newRecs: string[], waitfree: string[]) => {
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
+      const response = await fetch(`${API_BASE_URL}/admin/categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+        },
+        body: JSON.stringify({
+          popular,
+          editors,
+          new: newRecs,
+          waitfree
+        })
+      });
+      
+      if (response.ok) {
+      }
+    } catch (error) {
+    }
+  };
+
+  const saveCategories = async () => {
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
+      
+      if (mainTab === 'adult') {
+        // 성인 웹툰 카테고리 저장
+        await categoryAPI.saveAdultCategories({
+          all: adultAllWebtoons,
+          popular: adultPopularWebtoons,
+          editors: adultEditorsWebtoons,
+          new: adultNewWebtoons,
+          waitfree: adultWaitfreeWebtoons
+        });
+        
+        // 백엔드 저장 성공 - 상태 리셋 방지
+        console.log('성인 웹툰 카테고리 저장 성공');
+        
+        // 저장 시간 기록 (자동 로드 방지용)
+        setLastSaveTime(Date.now());
+        
+        alert('성인 웹툰 카테고리 설정이 저장되었습니다!\n\n' + 
+              `전체: ${adultAllWebtoons.length}개\n` +
+              `실시간 인기작: ${adultPopularWebtoons.length}개\n` +
+              `에디터 추천: ${adultEditorsWebtoons.length}개\n` +
+              `신작 추천: ${adultNewWebtoons.length}개\n` +
+              `기다리면 무료: ${adultWaitfreeWebtoons.length}개`);
+        
+        // 프론트엔드 강제 갱신을 위한 이벤트 발생
+        window.dispatchEvent(new CustomEvent('adultCategoryUpdated', {
+          detail: { 
+            popular: adultPopularWebtoons, 
+            editors: adultEditorsWebtoons, 
+            new: adultNewWebtoons, 
+            waitfree: adultWaitfreeWebtoons,
+            all: adultAllWebtoons,
+            timestamp: new Date().toISOString()
+          }
+        }));
+      } else {
+        // 일반 웹툰 카테고리 저장
+        await categoryAPI.saveCategories({
+          all: allWebtoons,
+          popular: popularWebtoons,
+          editors: editorsWebtoons,
+          new: newWebtoons,
+          waitfree: waitfreeWebtoons
+        });
+        
+        // 백엔드 저장 성공 - 상태 리셋 방지
+        console.log('일반 웹툰 카테고리 저장 성공');
+        
+        // 저장 시간 기록 (자동 로드 방지용)
+        setLastSaveTime(Date.now());
+        
+        alert('일반 웹툰 카테고리 설정이 저장되었습니다!\n\n' + 
+              `전체: ${allWebtoons.length}개\n` +
+              `실시간 인기작: ${popularWebtoons.length}개\n` +
+              `에디터 추천: ${editorsWebtoons.length}개\n` +
+              `신작 추천: ${newWebtoons.length}개\n` +
+              `기다리면 무료: ${waitfreeWebtoons.length}개`);
+        
+        // 프론트엔드 강제 갱신을 위한 이벤트 발생
+        window.dispatchEvent(new CustomEvent('categoryUpdated', {
+          detail: { 
+            popular: popularWebtoons, 
+            editors: editorsWebtoons, 
+            new: newWebtoons, 
+            waitfree: waitfreeWebtoons,
+            all: allWebtoons,
+            timestamp: new Date().toISOString()
+          }
+        }));
+        
+        // localStorage를 통한 크로스 탭 알림
+        localStorage.setItem('categoryUpdate', Date.now().toString());
+        localStorage.removeItem('categoryUpdate');
+        
+        // 메인 사이트로 직접 이벤트 전송 (iframe이나 다른 창이 있는 경우)
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+              type: 'categoryUpdated',
+              data: {
+                popular: popularWebtoons,
+                editors: editorsWebtoons,
+                new: newWebtoons,
+                waitfree: waitfreeWebtoons,
+                all: allWebtoons,
+                timestamp: new Date().toISOString()
+              }
+            }, '*');
+          }
+        } catch (e) {
+          console.log('PostMessage 전송 불가:', e);
+        }
+      }
+    } catch (error) {
+      console.error('백엔드 저장 실패:', error);
+      alert('백엔드 서버에 저장할 수 없습니다. 서버 상태를 확인해주세요.');
+    }
+  };
+
+  const addToCategory = (webtoonId: string) => {
+    // 성인/일반 탭에 따라 분기
+    if (mainTab === 'adult') {
+      // 성인 웹툰 카테고리
+      if (selectedCategory === 'all') {
+        if (!adultAllWebtoons.includes(webtoonId)) {
+          setAdultAllWebtoons([...adultAllWebtoons, webtoonId]);
+        }
+      } else if (selectedCategory === 'popular') {
+        if (!adultPopularWebtoons.includes(webtoonId)) {
+          setAdultPopularWebtoons([...adultPopularWebtoons, webtoonId]);
+        }
+        // 다른 카테고리에 추가할 때도 all 배열에 자동 추가 (중복 방지)
+        if (!adultAllWebtoons.includes(webtoonId)) {
+          setAdultAllWebtoons([...adultAllWebtoons, webtoonId]);
+        }
+      } else if (selectedCategory === 'editors') {
+        if (!adultEditorsWebtoons.includes(webtoonId)) {
+          setAdultEditorsWebtoons([...adultEditorsWebtoons, webtoonId]);
+        }
+        if (!adultAllWebtoons.includes(webtoonId)) {
+          setAdultAllWebtoons([...adultAllWebtoons, webtoonId]);
+        }
+      } else if (selectedCategory === 'new') {
+        if (!adultNewWebtoons.includes(webtoonId)) {
+          setAdultNewWebtoons([...adultNewWebtoons, webtoonId]);
+        }
+        if (!adultAllWebtoons.includes(webtoonId)) {
+          setAdultAllWebtoons([...adultAllWebtoons, webtoonId]);
+        }
+      } else if (selectedCategory === 'waitfree') {
+        if (!adultWaitfreeWebtoons.includes(webtoonId)) {
+          setAdultWaitfreeWebtoons([...adultWaitfreeWebtoons, webtoonId]);
+        }
+        if (!adultAllWebtoons.includes(webtoonId)) {
+          setAdultAllWebtoons([...adultAllWebtoons, webtoonId]);
+        }
+      }
+    } else {
+      // 일반 웹툰 카테고리
+      if (selectedCategory === 'all') {
+        if (!allWebtoons.includes(webtoonId)) {
+          setAllWebtoons([...allWebtoons, webtoonId]);
+        }
+      } else if (selectedCategory === 'popular') {
+        if (!popularWebtoons.includes(webtoonId)) {
+          setPopularWebtoons([...popularWebtoons, webtoonId]);
+        }
+        // 다른 카테고리에 추가할 때도 all 배열에 자동 추가 (중복 방지)
+        if (!allWebtoons.includes(webtoonId)) {
+          setAllWebtoons([...allWebtoons, webtoonId]);
+        }
+      } else if (selectedCategory === 'editors') {
+        if (!editorsWebtoons.includes(webtoonId)) {
+          setEditorsWebtoons([...editorsWebtoons, webtoonId]);
+        }
+        if (!allWebtoons.includes(webtoonId)) {
+          setAllWebtoons([...allWebtoons, webtoonId]);
+        }
+      } else if (selectedCategory === 'new') {
+        if (!newWebtoons.includes(webtoonId)) {
+          setNewWebtoons([...newWebtoons, webtoonId]);
+        }
+        if (!allWebtoons.includes(webtoonId)) {
+          setAllWebtoons([...allWebtoons, webtoonId]);
+        }
+      } else if (selectedCategory === 'waitfree') {
+        if (!waitfreeWebtoons.includes(webtoonId)) {
+          setWaitfreeWebtoons([...waitfreeWebtoons, webtoonId]);
+        }
+        if (!allWebtoons.includes(webtoonId)) {
+          setAllWebtoons([...allWebtoons, webtoonId]);
+        }
+      }
+    }
+  };
+
+  const removeFromCategory = (webtoonId: string, index: number) => {
+    // 성인/일반 탭에 따라 분기
+    if (mainTab === 'adult') {
+      // 성인 웹툰 카테고리
+      if (selectedCategory === 'all') {
+        const newAll = [...adultAllWebtoons];
+        newAll.splice(index, 1);
+        setAdultAllWebtoons(newAll);
+      } else if (selectedCategory === 'popular') {
+        const newPopular = [...adultPopularWebtoons];
+        newPopular.splice(index, 1);
+        setAdultPopularWebtoons(newPopular);
+      } else if (selectedCategory === 'editors') {
+        const newEditors = [...adultEditorsWebtoons];
+        newEditors.splice(index, 1);
+        setAdultEditorsWebtoons(newEditors);
+      } else if (selectedCategory === 'new') {
+        const newRecs = [...adultNewWebtoons];
+        newRecs.splice(index, 1);
+        setAdultNewWebtoons(newRecs);
+      } else if (selectedCategory === 'waitfree') {
+        const newWaitfree = [...adultWaitfreeWebtoons];
+        newWaitfree.splice(index, 1);
+        setAdultWaitfreeWebtoons(newWaitfree);
+      }
+    } else {
+      // 일반 웹툰 카테고리
+      if (selectedCategory === 'all') {
+        const newAll = [...allWebtoons];
+        newAll.splice(index, 1);
+        setAllWebtoons(newAll);
+      } else if (selectedCategory === 'popular') {
+        const newPopular = [...popularWebtoons];
+        newPopular.splice(index, 1);
+        setPopularWebtoons(newPopular);
+      } else if (selectedCategory === 'editors') {
+        const newEditors = [...editorsWebtoons];
+        newEditors.splice(index, 1);
+        setEditorsWebtoons(newEditors);
+      } else if (selectedCategory === 'new') {
+        const newRecs = [...newWebtoons];
+        newRecs.splice(index, 1);
+        setNewWebtoons(newRecs);
+      } else if (selectedCategory === 'waitfree') {
+        const newWaitfree = [...waitfreeWebtoons];
+        newWaitfree.splice(index, 1);
+        setWaitfreeWebtoons(newWaitfree);
+      }
+    }
+  };
+
+  const getCurrentCategoryWebtoons = () => {
+    let categoryIds: string[] = [];
+    let targetWebtoons = mainTab === 'adult' ? adultWebtoons : webtoons;
+    
+    if (mainTab === 'adult') {
+      // 성인 웹툰 카테고리
+      if (selectedCategory === 'all') categoryIds = adultAllWebtoons;
+      else if (selectedCategory === 'popular') categoryIds = adultPopularWebtoons;
+      else if (selectedCategory === 'editors') categoryIds = adultEditorsWebtoons;
+      else if (selectedCategory === 'new') categoryIds = adultNewWebtoons;
+      else if (selectedCategory === 'waitfree') categoryIds = adultWaitfreeWebtoons;
+    } else {
+      // 일반 웹툰 카테고리
+      if (selectedCategory === 'all') categoryIds = allWebtoons;
+      else if (selectedCategory === 'popular') categoryIds = popularWebtoons;
+      else if (selectedCategory === 'editors') categoryIds = editorsWebtoons;
+      else if (selectedCategory === 'new') categoryIds = newWebtoons;
+      else if (selectedCategory === 'waitfree') categoryIds = waitfreeWebtoons;
+    }
+    
+    // 중복을 허용하기 위해 순서대로 매핑
+    return categoryIds.map(id => targetWebtoons.find(webtoon => webtoon.id === id)).filter(Boolean);
+  };
+
+  const getAvailableWebtoons = () => {
+    // 성인/일반 탭에 따라 해당하는 웹툰들만 반환
+    return mainTab === 'adult' ? adultWebtoons : webtoons;
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    router.push('/login');
+  };
+
+  useEffect(() => {
+    // localStorage 변경 감지 완전 제거 (자동 새로고침 방지)
+    // 사용자가 카테고리를 변경하는 동안 방해받지 않도록 함
+  }, []);
+
+  const getCategoryTitle = () => {
+    switch(selectedCategory) {
+      case 'all': return '전체';
+      case 'popular': return '실시간 인기작';
+      case 'editors': return '에디터 추천';
+      case 'new': return '1화만 보면 빠져든다';
+      case 'waitfree': return '기다리면 무료';
+      default: return '';
+    }
+  };
+
+  return (
+    <div key={refreshKey} className="min-h-screen bg-gray-50">
+      {/* 헤더 */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <BookOpen className="w-8 h-8 text-purple-600 mr-3" />
+              <h1 className="text-xl font-bold text-gray-900">ARATA 관리자 센터</h1>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 메인 탭 (일반/성인) */}
+        <div className="mb-6">
+          <div className="flex space-x-2 bg-gray-100 rounded-lg p-1 w-fit">
+            <button
+              onClick={() => setMainTab('general')}
+              className={`px-6 py-3 rounded-md transition-colors font-medium ${
+                mainTab === 'general'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <BookOpen className="w-5 h-5 inline mr-2" />
+              일반 웹툰
+            </button>
+            <button
+              onClick={() => setMainTab('adult')}
+              className={`px-6 py-3 rounded-md transition-colors font-medium ${
+                mainTab === 'adult'
+                  ? 'bg-white text-red-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Shield className="w-5 h-5 inline mr-2" />
+              성인 웹툰 (19+)
+            </button>
+          </div>
+        </div>
+
+        {/* 서브 탭 (관리/통계) */}
+        <div className="mb-8">
+          <div className="flex space-x-1 border-b border-gray-200">
+            <button
+              onClick={() => setSubTab('management')}
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+                subTab === 'management'
+                  ? `border-${mainTab === 'adult' ? 'red' : 'blue'}-500 text-${mainTab === 'adult' ? 'red' : 'blue'}-600`
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              관리
+            </button>
+            <button
+              onClick={() => setSubTab('statistics')}
+              className={`px-4 py-2 font-medium text-sm transition-colors border-b-2 ${
+                subTab === 'statistics'
+                  ? `border-${mainTab === 'adult' ? 'red' : 'blue'}-500 text-${mainTab === 'adult' ? 'red' : 'blue'}-600`
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              통계
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            {subTab === 'management' 
+              ? (mainTab === 'general' 
+                ? '전체 이용가 및 15세 이상 웹툰의 카테고리를 관리합니다.'
+                : '만 19세 이상 성인 인증이 필요한 웹툰의 카테고리를 관리합니다.')
+              : (mainTab === 'general'
+                ? '일반 웹툰의 조회수, 좋아요, 댓글 등 통계를 확인할 수 있습니다.'
+                : '성인 웹툰의 조회수, 좋아요, 댓글 등 통계를 확인할 수 있습니다.')
+            }
+          </p>
+        </div>
+
+        {/* 통계 탭 내용 */}
+        {subTab === 'statistics' && (
+          <>
+            {/* 통계 카드 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className={`p-2 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-blue-100'
+              }`}>
+                <BookOpen className={`w-6 h-6 ${
+                  mainTab === 'adult' ? 'text-red-600' : 'text-blue-600'
+                }`} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">
+                  {mainTab === 'adult' ? '성인 웹툰' : '일반 웹툰'}
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {mainTab === 'adult' ? adultWebtoons.length : webtoons.length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className={`p-2 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-green-100'
+              }`}>
+                <BookOpen className={`w-6 h-6 ${
+                  mainTab === 'adult' ? 'text-red-600' : 'text-green-600'
+                }`} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">카테고리 설정된 전체</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {mainTab === 'adult' ? adultAllWebtoons.length : allWebtoons.length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className={`p-2 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-red-100'
+              }`}>
+                <TrendingUp className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">실시간 인기작</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {mainTab === 'adult' ? adultPopularWebtoons.length : popularWebtoons.length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className={`p-2 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-purple-100'
+              }`}>
+                <Star className={`w-6 h-6 ${
+                  mainTab === 'adult' ? 'text-red-600' : 'text-purple-600'
+                }`} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">에디터 추천</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {mainTab === 'adult' ? adultEditorsWebtoons.length : editorsWebtoons.length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className={`p-2 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-yellow-100'
+              }`}>
+                <Heart className={`w-6 h-6 ${
+                  mainTab === 'adult' ? 'text-red-600' : 'text-yellow-600'
+                }`} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">1화만 보면 빠져든다</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {mainTab === 'adult' ? adultNewWebtoons.length : newWebtoons.length}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className={`p-2 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-green-100'
+              }`}>
+                <Heart className={`w-6 h-6 ${
+                  mainTab === 'adult' ? 'text-red-600' : 'text-green-600'
+                }`} />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">기다리면 무료</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {mainTab === 'adult' ? adultWaitfreeWebtoons.length : waitfreeWebtoons.length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          {/* 배너 관리 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center mb-4">
+              <div className={`p-3 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-purple-100'
+              }`}>
+                <BookOpen className={`w-6 h-6 ${
+                  mainTab === 'adult' ? 'text-red-600' : 'text-purple-600'
+                }`} />
+              </div>
+              <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                {mainTab === 'adult' ? '성인 메인 배너 관리' : '메인 배너 관리'}
+              </h3>
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              {mainTab === 'adult' 
+                ? '성인 사용자에게 표시될 메인 페이지 슬라이드 배너를 관리합니다. 성인 인기작, 신작 등의 배너를 추가/수정/삭제할 수 있습니다.'
+                : '메인 페이지의 슬라이드 배너를 관리합니다. 정식연재작, 이번주 인기작, 신작 웹툰 대전 등의 배너를 추가/수정/삭제할 수 있습니다.'
+              }
+            </p>
+            <a
+              href={mainTab === 'adult' ? '/banners?type=adult' : '/banners'}
+              className={`inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors text-sm ${
+                mainTab === 'adult' 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : 'bg-purple-600 hover:bg-purple-700'
+              }`}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              배너 관리하기
+            </a>
+          </div>
+
+          {/* 실시간 인기작 관리 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center mb-4">
+              <div className="p-3 bg-red-100 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                {mainTab === 'adult' ? '성인 인기작 관리' : '실시간 인기작 관리'}
+              </h3>
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              {mainTab === 'adult'
+                ? '성인 웹툰 정식 탭에 표시될 인기작 순서를 관리합니다. 드래그 앤 드롭으로 순서를 변경할 수 있습니다.'
+                : '정식 탭에 표시될 인기작 순서를 관리합니다. 드래그 앤 드롭으로 순서를 변경할 수 있습니다.'
+              }
+            </p>
+            <a
+              href={mainTab === 'adult' ? '/popular?type=adult' : '/popular'}
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              인기작 관리하기
+            </a>
+          </div>
+            </div>
+
+            {/* 추가 통계 콘텐츠 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* 웹툰 통계 테이블 */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  {mainTab === 'adult' ? '성인 웹툰 순위' : '일반 웹툰 순위'}
+                </h3>
+                <div className="space-y-3">
+                  {(mainTab === 'adult' ? adultWebtoons : webtoons).slice(0, 10).map((webtoon, index) => (
+                    <div key={webtoon.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                          index < 3 ? 'bg-yellow-500' : 'bg-gray-400'
+                        }`}>
+                          {index + 1}
+                        </span>
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">{webtoon.title}</p>
+                          <p className="text-xs text-gray-500">{webtoon.authorName}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">{webtoon.viewCount?.toLocaleString() || '0'}</p>
+                        <p className="text-xs text-gray-500">조회수</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 통계 차트 영역 */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">월별 통계</h3>
+                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>차트 데이터 준비 중</p>
+                    <p className="text-sm">향후 업데이트 예정</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 장르별 통계 */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                {mainTab === 'adult' ? '성인 웹툰 장르별 통계' : '일반 웹툰 장르별 통계'}
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {(() => {
+                  const targetWebtoons = mainTab === 'adult' ? adultWebtoons : webtoons;
+                  const genreCounts = targetWebtoons.reduce((acc: {[key: string]: number}, webtoon) => {
+                    const genre = webtoon.genre || '기타';
+                    acc[genre] = (acc[genre] || 0) + 1;
+                    return acc;
+                  }, {});
+                  
+                  return Object.entries(genreCounts).map(([genre, count]) => (
+                    <div key={genre} className="text-center p-4 bg-gray-50 rounded-lg">
+                      <p className="text-2xl font-bold text-gray-900">{count}</p>
+                      <p className="text-sm text-gray-600 mt-1">{genre}</p>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 관리 탭 내용 */}
+        {subTab === 'management' && (
+          <>
+            {/* 카테고리 관리 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center mb-4">
+              <div className={`p-3 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-blue-100'
+              }`}>
+                <Star className={`w-6 h-6 ${
+                  mainTab === 'adult' ? 'text-red-600' : 'text-blue-600'
+                }`} />
+              </div>
+              <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                {mainTab === 'adult' ? '성인 카테고리 관리' : '카테고리 관리'}
+              </h3>
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              {mainTab === 'adult'
+                ? '성인 웹툰의 실시간 인기작, 에디터 추천, 신작 추천, 기다리면 무료 카테고리에 웹툰을 분류합니다.'
+                : '실시간 인기작, 에디터 추천, 신작 추천, 기다리면 무료 카테고리에 웹툰을 분류합니다.'
+              }
+            </p>
+            <button
+              onClick={() => {
+                document.getElementById('category-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className={`inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors text-sm ${
+                mainTab === 'adult' 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              카테고리 관리하기
+            </button>
+          </div>
+
+          {/* 성인인증 관리 - 일반 탭에서만 표시 */}
+          {mainTab === 'general' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center mb-4">
+                <div className="p-3 bg-orange-100 rounded-lg">
+                  <Shield className="w-6 h-6 text-orange-600" />
+                </div>
+                <h3 className="ml-3 text-lg font-semibold text-gray-900">성인인증 관리</h3>
+              </div>
+              <p className="text-gray-600 text-sm mb-4">
+                성인 콘텐츠 접근 제어 및 연령 인증 시스템을 관리합니다. 휴대폰/아이핀 인증 설정.
+              </p>
+              <a
+                href="/adult-settings"
+                className="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                인증 설정 관리
+              </a>
+            </div>
+          )}
+
+          {/* 사용자 관리 - 성인 탭에서만 표시 */}
+          {mainTab === 'adult' && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center mb-4">
+                <div className="p-3 bg-red-100 rounded-lg">
+                  <Users className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="ml-3 text-lg font-semibold text-gray-900">성인 사용자 관리</h3>
+              </div>
+              <p className="text-gray-600 text-sm mb-4">
+                성인 인증을 완료한 사용자들의 접근 권한 및 이용 현황을 관리합니다.
+              </p>
+              <a
+                href="/adult-users"
+                className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                사용자 관리하기
+              </a>
+            </div>
+          )}
+
+          {/* 통계 대시보드 */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center mb-4">
+              <div className={`p-3 rounded-lg ${
+                mainTab === 'adult' ? 'bg-red-100' : 'bg-green-100'
+              }`}>
+                <TrendingUp className={`w-6 h-6 ${
+                  mainTab === 'adult' ? 'text-red-600' : 'text-green-600'
+                }`} />
+              </div>
+              <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                {mainTab === 'adult' ? '성인 웹툰 통계' : '통계 현황'}
+              </h3>
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              {mainTab === 'adult'
+                ? `성인 웹툰 ${adultWebtoons.length}개, 카테고리별 분류 현황을 확인할 수 있습니다.`
+                : `전체 웹툰 ${webtoons.length}개, 카테고리별 분류 현황을 확인할 수 있습니다.`
+              }
+            </p>
+            <div className="text-sm text-gray-500">
+              실시간 업데이트 중
+            </div>
+          </div>
+        </div>
+
+        {/* 카테고리 관리 */}
+        <div id="category-section" className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {mainTab === 'adult' ? '성인 웹툰 카테고리 관리' : '일반 웹툰 카테고리 관리'}
+            </h2>
+            <p className="text-gray-600 mt-1">
+              {mainTab === 'adult' 
+                ? '만 19세 이상 성인 인증 후 접근 가능한 웹툰들을 카테고리별로 분류합니다. 성인 인증된 사용자에게만 표시됩니다.'
+                : '전체 이용가 및 15세 이상 이용 가능한 웹툰들을 카테고리별로 분류합니다. 기본적으로 모든 사용자에게 표시됩니다.'
+              }
+            </p>
+          </div>
+
+          {/* 카테고리 탭 */}
+          <div className="p-6">
+            <div className="flex space-x-4 mb-6">
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  selectedCategory === 'all'
+                    ? (mainTab === 'adult' 
+                       ? 'bg-red-100 text-red-800 border border-red-200' 
+                       : 'bg-green-100 text-green-800 border border-green-200')
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 inline mr-2" />
+                전체
+              </button>
+              <button
+                onClick={() => setSelectedCategory('popular')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  selectedCategory === 'popular'
+                    ? (mainTab === 'adult' 
+                       ? 'bg-red-100 text-red-800 border border-red-200' 
+                       : 'bg-blue-100 text-blue-800 border border-blue-200')
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4 inline mr-2" />
+                실시간 인기작
+              </button>
+              <button
+                onClick={() => setSelectedCategory('editors')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  selectedCategory === 'editors'
+                    ? (mainTab === 'adult' 
+                       ? 'bg-red-100 text-red-800 border border-red-200' 
+                       : 'bg-purple-100 text-purple-800 border border-purple-200')
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Star className="w-4 h-4 inline mr-2" />
+                에디터 추천
+              </button>
+              <button
+                onClick={() => setSelectedCategory('new')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  selectedCategory === 'new'
+                    ? (mainTab === 'adult' 
+                       ? 'bg-red-100 text-red-800 border border-red-200' 
+                       : 'bg-yellow-100 text-yellow-800 border border-yellow-200')
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Heart className="w-4 h-4 inline mr-2" />
+                1화만 보면 빠져든다
+              </button>
+              <button
+                onClick={() => setSelectedCategory('waitfree')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  selectedCategory === 'waitfree'
+                    ? (mainTab === 'adult' 
+                       ? 'bg-red-100 text-red-800 border border-red-200' 
+                       : 'bg-green-100 text-green-800 border border-green-200')
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Heart className="w-4 h-4 inline mr-2" />
+                기다리면 무료
+              </button>
+              
+              {/* 저장 버튼 */}
+              <button
+                onClick={saveCategories}
+                className={`ml-auto px-6 py-2 text-white rounded-lg transition-colors font-medium flex items-center ${
+                  mainTab === 'adult' 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                {mainTab === 'adult' ? (
+                  <Shield className="w-4 h-4 mr-2" />
+                ) : (
+                  <BookOpen className="w-4 h-4 mr-2" />
+                )}
+                {mainTab === 'adult' ? '성인 웹툰' : '일반 웹툰'} 카테고리 저장
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* 현재 카테고리의 웹툰들 */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  {getCategoryTitle()} ({getCurrentCategoryWebtoons().length}개)
+                </h3>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {getCurrentCategoryWebtoons().map((webtoon, index) => webtoon && (
+                    <div key={`${webtoon.id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-16 bg-gray-200 rounded overflow-hidden">
+                          {webtoon.thumbnail && (
+                            <img
+                              src={webtoon.thumbnail.startsWith('/') ? webtoon.thumbnail : `/uploads/${webtoon.thumbnail}`}
+                              alt={webtoon.title}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium text-gray-900">{webtoon.title}</p>
+                            {webtoon.ageRating && (() => {
+                              const rating = typeof webtoon.ageRating === 'string' ? parseInt(webtoon.ageRating) : webtoon.ageRating;
+                              if (rating >= 19) {
+                                return (
+                                  <span className="bg-red-600 text-white text-xs px-2 py-1 rounded font-bold">
+                                    19+
+                                  </span>
+                                );
+                              } else if (rating >= 18) {
+                                return (
+                                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded font-bold">
+                                    18+
+                                  </span>
+                                );
+                              } else if (rating >= 15) {
+                                return (
+                                  <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded font-bold">
+                                    15+
+                                  </span>
+                                );
+                              } else if (rating >= 12) {
+                                return (
+                                  <span className="bg-yellow-500 text-white text-xs px-2 py-1 rounded font-bold">
+                                    12+
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()} 
+                          </div>
+                          <p className="text-sm text-gray-500">{webtoon.authorName}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeFromCategory(webtoon.id, index)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {getCurrentCategoryWebtoons().length === 0 && (
+                    <p className="text-gray-500 text-center py-8">
+                      {getCategoryTitle()}에 등록된 웹툰이 없습니다.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* 모든 웹툰들 */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center space-x-2">
+                  <span>모든 {mainTab === 'adult' ? '성인 ' : ''}웹툰 ({getAvailableWebtoons().length}개)</span>
+                  {mainTab === 'adult' && (
+                    <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full">19+</span>
+                  )}
+                </h3>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {getAvailableWebtoons().map((webtoon) => (
+                    <div 
+                      key={webtoon.id} 
+                      onClick={() => addToCategory(webtoon.id)}
+                      className="relative cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-300"
+                    >
+                      <div className="flex items-center p-3">
+                        <div className="w-16 h-20 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                          {webtoon.thumbnail && (
+                            <img
+                              src={webtoon.thumbnail.startsWith('/') ? webtoon.thumbnail : `/uploads/${webtoon.thumbnail}`}
+                              alt={webtoon.title}  
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="ml-3 flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{webtoon.title}</p>
+                          <p className="text-sm text-gray-500">{webtoon.authorName}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {getAvailableWebtoons().length === 0 && (
+                    <p className="text-gray-500 text-center py-8">
+                      등록된 웹툰이 없습니다.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

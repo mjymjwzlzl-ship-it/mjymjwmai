@@ -1,0 +1,280 @@
+/* iOS 기기별 반응형 스타일 */
+
+/* iPhone SE, 5, 5s (320px) */
+@media only screen 
+  and (min-device-width: 320px) 
+  and (max-device-width: 568px)
+  and (-webkit-min-device-pixel-ratio: 2) {
+  
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  
+  .text-sm {
+    font-size: 13px !important;
+  }
+  
+  .p-4 {
+    padding: 8px !important;
+  }
+}
+
+/* iPhone 6, 6s, 7, 8 (375px) */
+@media only screen 
+  and (min-device-width: 375px) 
+  and (max-device-width: 667px)
+  and (-webkit-min-device-pixel-ratio: 2) {
+  
+  .grid {
+    gap: 10px !important;
+  }
+  
+  .max-w-7xl {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* iPhone 6+, 7+, 8+ (414px) */
+@media only screen 
+  and (min-device-width: 414px) 
+  and (max-device-width: 736px)
+  and (-webkit-min-device-pixel-ratio: 3) {
+  
+  .grid-cols-2,
+  .md\:grid-cols-3,
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* iPhone X, XS, 11 Pro (375px with notch) */
+@media only screen 
+  and (device-width: 375px) 
+  and (device-height: 812px) 
+  and (-webkit-device-pixel-ratio: 3) {
+  
+  /* 노치 영역 패딩 */
+  .ios-safe-top {
+    padding-top: 44px !important;
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: 34px !important;
+  }
+  
+  /* 헤더 조정 */
+  .fixed.top-0 {
+    top: env(safe-area-inset-top) !important;
+  }
+}
+
+/* iPhone XR, 11 (414px with notch) */
+@media only screen 
+  and (device-width: 414px) 
+  and (device-height: 896px) 
+  and (-webkit-device-pixel-ratio: 2) {
+  
+  .ios-safe-top {
+    padding-top: 44px !important;
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: 34px !important;
+  }
+}
+
+/* iPhone 12, 12 Pro, 13, 13 Pro, 14, 14 Pro (390px) */
+@media only screen 
+  and (device-width: 390px) 
+  and (device-height: 844px) 
+  and (-webkit-device-pixel-ratio: 3) {
+  
+  .ios-safe-top {
+    padding-top: 47px !important;
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: 34px !important;
+  }
+  
+  /* 그리드 최적화 */
+  .grid {
+    gap: 12px !important;
+  }
+}
+
+/* iPhone 12 Pro Max, 13 Pro Max, 14 Plus, 14 Pro Max (428px) */
+@media only screen 
+  and (device-width: 428px) 
+  and (device-height: 926px) 
+  and (-webkit-device-pixel-ratio: 3) {
+  
+  .ios-safe-top {
+    padding-top: 47px !important;
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: 34px !important;
+  }
+  
+  /* 3열 그리드 가능 */
+  @media (orientation: portrait) {
+    .grid-cols-2 {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+}
+
+/* iPhone 15 Pro, 15 (393px) */
+@media only screen 
+  and (device-width: 393px) 
+  and (device-height: 852px) 
+  and (-webkit-device-pixel-ratio: 3) {
+  
+  .ios-safe-top {
+    padding-top: 59px !important;
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: 34px !important;
+  }
+}
+
+/* iPhone 15 Pro Max, 15 Plus (430px) */
+@media only screen 
+  and (device-width: 430px) 
+  and (device-height: 932px) 
+  and (-webkit-device-pixel-ratio: 3) {
+  
+  .ios-safe-top {
+    padding-top: 59px !important;
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: 34px !important;
+  }
+}
+
+/* iPad 기본 모델 (768px) */
+@media only screen 
+  and (min-device-width: 768px) 
+  and (max-device-width: 1024px) 
+  and (-webkit-min-device-pixel-ratio: 2) {
+  
+  /* 태블릿에서는 3-4열 그리드 */
+  .grid-cols-2,
+  .md\:grid-cols-3,
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  
+  @media (orientation: landscape) {
+    .grid-cols-2,
+    .md\:grid-cols-3,
+    .md\:grid-cols-4 {
+      grid-template-columns: repeat(4, 1fr) !important;
+    }
+  }
+}
+
+/* iPad Pro 11인치 */
+@media only screen 
+  and (device-width: 834px) 
+  and (device-height: 1194px) 
+  and (-webkit-device-pixel-ratio: 2) {
+  
+  .grid-cols-2,
+  .md\:grid-cols-3,
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+/* iPad Pro 12.9인치 */
+@media only screen 
+  and (device-width: 1024px) 
+  and (device-height: 1366px) 
+  and (-webkit-device-pixel-ratio: 2) {
+  
+  .grid-cols-2,
+  .md\:grid-cols-3,
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+}
+
+/* 가로 모드 공통 조정 */
+@media only screen 
+  and (orientation: landscape) 
+  and (-webkit-min-device-pixel-ratio: 2) {
+  
+  /* 가로 모드에서 안전 영역 */
+  .ios-container {
+    padding-left: env(safe-area-inset-left) !important;
+    padding-right: env(safe-area-inset-right) !important;
+  }
+  
+  /* 헤더 높이 조정 */
+  .pt-16 {
+    padding-top: 3rem !important;
+  }
+}
+
+/* PWA 스탠드얼론 모드 */
+@media (display-mode: standalone) {
+  /* 상태바 높이 보정 */
+  .ios-safe-top {
+    padding-top: calc(env(safe-area-inset-top) + 20px) !important;
+  }
+  
+  /* 스크롤 개선 */
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* 다크모드 지원 */
+@media (prefers-color-scheme: dark) {
+  /* iOS 다크모드에서 대비 개선 */
+  .bg-gray-800 {
+    background-color: #1a1a1a !important;
+  }
+  
+  .text-gray-400 {
+    color: #9ca3af !important;
+  }
+}
+
+/* 고대비 모드 */
+@media (prefers-contrast: high) {
+  .text-gray-400 {
+    color: #d1d5db !important;
+  }
+  
+  .bg-gray-800 {
+    border: 1px solid #4b5563 !important;
+  }
+}
+
+/* 모션 감소 설정 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Retina 디스플레이 최적화 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+  
+  /* 얇은 보더 처리 */
+  .border {
+    border-width: 0.5px !important;
+  }
+}

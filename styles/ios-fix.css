@@ -1,0 +1,289 @@
+/* iOS Safari 전용 레이아웃 수정 */
+
+/* iOS 기본 설정 */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari 전용 스타일 */
+  
+  /* 뷰포트 버그 수정 */
+  html, body {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* iOS 안전 영역 대응 */
+  .ios-safe-top {
+    padding-top: env(safe-area-inset-top, 20px);
+    padding-top: constant(safe-area-inset-top, 20px);
+  }
+  
+  .ios-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+    padding-bottom: constant(safe-area-inset-bottom, 20px);
+  }
+  
+  /* 플렉스박스 버그 수정 */
+  .flex {
+    display: -webkit-flex;
+    display: flex;
+  }
+  
+  .flex-col {
+    -webkit-flex-direction: column;
+    flex-direction: column;
+  }
+  
+  .flex-1 {
+    -webkit-flex: 1;
+    flex: 1;
+  }
+  
+  .grid {
+    display: -webkit-grid;
+    display: grid;
+  }
+  
+  /* iOS에서 그리드 깨짐 수정 */
+  .grid-cols-2 {
+    -webkit-grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .grid-cols-3 {
+    -webkit-grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  
+  /* 이미지 비율 고정 */
+  .aspect-\[3\/4\] {
+    position: relative;
+    padding-bottom: 133.333%;
+  }
+  
+  .aspect-\[3\/4\] > img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  /* iOS 터치 스크롤 최적화 */
+  .overflow-auto,
+  .overflow-scroll,
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* 고정 위치 요소 수정 */
+  .fixed {
+    position: -webkit-sticky;
+    position: fixed;
+  }
+  
+  /* 버튼 스타일 수정 */
+  button, a {
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+  }
+  
+  /* 입력 필드 스타일 수정 */
+  input, textarea, select {
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-border-radius: 0;
+    border-radius: inherit;
+    font-size: 16px; /* iOS 줌 방지 */
+  }
+  
+  /* 터치 이벤트 최적화 */
+  a, button, [role="button"] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  
+  /* 모달/오버레이 수정 */
+  .fixed.inset-0 {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+  
+  /* 카드 레이아웃 수정 */
+  .rounded-lg {
+    -webkit-border-radius: 0.5rem;
+    border-radius: 0.5rem;
+  }
+  
+  /* 그림자 효과 수정 */
+  .shadow-xl {
+    -webkit-box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 트랜스폼 수정 */
+  .transform {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* 백드롭 필터 수정 */
+  .backdrop-blur {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* iPhone X 이상 노치 대응 */
+@supports (padding: max(0px)) {
+  .ios-header {
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
+  
+  .ios-footer {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+}
+
+/* iOS 가로 모드 수정 */
+@media screen and (orientation: landscape) {
+  @supports (-webkit-touch-callout: none) {
+    html {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+}
+
+/* iOS 다크모드 대응 */
+@media (prefers-color-scheme: dark) {
+  @supports (-webkit-touch-callout: none) {
+    input, textarea, select {
+      background-color: #1f2937;
+      color: #f3f4f6;
+    }
+  }
+}
+
+/* iOS PWA 모드 수정 */
+@media (display-mode: standalone) {
+  @supports (-webkit-touch-callout: none) {
+    body {
+      padding-top: env(safe-area-inset-top);
+    }
+    
+    .ios-pwa-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding-top: env(safe-area-inset-top);
+      z-index: 50;
+    }
+  }
+}
+
+/* iOS 모바일 반응형 그리드 */
+@media (max-width: 768px) {
+  @supports (-webkit-touch-callout: none) {
+    /* 2열 그리드 강제 */
+    .grid-cols-2,
+    .grid-cols-3,
+    .md\:grid-cols-3,
+    .md\:grid-cols-4 {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 0.75rem !important;
+    }
+    
+    /* 카드 크기 조정 */
+    .group {
+      width: 100%;
+      max-width: 100%;
+    }
+    
+    /* 이미지 컨테이너 수정 */
+    .aspect-\[3\/4\] {
+      width: 100%;
+      padding-bottom: 133.333%;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* 텍스트 크기 조정 */
+    .text-sm {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .text-xs {
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    
+    /* 패딩 조정 */
+    .p-4 {
+      padding: 12px;
+    }
+    
+    .p-3 {
+      padding: 10px;
+    }
+    
+    /* 마진 조정 */
+    .mb-6 {
+      margin-bottom: 1.25rem;
+    }
+  }
+}
+
+/* iOS 스크롤 버그 수정 */
+@supports (-webkit-touch-callout: none) {
+  /* 스크롤 컨테이너 */
+  #root,
+  main,
+  .main-content {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    height: 100%;
+  }
+  
+  /* 고정 헤더/푸터와 함께 작동 */
+  .ios-scroll-container {
+    height: 100vh;
+    height: -webkit-fill-available;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* iOS 폰트 렌더링 개선 */
+@supports (-webkit-touch-callout: none) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* iOS 애니메이션 최적화 */
+@supports (-webkit-touch-callout: none) {
+  * {
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000;
+  }
+  
+  .transition-all {
+    -webkit-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+  }
+}

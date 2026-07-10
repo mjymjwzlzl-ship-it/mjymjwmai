@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ARATA 코인 충전 - 이니시스 결제</title>
+    
+    <!-- 테스트 JS -->
+    <script language="javascript" type="text/javascript" src="https://stgstdpay.inicis.com/stdjs/INIStdPay.js" charset="UTF-8"></script>
+    <!-- 운영 JS (실제 운영시 주석 해제)
+    <script language="javascript" type="text/javascript" src="https://stdpay.inicis.com/stdjs/INIStdPay.js" charset="UTF-8"></script>
+    -->
+    
+    <script type="text/javascript">
+        // 페이지 로드 시 자동으로 결제창 호출
+        window.onload = function() {
+            setTimeout(function() {
+                paybtn();
+            }, 500);
+        };
+        
+        function paybtn() {
+            INIStdPay.pay('SendPayForm_id');
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .loading {
+            margin: 30px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .info {
+            margin: 20px 0;
+            color: #666;
+        }
+        .price {
+            font-size: 24px;
+            color: #667eea;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ARATA 코인 충전</h1>
+        <div class="loading">
+            <div class="spinner"></div>
+        </div>
+        <div class="info">
+            <p>결제창을 준비하고 있습니다...</p>
+            <p class="price"><%=goodname%></p>
+            <p class="price">₩<%=price.toLocaleString()%></p>
+        </div>
+    </div>
+
+    <!-- 결제 폼 (hidden) -->
+    <form name="" id="SendPayForm_id" method="post" style="display:none;">
+        <input type="hidden" name="version" value="1.0">
+        <input type="hidden" name="gopaymethod" value="Card:DirectBank:VBank:HPP">
+        <input type="hidden" name="mid" value="<%=mid%>">
+        <input type="hidden" name="oid" value="<%=oid%>">
+        <input type="hidden" name="price" value="<%=price%>">
+        <input type="hidden" name="timestamp" value="<%=timestamp%>">
+        <input type="hidden" name="use_chkfake" value="<%=use_chkfake%>">
+        <input type="hidden" name="signature" value="<%=signature%>">
+        <input type="hidden" name="verification" value="<%=verification%>">
+        <input type="hidden" name="mKey" value="<%=mKey%>">
+        <input type="hidden" name="currency" value="WON">
+        <input type="hidden" name="goodname" value="<%=goodname%>">
+        <input type="hidden" name="buyername" value="<%=buyername%>">
+        <input type="hidden" name="buyertel" value="01012345678">
+        <input type="hidden" name="buyeremail" value="<%=buyeremail%>">
+        <input type="hidden" name="returnUrl" value="http://localhost:8002/inicis/return">
+        <input type="hidden" name="closeUrl" value="http://localhost:8002/inicis/close">
+        <input type="hidden" name="acceptmethod" value="HPP(1):va_receipt:below1000:centerCd(Y)">
+    </form>
+</body>
+</html>

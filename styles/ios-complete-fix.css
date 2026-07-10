@@ -1,0 +1,217 @@
+/* iOS 완전 개선 CSS */
+
+/* 기본 리셋 및 iOS 최적화 */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* iOS Safe Area 처리 */
+:root {
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-left: env(safe-area-inset-left);
+  --safe-area-right: env(safe-area-inset-right);
+}
+
+/* 전체 레이아웃 수정 */
+html {
+  height: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  position: relative;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 메인 컨테이너 */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 헤더 iOS 최적화 */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(26, 26, 26, 0.95);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+/* 네비게이션 바 수정 */
+nav {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* 웹툰 카드 iOS 최적화 */
+.group, [class*="card"] {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* 그리드 레이아웃 iOS 수정 */
+@supports (-webkit-touch-callout: none) {
+  /* iOS에서만 적용 */
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .grid > * {
+    flex: 0 0 calc(50% - 0.5rem);
+  }
+  
+  @media (min-width: 768px) {
+    .grid > * {
+      flex: 0 0 calc(33.333% - 0.75rem);
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .grid > * {
+      flex: 0 0 calc(25% - 0.75rem);
+    }
+  }
+}
+
+/* 이미지 최적화 */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+  max-width: 100%;
+  height: auto;
+}
+
+/* 스크롤 개선 */
+.ios-scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 버튼 iOS 스타일 제거 */
+button, 
+input[type="button"], 
+input[type="submit"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 8px;
+  touch-action: manipulation;
+}
+
+/* 입력 필드 iOS 최적화 */
+input, 
+textarea, 
+select {
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 16px !important; /* iOS 줌 방지 */
+  border-radius: 8px;
+}
+
+/* 모달 iOS 수정 */
+.fixed {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  bottom: env(safe-area-inset-bottom);
+  left: env(safe-area-inset-left);
+  right: env(safe-area-inset-right);
+}
+
+/* 바텀 네비게이션 */
+.bottom-nav {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* 텍스트 선택 가능한 요소 */
+p, span, h1, h2, h3, h4, h5, h6 {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 링크 터치 영역 확대 */
+a {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 카드 호버 효과 iOS 제거 */
+@media (hover: none) and (pointer: coarse) {
+  .group:hover,
+  [class*="card"]:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* 웹툰 뷰어 iOS 최적화 */
+.webtoon-viewer {
+  width: 100vw;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.webtoon-viewer img {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: auto;
+}
+
+/* 로딩 스피너 iOS 수정 */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+  -webkit-animation: spin 1s linear infinite;
+}
+
+/* 폰트 렌더링 개선 */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 스크롤바 숨기기 */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Pull to Refresh 비활성화 */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* 메인 페이지 그리드 수정 */
+main .grid {
+  padding: 1rem;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* 웹툰 카드 스타일 임포트 */
+@import url('./ios-webtoon-card.css');

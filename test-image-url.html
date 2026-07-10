@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image URL Test</title>
+</head>
+<body>
+    <h1>Testing getImageUrl function</h1>
+    
+    <script type="module">
+        // Simulate the config
+        const config = {
+            backendUrl: '' // Empty in production
+        };
+        
+        // Test getImageUrl function
+        function getImageUrl(imagePath) {
+            if (!imagePath) return '';
+            
+            // Already full URL
+            if (imagePath.startsWith('http')) {
+                return imagePath;
+            }
+            
+            // Production: use relative path (Next.js rewrites will handle)
+            // Check if NEXT_PUBLIC_BACKEND_URL is empty or we're not on localhost
+            const isProduction = !config.backendUrl || config.backendUrl === '' || 
+                               (typeof window !== 'undefined' && window.location.hostname !== 'localhost');
+            
+            if (isProduction) {
+                return imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+            }
+            
+            // Development: combine with backend URL
+            return `${config.backendUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+        }
+        
+        // Test cases
+        const testPaths = [
+            '/uploads/1755081319423_026_part1.webp',
+            'uploads/1755081319423_026_part1.webp',
+            'http://localhost:8000/uploads/test.webp',
+            'https://arata.co.kr/uploads/test.webp'
+        ];
+        
+        console.log('Testing with empty backend URL (production):');
+        testPaths.forEach(path => {
+            console.log(`Input: ${path}`);
+            console.log(`Output: ${getImageUrl(path)}`);
+            console.log('---');
+        });
+        
+        // Test with localhost
+        console.log('\nTesting on localhost:');
+        config.backendUrl = 'http://localhost:8000';
+        
+        // Simulate localhost environment
+        Object.defineProperty(window, 'location', {
+            value: {
+                hostname: 'localhost'
+            },
+            writable: true
+        });
+        
+        testPaths.forEach(path => {
+            console.log(`Input: ${path}`);
+            console.log(`Output: ${getImageUrl(path)}`);
+            console.log('---');
+        });
+        
+        // Display results on page
+        document.body.innerHTML += '<h2>Check console for results</h2>';
+        document.body.innerHTML += '<p>Press F12 to open console</p>';
+    </script>
+</body>
+</html>

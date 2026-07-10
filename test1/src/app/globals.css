@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0f1115; /* default dark */
+  --foreground: #e5e7eb;
+  --arata-primary: #6C5CE7;
+  --arata-primary-dark: #5846D6;
+  --arata-accent: #00D1B2;
+  --arata-danger: #FF3B30;
+  --arata-muted: #6B7280;
+  --arata-bg: #FFFFFF;
+  --arata-bg-dark: #0B0B0F;
+  --selection-bg: rgba(108, 92, 231, 0.35);
+  --selection-text: #ffffff;
+}
+
+@theme inline {
+  /* Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-arata-primary: var(--arata-primary);
+  --color-arata-accent: var(--arata-accent);
+  --color-arata-danger: var(--arata-danger);
+  --color-arata-muted: var(--arata-muted);
+
+  /* Fonts */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Ubuntu, Cantarell, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-ui: Pretendard, Noto Sans KR, var(--font-sans);
+
+  /* Breakpoints */
+  --breakpoint-sm: 360px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+}
+
+/* 항상 다크 톤 유지 */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-ui);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar { /* Chrome, Safari */
+  display: none;
+}
+
+.blur-adult {
+  filter: blur(8px);
+}
+
+/* Light theme overrides */
+.theme-light {
+  --background: #ffffff;
+  --foreground: #111827;
+  --ui-text: #1f2937; /* slate-800 */
+  --ui-muted: #6b7280; /* gray-500 */
+  --surface: #f3f4f6; /* panel bg */
+  --border-color: rgba(0,0,0,0.12);
+  --chip-bg: rgba(0,0,0,0.06);
+  --dot-active: #111827;
+  --dot-inactive: rgba(17,24,39,0.35);
+  --overlay-btn: rgba(0,0,0,0.06);
+  --selection-bg: rgba(108, 92, 231, 0.22);
+  --selection-text: #111827;
+  --footer-bg: #f8fafc; /* very light gray */
+}
+
+.theme-dark {
+  --background: #0f1115;
+  --foreground: #e5e7eb;
+  --ui-text: #ffffffcc; /* white/80 */
+  --ui-muted: #9ca3af; /* gray-400 */
+  --surface: #1a1f26;
+  --border-color: rgba(255,255,255,0.12);
+  --chip-bg: rgba(255,255,255,0.12);
+  --dot-active: #ffffff;
+  --dot-inactive: rgba(255,255,255,0.4);
+  --overlay-btn: rgba(0,0,0,0.4);
+  --selection-bg: rgba(108, 92, 231, 0.4);
+  --selection-text: #ffffff;
+  --footer-bg: #0f1115; /* same as bg for dark */
+}
+
+/* Selected text visibility across themes */
+::selection { background: var(--selection-bg); color: var(--selection-text); }
+::-moz-selection { background: var(--selection-bg); color: var(--selection-text); }
+
+/* Links inherit theme text color (avoid default browser blue) */
+a { color: var(--ui-text); text-decoration: none; }
+a:hover { opacity: .85; }

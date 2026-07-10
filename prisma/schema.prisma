@@ -1,0 +1,329 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 사용자 정보
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  username      String?   @unique
+  password      String?   // 소셜 로그인 시 null 가능
+  role          String    @default("USER")
+  status        String    @default("ACTIVE")
+  coinBalance   Int       @default(0)
+  adultVerified Boolean   @default(false)
+  adultVerifiedAt DateTime?
+  birthYear     Int?
+  nickname      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth 관계
+  accounts      Account[]
+  sessions      Session[]
+
+  // 앱 관계
+  comics        Comic[]
+  comments      Comment[]
+  reports       Report[]
+  likes         Like[]
+  views         View[]
+  purchases     Purchase[]
+  coinTransactions CoinTransaction[]
+  posts         Post[]
+  postLikes     PostLike[]
+  postComments  PostComment[]
+  ratings       Rating[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// 웹툰 작품 정보
+model Comic {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  thumbnail   String?
+  genre       String
+  isOfficial  Boolean    @default(false) // 정식연재 여부
+  status      String      @default("ONGOING")
+  rating      String      @default("all") // 연령 등급 (all, 12, 15, 19)
+  authorName  String?    // 정식연재 작가명
+  viewCount   Int        @default(0)
+  likeCount   Int        @default(0)
+  paidStartEpisode Int   @default(0) // 유료 시작 회차 (0이면 모두 무료)
+  episodeCoinPrice Int   @default(3) // 에피소드당 코인 가격
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // 관계
+  authorId    String?
+  author      User?      @relation(fields: [authorId], references: [id])
+  episodes    Episode[]
+  comments    Comment[]
+  likes       Like[]
+  views       View[]
+  reports     Report[]
+
+  @@map("comics")
+}
+
+// 회차 정보
+model Episode {
+  id            String   @id @default(cuid())
+  title         String
+  episodeNumber Int
+  thumbnail     String?  // 에피소드별 썸네일
+  images        String   // JSON string of image URLs
+  viewCount     Int      @default(0)
+  rating        Float    @default(0)  // 평균 평점
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // 관계
+  comicId       String
+  comic         Comic    @relation(fields: [comicId], references: [id], onDelete: Cascade)
+  comments      Comment[]
+  views         View[]
+  purchases     Purchase[]
+  ratings       Rating[] // 평점들
+
+  @@unique([comicId, episodeNumber])
+  @@map("episodes")
+}
+
+// 댓글 정보
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  comicId   String?
+  comic     Comic?   @relation(fields: [comicId], references: [id])
+  episodeId String?
+  episode   Episode? @relation(fields: [episodeId], references: [id])
+
+  @@map("comments")
+}
+
+// 신고 정보
+model Report {
+  id          String     @id @default(cuid())
+  reason      String
+  description String?
+  status      String       @default("PENDING")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // 관계
+  reporterId  String
+  reporter    User       @relation(fields: [reporterId], references: [id])
+  comicId     String?
+  comic       Comic?     @relation(fields: [comicId], references: [id])
+
+  @@map("reports")
+}
+
+// 좋아요 정보
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // 관계
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  comicId   String
+  comic     Comic    @relation(fields: [comicId], references: [id])
+
+  @@unique([userId, comicId])
+  @@map("likes")
+}
+
+// 조회수 정보
+model View {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // 관계
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  comicId   String?
+  comic     Comic?   @relation(fields: [comicId], references: [id])
+  episodeId String?
+  episode   Episode? @relation(fields: [episodeId], references: [id])
+
+  @@map("views")
+}
+
+// 구매 정보
+model Purchase {
+  id          String   @id @default(cuid())
+  coinPrice   Int      @default(0)
+  createdAt   DateTime @default(now())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  episodeId   String
+  episode     Episode  @relation(fields: [episodeId], references: [id])
+  
+  @@unique([userId, episodeId])
+  @@map("purchases")
+}
+
+// 코인 거래 내역
+model CoinTransaction {
+  id          String   @id @default(cuid())
+  amount      Int      // 양수: 충전, 음수: 사용
+  balance     Int      // 거래 후 잔액
+  type        String   // CHARGE, PURCHASE, GIFT, REFUND 등
+  description String?
+  createdAt   DateTime @default(now())
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@map("coin_transactions")
+}
+
+// 광고 관리
+model AdConfig {
+  id          String   @id @default(cuid())
+  name        String
+  position    String   // header, footer, native, interstitial
+  code        String   // 광고 코드
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ad_configs")
+}
+
+// 커뮤니티 게시글
+model Post {
+  id          String       @id @default(cuid())
+  title       String
+  content     String
+  category    String       @default("general")
+  viewCount   Int          @default(0)
+  upvotes     Int          @default(0)    // 추천수
+  downvotes   Int          @default(0)    // 비추천수
+  isPinned    Boolean      @default(false)
+  isAdult     Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  authorId    String
+  author      User         @relation(fields: [authorId], references: [id])
+  comments    PostComment[]
+  likes       PostLike[]
+  
+  @@map("posts")
+}
+
+// 게시글 댓글
+model PostComment {
+  id          String   @id @default(cuid())
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  
+  @@map("post_comments")
+}
+
+// 게시글 추천/비추천
+model PostLike {
+  id          String   @id @default(cuid())
+  isUpvote    Boolean  // true: 추천, false: 비추천
+  createdAt   DateTime @default(now())
+  
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+// 평점 모델
+model Rating {
+  id        String   @id @default(cuid())
+  score     Float    // 평점 (0.5 ~ 10)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  episodeId String
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  // 유저별 에피소드당 하나의 평점만 가능
+  @@unique([userId, episodeId])
+  @@map("ratings")
+}
+
+// Note: SQLite doesn't support enums, using String with defaults
+// UserRole: "USER", "ADMIN", "CS_ADMIN"
+// UserStatus: "ACTIVE", "SUSPENDED", "BANNED"  
+// ComicStatus: "ONGOING", "COMPLETED", "HIATUS"
+// ReportStatus: "PENDING", "RESOLVED", "REJECTED" 
