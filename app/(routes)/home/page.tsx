@@ -61,8 +61,8 @@ const SPECIAL_COMIC_IMAGES: Record<string, { thumbnail: string; banner: string }
     banner: '/uploads/webtoons/general/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EC%9D%B4%EB%8D%94/banner-4x3.webp?v=no-logo-20260709b',
   },
   [SAMGUKJI_BYEONGUI_ID]: {
-    thumbnail: '/uploads/webtoons/general/%EC%82%BC%EA%B5%AD%EC%A7%80%20%EB%B3%91%EC%9D%98/thumbnail.webp?v=no-logo-20260709b',
-    banner: '/uploads/webtoons/general/%EC%82%BC%EA%B5%AD%EC%A7%80%20%EB%B3%91%EC%9D%98/banner-4x3.webp?v=no-logo-20260709b',
+    thumbnail: '/uploads/webtoons/general/%EC%82%BC%EA%B5%AD%EC%A7%80%20%EB%B3%91%EC%9D%98/thumbnail.webp?v=original-art-20260710',
+    banner: '/uploads/webtoons/general/%EC%82%BC%EA%B5%AD%EC%A7%80%20%EB%B3%91%EC%9D%98/banner-4x3.webp?v=original-art-20260710',
   },
 };
 

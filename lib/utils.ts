@@ -156,7 +156,12 @@ export function getImageUrl(path: string, options?: { width?: number, noResize?:
   }
 
   // 한글 경로 URL 인코딩 (각 세그먼트별로)
-  const encodedPath = cdnPath.split('/').map(segment => encodeURIComponent(segment)).join('/')
+  // Encode only the pathname. Query strings such as ?v=... must remain a query
+  // string; encoding them turns the cache-busting suffix into part of the file name.
+  const queryStart = cdnPath.search(/[?#]/)
+  const pathname = queryStart >= 0 ? cdnPath.slice(0, queryStart) : cdnPath
+  const suffix = queryStart >= 0 ? cdnPath.slice(queryStart) : ''
+  const encodedPath = pathname.split('/').map(segment => encodeURIComponent(segment)).join('/') + suffix
 
   // 원본 필요시
   if (options?.noResize) {
