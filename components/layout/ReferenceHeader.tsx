@@ -26,7 +26,6 @@ import { useLoginModalStore } from '@/store/loginModal';
 import AgeGateModal from '@/components/ui/AgeGateModal';
 import { LANGUAGES, Locale, useLanguage } from '@/components/providers/LanguageProvider';
 import { getImageUrl } from '@/lib/utils';
-import { localizedPromoAsset } from '@/lib/promo-assets';
 
 const navItems = [
   { href: '/home', labelKey: 'nav.home', icon: Home },
@@ -53,7 +52,6 @@ export default function ReferenceHeader() {
   const storeTheme = useThemeStore((state) => state.theme);
   const setStoreTheme = useThemeStore((state) => state.set);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [topBannerHidden, setTopBannerHidden] = useState(false);
 
   const adultEnabled = useAdultModeStore((state) => state.enabled);
   const setAdultEnabled = useAdultModeStore((state) => state.setEnabled);
@@ -80,7 +78,6 @@ export default function ReferenceHeader() {
     setTheme(initialTheme);
     setStoreTheme(initialTheme);
     hydrateAdultMode();
-    setTopBannerHidden(localStorage.getItem('arata-top-benefit-hidden') === 'true');
   }, [setStoreTheme, hydrateAdultMode]);
 
   // 理쒓렐 蹂??묓뭹 ?쒕∼?ㅼ슫 諛붽묑 ?대┃ ???リ린
@@ -146,39 +143,11 @@ export default function ReferenceHeader() {
     window.setTimeout(() => setComingSoonOpen(false), 2200);
   };
 
-  const handleTopBannerClose = () => {
-    setTopBannerHidden(true);
-    localStorage.setItem('arata-top-benefit-hidden', 'true');
-    window.dispatchEvent(new CustomEvent('arata-top-benefit-hidden-change', { detail: true }));
-  };
-
   return (
     <header
       data-reference-header="true"
       className="fixed left-0 right-0 top-0 z-[1000] border-b border-gray-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.08)] dark:border-gray-800 dark:bg-[#101010]"
     >
-      <Link
-        href="/register"
-        aria-label="연간 결제 시 월 2,800원 프로모션"
-        className={`${topBannerHidden ? 'hidden' : 'block'} h-10 w-full overflow-hidden bg-[#ff9944] md:h-12 xl:h-14`}
-      >
-        <img
-          src={localizedPromoAsset(locale, 'arata-top-benefit-wide.png')}
-          alt="연간 결제 시 월 2,800원 웹툰 무제한"
-          className="h-full w-full object-contain object-center"
-          draggable={false}
-        />
-      </Link>
-      {!topBannerHidden && (
-        <button
-          type="button"
-          onClick={handleTopBannerClose}
-          aria-label="최상단 배너 닫기"
-          className="absolute right-3 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/20 text-white transition hover:bg-black/35 md:top-2.5 xl:top-3.5"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/home" className="text-2xl font-black tracking-tight text-[#00dc64]">
           ARATA COMICS
