@@ -4,6 +4,7 @@ const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
+const { consumeEventCoins } = require('../services/coin-wallet');
 const prisma = new PrismaClient();
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
@@ -452,6 +453,7 @@ router.post('/message', authenticateToken, async (req, res) => {
         },
       });
       if (needsCoin) {
+        await consumeEventCoins(tx, userId, 1);
         await tx.coinTransaction.create({
           data: { userId, amount: -1, balance: (user.coinBalance || 0) - 1, type: 'PURCHASE', description: `챗봇 대화 (${currentCount + 1}회차)` },
         });

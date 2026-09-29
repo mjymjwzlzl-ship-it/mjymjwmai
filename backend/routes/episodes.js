@@ -1,6 +1,8 @@
 const { guardEpisode } = require('../services/legacy-episode-access');
 const { isActivePurchase, episodePrices } = require('../services/purchase-access');
 const { isPromoFreeEpisode } = require('../services/promotions');
+const { expireEventCoins, consumeEventCoins } = require('../services/coin-wallet');
+const { resolveCouponForPurchase, applyCoupon, useCoupon } = require('../services/coupons');
 const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const router = express.Router();
@@ -555,8 +557,17 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
 
     // 유료 회차: 소장(OWN) 또는 대여(RENT)
     const prices = episodePrices(episode.comic, episode.comicId);
-    const mode = String(req.body?.mode || 'OWN').toUpperCase() === 'RENT' && prices.rentalEnabled ? 'RENT' : 'OWN';
-    const price = mode === 'RENT' ? prices.rentPrice : prices.ownPrice;
+    let mode = String(req.body?.mode || 'OWN').toUpperCase() === 'RENT' && prices.rentalEnabled ? 'RENT' : 'OWN';
+    let price = mode === 'RENT' ? prices.rentPrice : prices.ownPrice;
+    // 쿠폰·이용권: 할인 쿠폰은 선택한 방식 가격에서 할인, 이용권은 대여/소장을 0코인으로
+    let coupon = null;
+    if (req.body?.userCouponId) {
+      const resolved = await resolveCouponForPurchase({ userId, userCouponId: String(req.body.userCouponId), comicId: episode.comicId });
+      if (resolved.error) return res.status(400).json({ success: false, code: 'COUPON_INVALID', message: resolved.error });
+      if (resolved.coupon.type === 'DISCOUNT' && price === 0) return res.status(400).json({ success: false, code: 'COUPON_NOT_NEEDED', message: '이미 무료라 쿠폰이 필요 없어요.' });
+      ({ mode, price } = applyCoupon(resolved.coupon, { mode, price }));
+      coupon = resolved;
+    }
     const parseEpisodeImages = () => {
       if (Array.isArray(episode.images)) return episode.images;
       try { return JSON.parse(episode.images); } catch { return String(episode.images || '').split(',').map((img) => img.trim()).filter(Boolean); }
@@ -589,6 +600,8 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
     }
 
     const expiresAt = mode === 'RENT' ? new Date(Date.now() + prices.rentalDays * 24 * 60 * 60 * 1000) : null;
+    // 기한 지난 이벤트 코인은 먼저 소멸 처리 (지난 코인으로 결제되지 않게)
+    await expireEventCoins(userId);
     let result;
     try {
       result = await prisma.$transaction(async (tx) => {
@@ -600,6 +613,9 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
           throw error;
         }
         const updatedUser = await tx.user.update({ where: { id: userId }, data: { coinBalance: { decrement: price } }, select: { coinBalance: true } });
+        // 이벤트 코인부터 차감
+        await consumeEventCoins(tx, userId, price);
+        if (coupon) await useCoupon(tx, coupon.row.id);
         // 기록은 회원·회차당 1건: 만료된 대여 재대여, 대여→소장 전환은 기존 기록을 갱신
         const purchase = await tx.purchase.upsert({
           where: { userId_episodeId: { userId, episodeId } },
@@ -612,12 +628,13 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
             amount: -price,
             balance: updatedUser.coinBalance || 0,
             type: 'PURCHASE',
-            description: `에피소드 ${mode === 'RENT' ? `대여(${prices.rentalDays}일)` : '소장'}: ${episode.title} (${episode.episodeNumber}화)`,
+            description: `에피소드 ${mode === 'RENT' ? `대여(${prices.rentalDays}일)` : '소장'}: ${episode.title} (${episode.episodeNumber}화)${coupon ? ` · ${coupon.coupon.name} 사용` : ''}`,
           },
         });
         return { purchase, newBalance: updatedUser.coinBalance };
       });
     } catch (transactionError) {
+      if (transactionError.couponUsed) return res.status(409).json({ success: false, code: 'COUPON_INVALID', message: '이미 사용한 쿠폰입니다.' });
       if (transactionError.insufficient) {
         const { required, current } = transactionError.insufficient;
         return res.status(400).json({ success: false, code: 'INSUFFICIENT_COINS', message: '코인이 부족합니다.', required, current, needed: required - current });
@@ -630,7 +647,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
       mode,
       message: mode === 'RENT'
         ? `${price === 0 ? "무료로" : `${price}코인으로`} ${prices.rentalDays}일 동안 대여했습니다.`
-        : `${price}코인으로 소장했습니다.`,
+        : `${price === 0 ? '무료로' : `${price}코인으로`} 소장했습니다.`,
       episode: { ...episodePayload(result.purchase), coinPrice: price },
       coinBalance: result.newBalance,
     });

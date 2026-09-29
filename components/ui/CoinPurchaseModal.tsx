@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
 import { X, Coins, AlertCircle, Clock, BookmarkCheck } from 'lucide-react';
 
 export type PurchaseMode = 'RENT' | 'OWN';
@@ -8,7 +9,7 @@ export type PurchaseMode = 'RENT' | 'OWN';
 interface CoinPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (mode: PurchaseMode) => void | Promise<void>;
+  onConfirm: (mode: PurchaseMode, userCouponId?: string) => void | Promise<void>;
   episodeTitle: string;
   episodeNumber: number;
   /** 소장 가격 (예전 호출과 호환: coinPrice 만 주면 소장만 표시) */
@@ -24,7 +25,11 @@ interface CoinPurchaseModalProps {
   originalOwnPrice?: number;
   originalRentPrice?: number;
   promotionLabel?: string;
+  /** 쿠폰함에서 이 작품에 쓸 수 있는 쿠폰을 불러올 때 */
+  comicId?: string;
 }
+
+interface UsableCoupon { id: string; name: string; type: 'DISCOUNT' | 'RENT_PASS' | 'OWN_PASS'; value: number; typeLabel: string; daysLeft: number | null }
 
 export default function CoinPurchaseModal({
   isOpen,
@@ -42,26 +47,41 @@ export default function CoinPurchaseModal({
   originalOwnPrice,
   originalRentPrice,
   promotionLabel,
+  comicId,
 }: CoinPurchaseModalProps) {
   // 무료 대여 프로모션이면 대여가가 0
   const canRent = rentalEnabled && typeof rentPrice === 'number' && rentPrice >= 0 && !currentlyRented;
   const [mode, setMode] = useState<PurchaseMode>(canRent ? 'RENT' : 'OWN');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [coupons, setCoupons] = useState<UsableCoupon[]>([]);
+  const [couponId, setCouponId] = useState('');
 
   useEffect(() => {
     if (isOpen) setMode(canRent ? 'RENT' : 'OWN');
+    if (isOpen) setCouponId('');
   }, [isOpen, canRent]);
+
+  useEffect(() => {
+    if (!isOpen || !comicId || !(localStorage.getItem('authToken') || localStorage.getItem('token'))) { setCoupons([]); return; }
+    api.get('/coupons/mine', { params: { comicId } }).then(({ data }) => setCoupons(data.coupons || [])).catch(() => setCoupons([]));
+  }, [isOpen, comicId]);
 
   if (!isOpen) return null;
 
-  const price = mode === 'RENT' && canRent ? (rentPrice as number) : coinPrice;
+  const coupon = coupons.find((c) => c.id === couponId) || null;
+  // 이용권은 방식을 정하고 0코인, 할인 쿠폰은 고른 방식 가격에서 할인 (서버와 같은 계산)
+  const effectiveMode: PurchaseMode = coupon?.type === 'RENT_PASS' ? 'RENT' : coupon?.type === 'OWN_PASS' ? 'OWN' : mode;
+  const basePrice = effectiveMode === 'RENT' && canRent ? (rentPrice as number) : coinPrice;
+  const price = coupon?.type === 'RENT_PASS' || coupon?.type === 'OWN_PASS'
+    ? 0
+    : coupon?.type === 'DISCOUNT' ? Math.max(0, Math.round(basePrice * (100 - coupon.value) / 100)) : basePrice;
   const hasEnoughCoins = userCoinBalance >= price;
 
   const handleConfirm = async () => {
     if (!hasEnoughCoins || isProcessing) return;
     setIsProcessing(true);
     try {
-      await onConfirm(mode);
+      await onConfirm(effectiveMode, couponId || undefined);
     } finally {
       setIsProcessing(false);
     }
@@ -116,6 +136,18 @@ export default function CoinPurchaseModal({
           {option('OWN', '소장', '기간 제한 없이 계속 볼 수 있어요', coinPrice, BookmarkCheck, originalOwnPrice)}
         </div>
 
+        {coupons.length > 0 && (
+          <label className="mt-4 block text-sm text-gray-300">
+            쿠폰 · 이용권
+            <select value={couponId} onChange={(e) => setCouponId(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white">
+              <option value="">사용 안 함 ({coupons.length}장 보유)</option>
+              {coupons.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} · {c.typeLabel}{c.daysLeft !== null && c.daysLeft <= 3 ? ' (만료 임박)' : ''}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <div className="mt-4 space-y-1.5 rounded-lg bg-gray-800 p-3 text-sm">
           <div className="flex justify-between text-gray-300">
             <span>보유 코인</span>
@@ -146,7 +178,7 @@ export default function CoinPurchaseModal({
               disabled={isProcessing}
               className="flex-1 rounded-lg bg-[#00dc64] py-3 font-black text-black transition hover:brightness-95 disabled:opacity-60"
             >
-              {isProcessing ? '처리 중...' : price === 0 ? `무료로 ${mode === 'RENT' ? '대여' : '소장'}` : `${price}코인으로 ${mode === 'RENT' ? '대여' : '소장'}`}
+              {isProcessing ? '처리 중...' : price === 0 ? `${coupon ? '이용권으로' : '무료로'} ${effectiveMode === 'RENT' ? '대여' : '소장'}` : `${price}코인으로 ${effectiveMode === 'RENT' ? '대여' : '소장'}`}
             </button>
           ) : (
             <button

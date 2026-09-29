@@ -20,6 +20,8 @@ interface LibraryItem {
   author?: string;
   lastEpisodeId?: string;
   lastEpisodeNumber?: number;
+  nextEpisodeId?: string | null;
+  nextEpisodeNumber?: number | null;
   totalEpisodes?: number;
   ownedEpisodes?: number;
   progress?: number;
@@ -102,6 +104,26 @@ function readLocalViewed(): LibraryItem[] {
   }
 }
 
+// 뷰어가 저장한 회차별 읽은 위치 (app/webtoons/[id]/episode/[episodeId]/page.tsx, 이 기기 기준)
+type ReadPosition = { index: number; ratio: number; completed: boolean };
+function readPositions(): Record<string, ReadPosition> {
+  try { return JSON.parse(localStorage.getItem('arata_read_position_v1') || '{}') || {}; } catch { return {}; }
+}
+
+// 이어보기: 끝까지 본 회차면 다음 화, 중간에 나갔으면 그 회차
+function resumeInfo(item: LibraryItem, positions: Record<string, ReadPosition>) {
+  if (!item.lastEpisodeId || !item.lastEpisodeNumber) return null;
+  const n = item.lastEpisodeNumber;
+  const pos = positions[item.lastEpisodeId];
+  if (pos?.completed) {
+    return item.nextEpisodeId && item.nextEpisodeNumber
+      ? { caption: `${n}화 끝까지 봄`, label: `${item.nextEpisodeNumber}화 이어보기`, episodeId: item.nextEpisodeId }
+      : { caption: `${n}화 끝까지 봄 · 최신화`, label: `${n}화 다시 보기`, episodeId: item.lastEpisodeId };
+  }
+  if (pos && (pos.index > 0 || pos.ratio > 0.02)) return { caption: `${n}화 중간까지 봄`, label: `${n}화 이어보기`, episodeId: item.lastEpisodeId };
+  return { caption: `${n}화 보는 중`, label: `${n}화 이어보기`, episodeId: item.lastEpisodeId };
+}
+
 function fromServer(item: any, at: string | undefined): LibraryItem {
   const comicId = String(item.comicId || item.comic?.id);
   return {
@@ -129,6 +151,8 @@ function LibraryContent() {
   const [liked, setLiked] = useState<LibraryItem[]>([]);
   const [purchased, setPurchased] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [positions, setPositions] = useState<Record<string, ReadPosition>>({});
+  useEffect(() => { setPositions(readPositions()); }, []);
 
   useEffect(() => {
     setTab(parseTab(searchParams.get('tab')));
@@ -156,6 +180,8 @@ function LibraryContent() {
           ...fromServer(item, item.lastReadAt),
           lastEpisodeId: item.lastReadEpisodeId,
           lastEpisodeNumber: item.lastReadEpisodeNumber,
+          nextEpisodeId: item.nextEpisodeId,
+          nextEpisodeNumber: item.nextEpisodeNumber,
           progress: item.progress,
         }));
         // 서버 기록 우선, 서버에 없는 브라우저 기록은 뒤에 붙인다
@@ -192,7 +218,7 @@ function LibraryContent() {
 
   const subtitle = (item: LibraryItem) => {
     if (sort === 'updated' && item.updatedAt) return `${formatDate(item.updatedAt)} 업데이트`;
-    if (tab === 'viewed') return [item.lastEpisodeNumber ? `${item.lastEpisodeNumber}화까지 봄` : '', formatDate(item.at)].filter(Boolean).join(' · ');
+    if (tab === 'viewed') return [resumeInfo(item, positions)?.caption || '', formatDate(item.at)].filter(Boolean).join(' · ');
     if (tab === 'purchased') return [item.ownedEpisodes ? `${item.ownedEpisodes}개 회차 소장` : '', formatDate(item.at)].filter(Boolean).join(' · ');
     return [item.author, item.totalEpisodes ? `${item.totalEpisodes}화` : ''].filter(Boolean).join(' · ');
   };
@@ -331,11 +357,11 @@ function LibraryContent() {
                 {tab !== 'liked' && item.lastEpisodeId && (
                   <div className="px-3 pb-3">
                     <Link
-                      href={`/webtoons/${item.comicId}/episode/${item.lastEpisodeId}`}
+                      href={`/webtoons/${item.comicId}/episode/${tab === 'viewed' ? resumeInfo(item, positions)?.episodeId || item.lastEpisodeId : item.lastEpisodeId}`}
                       className="flex h-8 items-center justify-center gap-1 rounded-lg bg-[#00dc64] text-xs font-black text-black transition hover:bg-[#00c85a]"
                     >
                       <Play className="h-3.5 w-3.5 fill-current" />
-                      {tab === 'viewed' ? '이어보기' : `${item.lastEpisodeNumber}화 보기`}
+                      {tab === 'viewed' ? resumeInfo(item, positions)?.label || '이어보기' : `${item.lastEpisodeNumber}화 보기`}
                     </Link>
                   </div>
                 )}

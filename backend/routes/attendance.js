@@ -2,6 +2,7 @@ const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const router = express.Router();
 const { prisma } = require('../lib/prisma');
+const { grantEventCoins } = require('../services/coin-wallet');
 const jwt = require('jsonwebtoken');
 
 // JWT 인증 미들웨어
@@ -90,31 +91,8 @@ router.post('/check', authenticateToken, async (req, res) => {
         }
       });
 
-      // 사용자 코인 증가
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          coinBalance: {
-            increment: reward
-          }
-        }
-      });
-
-      // 코인 거래 내역 생성
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { coinBalance: true }
-      });
-
-      await tx.coinTransaction.create({
-        data: {
-          userId,
-          amount: reward,
-          balance: user.coinBalance,
-          type: 'REWARD',
-          description: `출석체크 보상 (${consecutiveDays}일차)`
-        }
-      });
+      // 출석 보상은 이벤트(무료) 코인으로 지급 (유료 코인보다 먼저 쓰인다, 기한 없음)
+      await grantEventCoins(tx, { userId, amount: reward, reason: `출석체크 보상 (${consecutiveDays}일차)`, source: 'ATTENDANCE' });
 
       return newAttendance;
     });

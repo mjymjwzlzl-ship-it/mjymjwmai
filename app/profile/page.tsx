@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bell, BookmarkCheck, MessageSquare, ChevronRight, Clock, Coins, Heart, Library, LogOut, Settings, ShieldCheck, User } from 'lucide-react';
+import { Bell, BookmarkCheck, Gift, MessageSquare, Ticket, ChevronRight, Clock, Coins, Heart, Library, LogOut, Settings, ShieldCheck, User } from 'lucide-react';
+import CoinBreakdown from '@/components/wallet/CoinBreakdown';
 import { api } from '@/lib/api';
 import { useAdultModeStore } from '@/store/adultMode';
 
@@ -122,6 +123,7 @@ export default function ProfilePage() {
               보유 코인
             </p>
             <p className="mt-1 text-3xl font-black">{(me.coins ?? 0).toLocaleString()}</p>
+            <CoinBreakdown />
           </div>
           <Link
             href="/coin"
@@ -154,6 +156,8 @@ export default function ProfilePage() {
           <MenuRow href="/my/library" icon={<Library className="h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />} label="내 서재" />
           <MenuRow href="/notifications" icon={<Bell className="h-5 w-5 text-red-500" />} label="알림함" />
           <MenuRow href="/my/comments" icon={<MessageSquare className="h-5 w-5 text-sky-500" />} label="댓글 내역" />
+          <MenuRow href="/gifts" icon={<Gift className="h-5 w-5 text-pink-500" />} label="선물함" />
+          <MenuRow href="/coupons" icon={<Ticket className="h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />} label="쿠폰함 · 이용권" />
           <MenuRow href="/coin" icon={<Coins className="h-5 w-5 text-yellow-500" />} label="코인 충전" />
           <MenuRow href="/settings" icon={<Settings className="h-5 w-5 text-gray-500" />} label="계정 설정" />
           <button

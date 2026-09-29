@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Home, BarChart3, FileText, Users, Shield, TrendingUp, Edit, Mail, Book, AlertTriangle, CalendarDays, BadgePercent, ListChecks } from 'lucide-react';
+import { LogOut, Home, BarChart3, FileText, Users, Shield, TrendingUp, Edit, Mail, Book, AlertTriangle, CalendarDays, BadgePercent, ListChecks, Ticket } from 'lucide-react';
 
 export default function AdminHeader() {
   const router = useRouter();
@@ -59,6 +59,10 @@ export default function AdminHeader() {
               <Link href="/comic-status" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
                 <ListChecks className="w-4 h-4" />
                 <span className="text-sm font-medium">연재 상태</span>
+              </Link>
+              <Link href="/benefits" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
+                <Ticket className="w-4 h-4" />
+                <span className="text-sm font-medium">쿠폰·선물</span>
               </Link>
               <Link href="/popular" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
                 <TrendingUp className="w-4 h-4" />

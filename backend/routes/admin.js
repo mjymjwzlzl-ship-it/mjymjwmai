@@ -1,5 +1,6 @@
 const express = require('express');
 const { prisma } = require('../lib/prisma');
+const { grantEventCoins } = require('../services/coin-wallet');
 
 const router = express.Router();
 
@@ -1403,6 +1404,13 @@ router.post('/users/:id/adjust-coins', async (req, res) => {
       return res.status(400).json({ message: '사용자의 코인 잔액이 부족합니다.' });
     }
     
+    // 관리자 지급(REWARD, 양수)은 이벤트(무료) 코인: 유료 코인보다 먼저 쓰이고, expiresInDays 를 주면 기한이 생긴다
+    if (type === 'REWARD' && amount > 0) {
+      const days = Number(req.body.expiresInDays) || 0;
+      const granted = await prisma.$transaction((tx) => grantEventCoins(tx, { userId: id, amount, reason: `[관리자 지급] ${reason}`, source: 'ADMIN', expiresAt: days > 0 ? new Date(Date.now() + days * 86400000) : null }));
+      return res.json({ success: true, message: `${amount}코인(이벤트 코인)을 지급했습니다.`, newBalance: granted.coinBalance, coinBalance: granted.coinBalance });
+    }
+
     // 트랜잭션으로 코인 조정 및 기록
     const result = await prisma.$transaction(async (tx) => {
       // 사용자 코인 잔액 업데이트

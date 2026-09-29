@@ -3,6 +3,7 @@ const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { prisma } = require('../lib/prisma');
+const { expireEventCoins, consumeEventCoins } = require('../services/coin-wallet');
 
 const router = express.Router();
 
@@ -86,6 +87,7 @@ router.post('/:comicId', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: '작품을 찾을 수 없습니다.' });
     }
 
+    await expireEventCoins(userId);
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({
         where: { id: userId },
@@ -100,6 +102,7 @@ router.post('/:comicId', authenticateToken, async (req, res) => {
         where: { id: userId },
         data: { coinBalance: { decrement: amount } },
       });
+      await consumeEventCoins(tx, userId, amount);
 
       await tx.coinTransaction.create({
         data: {

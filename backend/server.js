@@ -329,6 +329,7 @@ app.use('/api/payment', paymentRouter);
 app.use('/api/banners', bannersRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/notifications', require('./routes/notifications')); // 알림함
+app.use('/api', require('./routes/benefits')); // 지갑(유료/이벤트 코인)·쿠폰함·선물함
 app.use('/api/support', supportRouter);
 app.use('/api/email', emailWebhookRouter);
 app.use('/api', commentsRouter); // 댓글 라우트 추가

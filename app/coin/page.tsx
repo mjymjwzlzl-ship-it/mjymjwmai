@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { eventBus, EVENTS } from '@/lib/events';
 import InicisPayment from '@/components/payment/InicisPayment';
+import CoinBreakdown from '@/components/wallet/CoinBreakdown';
 
 interface CoinPackage {
   id: string;
@@ -281,6 +282,7 @@ export default function CoinChargePage() {
                 <span className="ml-2 text-xl font-bold text-[#3E7A5A]">
                   {userCoins.toLocaleString()} 코인
                 </span>
+                <CoinBreakdown tone="dark" />
               </div>
             </div>
           </div>

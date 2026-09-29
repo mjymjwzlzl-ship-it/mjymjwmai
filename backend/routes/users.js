@@ -526,19 +526,24 @@ router.get('/library/reading', authenticateToken, async (req, res) => {
         };
         comicMap.set(view.comicId, entry);
       }
+      // views 는 최신순: 처음 만난 기록 = 마지막으로 본 회차 (이어보기 기준)
       entry.episodes.add(view.episodeId);
-      if (view.episode.episodeNumber > entry.lastReadEpisodeNumber) {
-        entry.lastReadEpisodeNumber = view.episode.episodeNumber;
-        entry.lastReadEpisodeId = view.episodeId;
-      }
     }
 
     const comicIds = Array.from(comicMap.keys());
-    const [comics, latest] = await Promise.all([
+    const [comics, latest, episodeRows] = await Promise.all([
       prisma.comic.findMany({ where: { id: { in: comicIds } }, select: LIBRARY_COMIC_SELECT }),
       latestEpisodeDates(comicIds),
+      prisma.episode.findMany({ where: { comicId: { in: comicIds } }, select: { id: true, comicId: true, episodeNumber: true }, orderBy: { episodeNumber: 'asc' } }),
     ]);
     const comicById = new Map(comics.map((comic) => [comic.id, comic]));
+    // 마지막으로 본 회차의 다음 회차 (끝까지 본 경우 [다음 화 이어보기])
+    const episodesByComic = new Map();
+    for (const row of episodeRows) {
+      if (!episodesByComic.has(row.comicId)) episodesByComic.set(row.comicId, []);
+      episodesByComic.get(row.comicId).push(row);
+    }
+    const nextOf = (comicId, number) => (episodesByComic.get(comicId) || []).find((row) => row.episodeNumber > number) || null;
 
     const webtoons = Array.from(comicMap.values())
       .filter((entry) => comicById.has(entry.comicId))
@@ -552,6 +557,8 @@ router.get('/library/reading', authenticateToken, async (req, res) => {
           comic,
           lastReadEpisodeId: entry.lastReadEpisodeId,
           lastReadEpisodeNumber: entry.lastReadEpisodeNumber,
+          nextEpisodeId: nextOf(entry.comicId, entry.lastReadEpisodeNumber)?.id || null,
+          nextEpisodeNumber: nextOf(entry.comicId, entry.lastReadEpisodeNumber)?.episodeNumber ?? null,
           lastReadAt: entry.lastReadAt,
           lastUpdatedAt: latest.get(entry.comicId) || comic.updatedAt,
           totalEpisodes,

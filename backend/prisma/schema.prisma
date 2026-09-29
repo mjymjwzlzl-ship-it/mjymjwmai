@@ -800,3 +800,70 @@ model ComicNotice {
   @@index([comicId, isPinned, createdAt])
   @@map("comic_notices")
 }
+
+// 이벤트(무료) 코인 지급 건. User.coinBalance 는 여전히 보유 코인 합계이고,
+// 이벤트 코인 = 남은 remaining 합계, 유료 코인 = 합계 - 이벤트 코인. 쓸 때는 만료가 빠른 이벤트 코인부터 (services/coin-wallet.js)
+model EventCoinGrant {
+  id        String    @id @default(cuid())
+  userId    String
+  amount    Int
+  remaining Int
+  reason    String
+  source    String    @default("EVENT") // ATTENDANCE | GIFT | ADMIN | EVENT
+  expiresAt DateTime? // 비우면 기한 없음
+  createdAt DateTime  @default(now())
+
+  @@index([userId, remaining, expiresAt])
+  @@map("event_coin_grants")
+}
+
+// 쿠폰·이용권 종류. type: DISCOUNT(value% 할인) | RENT_PASS(회차 무료 대여) | OWN_PASS(회차 무료 소장)
+model Coupon {
+  id             String    @id @default(cuid())
+  name           String
+  type           String
+  value          Int       @default(0)
+  comicId        String?   // 비우면 모든 작품
+  code           String?   @unique // 쿠폰 번호 (등록형)
+  uses           Int       @default(1) // 한 사람이 쓸 수 있는 횟수(이용권 장수)
+  validDays      Int?      // 받은 날부터 N일
+  expiresAt      DateTime? // 절대 만료일 (둘 다 있으면 빠른 쪽)
+  maxRedemptions Int?      // 쿠폰 번호 총 등록 가능 수
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("coupons")
+}
+
+model UserCoupon {
+  id            String    @id @default(cuid())
+  userId        String
+  couponId      String
+  remainingUses Int
+  expiresAt     DateTime?
+  source        String    @default("GIFT") // CODE | GIFT | ADMIN
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, remainingUses])
+  @@map("user_coupons")
+}
+
+// 선물함: 받기 전까지는 보유 항목에 들어가지 않는다. type: COIN | COUPON
+model Gift {
+  id           String    @id @default(cuid())
+  userId       String
+  type         String
+  amount       Int       @default(0) // COIN: 코인 수
+  coinValidDays Int?     // COIN: 받은 뒤 이벤트 코인 유효기간(일), 비우면 기한 없음
+  couponId     String?   // COUPON
+  reason       String
+  claimBefore  DateTime? // 이때까지 받아야 함
+  claimedAt    DateTime?
+  batchId      String?   // 관리자 한 번 발송 묶음
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, claimedAt])
+  @@map("gifts")
+}

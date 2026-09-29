@@ -93,6 +93,7 @@ export default function ReferenceHeader() {
   const [sessionUser, setSessionUser] = useState<{ name: string } | null>(null);
   // 알림함: 로그인 상태면 안 읽은 알림 수를 1분마다·페이지 이동 때 확인
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [readyGifts, setReadyGifts] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [activeSubnav, setActiveSubnav] = useState('all');
@@ -246,15 +247,22 @@ export default function ReferenceHeader() {
   };
 
   useEffect(() => {
-    if (!sessionUser) { setUnreadNotifications(0); return; }
+    if (!sessionUser) { setUnreadNotifications(0); setReadyGifts(0); return; }
     let alive = true;
-    const load = () => api.get('/notifications/unread-count')
-      .then(({ data }) => { if (alive) setUnreadNotifications(Number(data?.unread) || 0); })
-      .catch(() => {});
+    const load = () => {
+      api.get('/notifications/unread-count')
+        .then(({ data }) => { if (alive) setUnreadNotifications(Number(data?.unread) || 0); })
+        .catch(() => {});
+      // 선물함: 받을 수 있는 선물 수
+      api.get('/gifts/count')
+        .then(({ data }) => { if (alive) setReadyGifts(Number(data?.ready) || 0); })
+        .catch(() => {});
+    };
     load();
     const timer = window.setInterval(load, 60 * 1000);
     window.addEventListener('notificationsUpdated', load);
-    return () => { alive = false; window.clearInterval(timer); window.removeEventListener('notificationsUpdated', load); };
+    window.addEventListener('giftsUpdated', load);
+    return () => { alive = false; window.clearInterval(timer); window.removeEventListener('notificationsUpdated', load); window.removeEventListener('giftsUpdated', load); };
   }, [sessionUser, pathname]);
 
   // 로그인 상태: 토큰이 있으면 로그인으로 본다 (메뉴 하단 로그인/로그아웃 버튼)
@@ -367,6 +375,23 @@ export default function ReferenceHeader() {
               {unreadNotifications > 0 && (
                 <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white md:right-0 md:top-0">
                   {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                </span>
+              )}
+            </Link>
+          )}
+          {sessionUser && (
+            <Link
+              href="/gifts"
+              className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:h-9 md:w-9 ${
+                pathname?.startsWith('/gifts') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
+              }`}
+              aria-label={readyGifts > 0 ? `선물함 (받을 선물 ${readyGifts}개)` : '선물함'}
+              title="선물함"
+            >
+              <Gift className="h-5 w-5" />
+              {readyGifts > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white md:right-0 md:top-0">
+                  {readyGifts > 99 ? '99+' : readyGifts}
                 </span>
               )}
             </Link>

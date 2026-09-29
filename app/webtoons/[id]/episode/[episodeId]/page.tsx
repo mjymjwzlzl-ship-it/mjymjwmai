@@ -580,7 +580,7 @@ export default function EpisodePage() {
     }
   };
 
-  const handlePurchaseConfirm = async (mode: 'RENT' | 'OWN' = 'OWN') => {
+  const handlePurchaseConfirm = async (mode: 'RENT' | 'OWN' = 'OWN', userCouponId?: string) => {
     const target = purchaseTarget;
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -593,7 +593,7 @@ export default function EpisodePage() {
       // 코인 구매 API 호출
       const response = await api.post(
         `/episodes/${target ? target.id : params.episodeId}/purchase`,
-        { mode },
+        { mode, ...(userCouponId ? { userCouponId } : {}) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -1167,6 +1167,7 @@ export default function EpisodePage() {
         currentlyRented={!purchaseTarget && episode?.purchaseType === 'RENT' && !!episode?.canView}
         userCoinBalance={coinBalance}
         webtoonTitle={episode?.webtoonTitle || ''}
+        comicId={String(params.id)}
       />
 
       {/* 신고 모달 */}

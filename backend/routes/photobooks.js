@@ -7,6 +7,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { getJwtSecret } = require('../lib/jwt-secret');
 const { prisma } = require('../lib/prisma');
+const { expireEventCoins, consumeEventCoins } = require('../services/coin-wallet');
 
 const router = express.Router();
 
@@ -136,6 +137,7 @@ router.post('/contents/:id/unlock', async (req, res) => {
       return res.status(403).json({ success: false, code: access.reason, message: '성인인증이 필요한 화보입니다.' });
     }
     const price = Number(item.coinPrice) || 0;
+    await expireEventCoins(user.id);
     const result = await prisma.$transaction(async (tx) => {
       const fresh = await tx.user.findUnique({ where: { id: user.id }, select: { coinBalance: true } });
       if ((fresh?.coinBalance || 0) < price) {
@@ -146,6 +148,7 @@ router.post('/contents/:id/unlock', async (req, res) => {
         throw error;
       }
       const updated = await tx.user.update({ where: { id: user.id }, data: { coinBalance: { decrement: price } }, select: { coinBalance: true } });
+      await consumeEventCoins(tx, user.id, price);
       const purchase = await tx.userContentPurchase.create({
         data: { userId: user.id, contentId: item.id, contentType: 'PHOTOBOOK', coinAmount: price },
       });
