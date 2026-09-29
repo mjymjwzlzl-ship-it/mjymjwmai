@@ -497,7 +497,7 @@ router.put('/comics/:id', upload.single('thumbnail'), async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: '웹툰 수정 중 오류가 발생했습니다.', error: error.message });
+    res.status(500).json({ message: '웹툰 수정 중 오류가 발생했습니다.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -660,7 +660,7 @@ router.post('/comics/:id/episodes', upload.fields([
   } catch (error) {
     res.status(500).json({ 
       message: '에피소드 추가 중 오류가 발생했습니다.',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
@@ -722,7 +722,7 @@ router.post('/episodes/:id/add-images', upload.array('images', 20), async (req, 
   } catch (error) {
     res.status(500).json({ 
       message: '새 이미지 추가 중 오류가 발생했습니다.',
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
     });
   }
 });
@@ -1047,7 +1047,7 @@ router.put('/episodes/:id', upload.fields([
   } catch (error) {
     res.status(500).json({ 
       message: '에피소드 수정 중 오류가 발생했습니다.',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
@@ -1101,7 +1101,7 @@ router.delete('/episodes/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ 
       message: '에피소드 삭제 중 오류가 발생했습니다.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -1258,7 +1258,7 @@ router.get('/debug/user-data', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: 'Error in debug endpoint.', error: error.message });
+    res.status(500).json({ message: 'Error in debug endpoint.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 

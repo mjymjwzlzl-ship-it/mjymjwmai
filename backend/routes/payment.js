@@ -282,7 +282,7 @@ router.post('/init', authenticateToken, async (req, res) => {
     
     res.status(500).json({ 
       message: '결제 초기화 중 오류가 발생했습니다.',
-      error: error.message || '알 수 없는 오류'
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined || '알 수 없는 오류'
     });
   }
 });

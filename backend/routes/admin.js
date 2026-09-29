@@ -427,7 +427,7 @@ router.post('/comics/:id/approve', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '웹툰 승인 중 오류가 발생했습니다.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -903,7 +903,7 @@ router.get('/users', async (req, res) => {
 
   } catch (error) {
     console.error('사용자 목록 조회 에러:', error);
-    res.status(500).json({ success: false, message: '사용자 목록 조회 중 오류가 발생했습니다.', error: error.message });
+    res.status(500).json({ success: false, message: '사용자 목록 조회 중 오류가 발생했습니다.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 

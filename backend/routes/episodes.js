@@ -650,7 +650,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
       success: false,
       message: '에피소드 구매 중 오류가 발생했습니다.',
       ...(isDev && { 
-        error: error.message,
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
         code: error.code,
         stack: error.stack 
       })

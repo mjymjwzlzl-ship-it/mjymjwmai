@@ -554,7 +554,7 @@ router.post('/send-email', ...adminOnly, async (req, res) => {
         console.error('Resend 이메일 발송 실패:', error);
         res.status(500).json({
           error: '메일 발송에 실패했습니다',
-          details: error.message
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
       }
     } else {
@@ -664,7 +664,7 @@ ${forwardMessage ? '\n\n---------- 전달 메시지 ----------\n' + forwardMessa
         console.error('메일 전달 실패:', error);
         res.status(500).json({
           error: '메일 전달에 실패했습니다',
-          details: error.message
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
       }
     } else {

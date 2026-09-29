@@ -643,7 +643,7 @@ router.get('/comics/:id/info', async (req, res) => {
     res.json(formattedComic);
 
   } catch (error) {
-    res.status(500).json({ message: '웹툰 정보 조회 중 오류가 발생했습니다.', error: error.message });
+    res.status(500).json({ message: '웹툰 정보 조회 중 오류가 발생했습니다.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -711,7 +711,7 @@ router.get('/comics/:id/recent-episodes', async (req, res) => {
     res.json({ episodes: formattedEpisodes.reverse() });
 
   } catch (error) {
-    res.status(500).json({ message: '에피소드 조회 중 오류가 발생했습니다.', error: error.message });
+    res.status(500).json({ message: '에피소드 조회 중 오류가 발생했습니다.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -900,7 +900,7 @@ router.get('/comics/:id', async (req, res) => {
     res.json(formattedComic);
 
   } catch (error) {
-    res.status(500).json({ message: '웹툰 상세 조회 중 오류가 발생했습니다.', error: error.message });
+    res.status(500).json({ message: '웹툰 상세 조회 중 오류가 발생했습니다.', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 

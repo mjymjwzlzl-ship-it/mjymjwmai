@@ -131,7 +131,7 @@ router.post('/check', authenticateToken, async (req, res) => {
     console.error('출석 체크 오류:', error);
     res.status(500).json({
       message: '출석 체크 중 오류가 발생했습니다.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -213,7 +213,7 @@ router.get('/status', authenticateToken, async (req, res) => {
     console.error('출석 현황 조회 오류:', error);
     res.status(500).json({
       message: '출석 현황 조회 중 오류가 발생했습니다.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

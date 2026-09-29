@@ -1493,7 +1493,7 @@ router.post('/barocert/naver/start', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '인증 요청 중 오류가 발생했습니다.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -1632,7 +1632,7 @@ router.post('/barocert/naver/result', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '인증 결과 조회 중 오류가 발생했습니다.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -1699,7 +1699,7 @@ router.post('/barocert/kakao/start', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '인증 요청 중 오류가 발생했습니다.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -1838,7 +1838,7 @@ router.post('/barocert/kakao/result', async (req, res) => {
     res.status(500).json({
       success: false,
       message: '인증 결과 조회 중 오류가 발생했습니다.',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
