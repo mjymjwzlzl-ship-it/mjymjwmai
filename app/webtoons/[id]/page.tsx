@@ -7,6 +7,7 @@ import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy 
 import CheerModal from '@/components/ui/CheerModal';
 import RatingSection from '@/components/ui/RatingSection';
 import ComicCommentsSection from '@/components/ui/ComicCommentsSection';
+import { REASON_LABEL } from '@/components/ui/SimilarWorksRail';
 import { getImageUrl } from '@/lib/config';
 import { api } from '@/lib/api';
 import dynamic from 'next/dynamic';
@@ -70,6 +71,7 @@ interface SimilarComic {
   isOfficial: boolean;
   paidStartEpisode?: number;
   episodeCoinPrice?: number;
+  reason?: string;
 }
 
 interface UserProgress {
@@ -731,6 +733,9 @@ const WebtoonDetailPage = () => {
                           <p className="text-gray-400 text-xs truncate mb-1">{localizeComicAuthor(comic, locale, 'ARATA')}</p>
                           <div className="flex items-center space-x-2 text-xs">
                             <span className="text-gray-500 dark:text-gray-400">{t('detail.episodeCount', { count: comic.totalEpisodes })}</span>
+                            {comic.reason && REASON_LABEL[comic.reason] && (
+                              <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">{REASON_LABEL[comic.reason]}</span>
+                            )}
                           </div>
                         </div>
                       </Link>

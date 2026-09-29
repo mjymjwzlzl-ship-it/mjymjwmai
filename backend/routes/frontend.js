@@ -1522,88 +1522,115 @@ router.get('/comics/:id/episode-position/:episodeId', async (req, res) => {
   }
 });
 
-// GET: 비슷한 작품 추천 API (투믹스 스타일)
-router.get('/comics/:id/similar', async (req, res) => {
-  // 캐시 헤더 설정 (30분 캐싱)
-  res.set('Cache-Control', 'public, max-age=1800');
+// 장르 표기 통일 (한/영 혼용, '미상'·'adult' 는 장르로 보지 않음)
+const GENRE_ALIASES = {
+  드라마: 'drama', drama: 'drama', 액션: 'action', action: 'action', 로맨스: 'romance', romance: 'romance',
+  판타지: 'fantasy', fantasy: 'fantasy', 코미디: 'comedy', comedy: 'comedy', 개그: 'comedy', 스릴러: 'thriller', thriller: 'thriller',
+  학원: 'school', school: 'school', 무협: 'martial', martial: 'martial', 일상: 'daily', daily: 'daily',
+  사극: 'historical', 역사: 'historical', historical: 'historical', 스포츠: 'sports', sports: 'sports', 공포: 'horror', horror: 'horror',
+};
+function normalizeGenres(raw) {
+  let values = [];
+  try {
+    const parsed = JSON.parse(raw);
+    values = Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    values = String(raw || '').split(/[,/|·]/);
+  }
+  return [...new Set(values.map((value) => GENRE_ALIASES[String(value).trim().toLowerCase()] || GENRE_ALIASES[String(value).trim()]).filter(Boolean))];
+}
 
+/**
+ * GET /api/frontend/comics/:id/similar?limit=6
+ * 비슷한 작품: 공통 장르 > 같은 작가 > 인기(조회·작품 평점·정식연재) 순 점수. 부족하면 같은 등급 인기작으로 채운다.
+ * sameGenre: 같은 장르 인기작 (장르를 모르면 같은 등급 인기작) — 최종화 감상 후 추가 노출용
+ */
+router.get('/comics/:id/similar', async (req, res) => {
+  res.set('Cache-Control', 'public, max-age=600');
   try {
     const { id } = req.params;
-    const { limit = 6 } = req.query;
-
-    // 현재 웹툰 정보 가져오기
-    const currentComic = await prisma.comic.findUnique({
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 6, 1), 20);
+    const current = await prisma.comic.findUnique({
       where: { id },
-      select: {
-        genre: true,
-        locale: true,
-        rating: true
-      }
+      select: { id: true, genre: true, rating: true, locale: true, authorName: true, authorId: true },
     });
+    if (!current) return res.status(404).json({ message: '웹툰을 찾을 수 없습니다.' });
 
-    if (!currentComic) {
-      return res.status(404).json({ message: '웹툰을 찾을 수 없습니다.' });
-    }
-
-    // 등급 필터링 로직 개선
-    // - GENERAL 웹툰: GENERAL만 추천
-    // - 성인 웹툰 (19, ADULT): 성인 웹툰만 추천
-    const isAdultContent = currentComic.rating === '19' || currentComic.rating === 'ADULT';
-
-    // 같은 장르의 다른 인기 웹툰 추천 (현재 웹툰 제외)
-    const similarComics = await prisma.comic.findMany({
+    const isAdultContent = current.rating === '19' || current.rating === 'ADULT';
+    const candidates = await prisma.comic.findMany({
       where: {
         id: { not: id },
-        genre: currentComic.genre,
-        locale: currentComic.locale,
-        isPublished: true, // soft-hide: 공개 목록 노출작만
-        isOfficial: true, // 승인된 웹툰만 표시
-        // 등급별 필터링
-        ...(isAdultContent ? {
-          // 성인 웹툰인 경우: 19 또는 ADULT만
-          rating: { in: ['19', 'ADULT'] }
-        } : {
-          // 일반 웹툰인 경우: GENERAL만
-          rating: 'GENERAL'
-        })
+        isPublished: true,
+        locale: current.locale,
+        ...(isAdultContent ? { rating: { in: ['19', 'ADULT'] } } : { rating: { notIn: ['19', 'ADULT'] } }),
       },
-      include: {
-        _count: {
-          select: {
-            episodes: true,
-            views: true
-          }
-        }
-      },
-      orderBy: [
-        { viewCount: 'desc' },
-        { createdAt: 'desc' }
-      ],
-      take: parseInt(limit)
+      include: { _count: { select: { episodes: true } } },
+    });
+    const ratingAgg = await prisma.comicRating.groupBy({
+      by: ['comicId'],
+      where: { comicId: { in: candidates.map((comic) => comic.id) } },
+      _avg: { score: true },
+    });
+    const ratingMap = new Map(ratingAgg.map((row) => [row.comicId, row._avg.score || 0]));
+    const currentGenres = normalizeGenres(current.genre);
+
+    const scored = candidates
+      .filter((comic) => comic._count.episodes > 0)
+      .map((comic) => {
+        const genres = normalizeGenres(comic.genre);
+        const genreOverlap = genres.filter((genre) => currentGenres.includes(genre)).length;
+        const sameAuthor = Boolean(
+          (current.authorId && comic.authorId === current.authorId) ||
+          (current.authorName && current.authorName !== '미상' && comic.authorName === current.authorName)
+        );
+        const popularity = Math.log10((comic.viewCount || 0) + 1) * 5 + (ratingMap.get(comic.id) || 0) + (comic.isOfficial ? 3 : 0);
+        return { comic, genreOverlap, sameAuthor, popularity, score: genreOverlap * 50 + (sameAuthor ? 20 : 0) + popularity };
+      });
+
+    const format = (entry, reason) => ({
+      id: entry.comic.id,
+      title: entry.comic.title,
+      author: entry.comic.authorName || '작가',
+      genre: entry.comic.genre,
+      thumbnailUrl: entry.comic.thumbnail ? entry.comic.thumbnail.replace(/\.(jpg|jpeg|png)$/i, '.webp') : '/api/placeholder/300/400',
+      viewCount: entry.comic.viewCount || 0,
+      rating: Math.round(((ratingMap.get(entry.comic.id) || 0) / 2) * 10) / 10,
+      totalEpisodes: entry.comic._count.episodes,
+      isOfficial: entry.comic.isOfficial || false,
+      paidStartEpisode: entry.comic.paidStartEpisode,
+      episodeCoinPrice: entry.comic.episodeCoinPrice,
+      reason,
     });
 
-    const formattedComics = similarComics.map(comic => ({
-      id: comic.id,
-      title: comic.title,
-      author: comic.authorName || '작가',
-      genre: comic.genre,
-      thumbnailUrl: comic.thumbnail ? comic.thumbnail.replace(/\.(jpg|jpeg|png)$/i, '.webp') : "/api/placeholder/300/400",
-      viewCount: comic.viewCount || 0,
-      rating: 0, // Comic 모델에는 평점 필드가 없음 (rating은 연령등급)
-      totalEpisodes: comic._count?.episodes || 0,
-      isOfficial: comic.isOfficial || false,
-      paidStartEpisode: comic.paidStartEpisode,
-      episodeCoinPrice: comic.episodeCoinPrice
-    }));
+    const related = scored.filter((entry) => entry.genreOverlap > 0 || entry.sameAuthor).sort((a, b) => b.score - a.score);
+    const popular = [...scored].sort((a, b) => b.popularity - a.popularity);
+    const picked = new Set();
+    const comics = [];
+    for (const entry of related) {
+      if (comics.length >= limit) break;
+      picked.add(entry.comic.id);
+      comics.push(format(entry, entry.genreOverlap > 0 ? 'SAME_GENRE' : 'SAME_AUTHOR'));
+    }
+    for (const entry of popular) {
+      if (comics.length >= limit) break;
+      if (picked.has(entry.comic.id)) continue;
+      picked.add(entry.comic.id);
+      comics.push(format(entry, 'POPULAR'));
+    }
 
-    res.json({
-      comics: formattedComics,
-      total: formattedComics.length
-    });
+    // 같은 장르 인기작 (위 목록과 겹치지 않게). 장르를 모르면 같은 등급 인기작.
+    const genrePool = currentGenres.length ? popular.filter((entry) => entry.genreOverlap > 0) : popular;
+    const sameGenre = [];
+    for (const entry of genrePool.length ? genrePool : popular) {
+      if (sameGenre.length >= limit) break;
+      if (picked.has(entry.comic.id)) continue;
+      sameGenre.push(format(entry, currentGenres.length && genrePool.length ? 'SAME_GENRE_POPULAR' : 'POPULAR'));
+    }
 
+    res.json({ comics, sameGenre, genres: currentGenres, total: comics.length });
   } catch (error) {
-    console.error('비슷한 작품 추천 오류:', error);
-    res.status(500).json({ message: '추천 작품 조회 중 오류가 발생했습니다.' });
+    console.error('비슷한 작품 조회 실패:', error);
+    res.status(500).json({ message: '추천 작품을 불러오지 못했습니다.' });
   }
 });
 

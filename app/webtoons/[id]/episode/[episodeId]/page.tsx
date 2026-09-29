@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, Share2, Settin
 import FastImage from '@/components/ui/FastImage';
 import CommentSection from '@/components/ui/CommentSection';
 import RatingSection from '@/components/ui/RatingSection';
+import SimilarWorksRail from '@/components/ui/SimilarWorksRail';
 import EpisodeEndMembershipBanner from '@/components/ui/EpisodeEndMembershipBanner';
 import { useAdultStore } from '@/store/adult';
 
@@ -744,6 +745,10 @@ export default function EpisodePage() {
                 {/* 작품 평점: 작품 소개의 평점과 같은 기록 (여기서 매겨도 작품 전체 평점에 반영) */}
                 <div className="mb-4">
                   <RatingSection comicId={params.id} title="이 작품 어떠셨나요?" />
+                </div>
+                {/* 추천 작품: 작품 상세의 '비슷한 인기 작품'과 같은 기준. 최종화면 같은 장르 인기작도 함께 */}
+                <div className="mb-4">
+                  <SimilarWorksRail comicId={String(params.id)} isFinale={isLastEpisode} />
                 </div>
                 <CommentSection
                   episodeId={params.episodeId}
