@@ -219,6 +219,67 @@ router.get('/comic-comments/:comicId', async (req, res) => {
 });
 
 // 댓글 삭제
+// 마이페이지 [댓글 내역]: 내가 쓴 댓글 (작품·회차 정보 포함, 최신순)
+router.get('/comments/mine', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const where = { userId };
+    const [total, rows] = await Promise.all([
+      prisma.comment.count({ where }),
+      prisma.comment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true, content: true, likes: true, createdAt: true, updatedAt: true, parentId: true,
+          _count: { select: { replies: true } },
+          comic: { select: { id: true, title: true, thumbnail: true } },
+          episode: { select: { id: true, episodeNumber: true, title: true, comic: { select: { id: true, title: true, thumbnail: true } } } },
+        },
+      }),
+    ]);
+    const comments = rows.map((row) => {
+      const comic = row.episode?.comic || row.comic;
+      return {
+        id: row.id,
+        content: row.content,
+        likes: row.likes,
+        replies: row._count.replies,
+        isReply: Boolean(row.parentId),
+        createdAt: row.createdAt,
+        edited: row.updatedAt.getTime() - row.createdAt.getTime() > 1000,
+        comic: comic ? { id: comic.id, title: comic.title, thumbnail: comic.thumbnail } : null,
+        episode: row.episode ? { id: row.episode.id, episodeNumber: row.episode.episodeNumber, title: row.episode.title } : null,
+      };
+    });
+    res.set('Cache-Control', 'private, no-store');
+    res.json({ comments, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+  } catch (error) {
+    console.error('내 댓글 조회 오류:', error);
+    res.status(500).json({ error: '댓글 내역을 불러오지 못했습니다' });
+  }
+});
+
+// 댓글 수정 (본인만)
+router.put('/comments/:commentId', authenticate, async (req, res) => {
+  try {
+    const content = String(req.body?.content || '').trim();
+    if (!content) return res.status(400).json({ error: '내용을 입력해 주세요' });
+    if (content.length > 1000) return res.status(400).json({ error: '댓글은 1000자까지 쓸 수 있어요' });
+    const comment = await prisma.comment.findUnique({ where: { id: req.params.commentId }, select: { userId: true } });
+    if (!comment) return res.status(404).json({ error: '댓글을 찾을 수 없습니다' });
+    if (comment.userId !== req.user.id) return res.status(403).json({ error: '본인의 댓글만 수정할 수 있습니다' });
+    const updated = await prisma.comment.update({ where: { id: req.params.commentId }, data: { content }, select: { id: true, content: true, updatedAt: true } });
+    res.json({ success: true, comment: updated });
+  } catch (error) {
+    console.error('댓글 수정 오류:', error);
+    res.status(500).json({ error: '댓글 수정 중 오류가 발생했습니다' });
+  }
+});
+
 router.delete('/comments/:commentId', authenticate, async (req, res) => {
   try {
     const { commentId } = req.params;

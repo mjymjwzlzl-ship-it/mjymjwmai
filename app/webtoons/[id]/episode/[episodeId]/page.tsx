@@ -406,6 +406,7 @@ export default function EpisodePage() {
   const [restoreTarget, setRestoreTarget] = useState<null | { index: number; ratio: number; completed: boolean }>(null);
   const [restoreNotice, setRestoreNotice] = useState<null | 'resumed' | 'completed'>(null);
   const restoringRef = useRef(false);
+  const toCommentsRef = useRef(false);
   const completedRef = useRef(false);
   const endSectionRef = useRef<HTMLDivElement>(null);
   const episodeKey = String(params.episodeId || '');
@@ -418,6 +419,13 @@ export default function EpisodePage() {
     if (!episode?.canView || !episode.images?.length || !episodeKey) return;
     const saved = readReadPosition(episodeKey);
     completedRef.current = Boolean(saved?.completed);
+    // 댓글 내역에서 들어오면(?to=comments) 회차 하단 댓글 영역으로
+    if (new URLSearchParams(window.location.search).get('to') === 'comments') {
+      restoringRef.current = true;
+      toCommentsRef.current = true;
+      setRestoreTarget({ index: episode.images.length - 1, ratio: 1, completed: true });
+      return;
+    }
     if (!saved) return;
     if (saved.completed) {
       restoringRef.current = true;
@@ -437,8 +445,10 @@ export default function EpisodePage() {
       if (!restoringRef.current) return;
       restoringRef.current = false;
       if (restoreTarget.completed && endSectionRef.current) {
-        container.scrollTo({ top: Math.max(0, endSectionRef.current.offsetTop - 16) });
-        setRestoreNotice('completed');
+        const commentsEl = toCommentsRef.current ? container.querySelector<HTMLElement>('[data-comments-anchor]') : null;
+        const commentsTop = commentsEl ? container.scrollTop + commentsEl.getBoundingClientRect().top - container.getBoundingClientRect().top : null;
+        container.scrollTo({ top: Math.max(0, (commentsTop ?? endSectionRef.current.offsetTop) - 16) });
+        setRestoreNotice(toCommentsRef.current ? null : 'completed');
       } else {
         const el = container.querySelector<HTMLElement>(`[data-img-index="${restoreTarget.index}"]`);
         if (el) container.scrollTo({ top: el.offsetTop + el.offsetHeight * restoreTarget.ratio });
@@ -1067,9 +1077,11 @@ export default function EpisodePage() {
                 <div className="mb-4">
                   <SimilarWorksRail comicId={String(params.id)} isFinale={isLastEpisode} />
                 </div>
-                <CommentSection
-                  episodeId={params.episodeId}
-                />
+                <div data-comments-anchor>
+                  <CommentSection
+                    episodeId={params.episodeId}
+                  />
+                </div>
               </div>
             </div>
           )}
