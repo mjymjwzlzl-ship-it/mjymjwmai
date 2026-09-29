@@ -358,195 +358,94 @@ function verifyInicisPayment(params) {
 }
 
 // 이니시스 결제 완료 처리 (이니시스 서버에서 호출)
-router.post('/inicis-complete', async (req, res) => {
-  try {
-    console.log('📋 이니시스 결제 완료 요청:', req.body);
-    
-    const { resultCode, resultMsg, tid, MOID: merchantUid, TotPrice } = req.body;
-    
-    // 결제 성공 여부 확인
-    if (resultCode === '00' || resultCode === '0000') {
-      // 결제 정보 조회
-      const payment = await prisma.payment.findFirst({
-        where: { merchantUid: merchantUid }
-      });
-
-      if (!payment) {
-        console.error('❌ 결제 정보 없음:', merchantUid);
-        return res.status(404).json({ message: '결제 정보를 찾을 수 없습니다.' });
-      }
-
-      // 트랜잭션으로 결제 완료 처리
-      await prisma.$transaction(async (prisma) => {
-        // 1. 결제 상태 업데이트
-        await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            impUid: tid,
-            status: 'COMPLETED',
-            completedAt: new Date()
-          }
-        });
-
-        // 2. 사용자 코인 잔액 업데이트
-        const user = await prisma.user.findUnique({
-          where: { id: payment.userId }
-        });
-
-        const totalCoins = payment.coinAmount + (payment.bonusCoins || 0);
-        const newBalance = (user.coinBalance || 0) + totalCoins;
-
-        await prisma.user.update({
-          where: { id: payment.userId },
-          data: {
-            coinBalance: newBalance
-          }
-        });
-
-        // 3. 코인 거래 내역 생성
-        await prisma.coinTransaction.create({
-          data: {
-            userId: payment.userId,
-            amount: totalCoins,
-            balance: newBalance,
-            type: 'CHARGE',
-            description: `코인 충전 (${totalCoins}코인)`,
-            paymentId: payment.id
-          }
-        });
-      });
-
-      console.log('✅ 이니시스 결제 완료 처리 성공:', merchantUid);
-      return res.json({ success: true, message: '결제가 완료되었습니다.' });
-      
-    } else {
-      // 결제 실패
-      console.log('❌ 이니시스 결제 실패:', resultMsg);
-      
-      // 결제 상태를 실패로 업데이트
-      await prisma.payment.updateMany({
-        where: { merchantUid: merchantUid },
-        data: {
-          status: 'FAILED',
-          failReason: resultMsg
-        }
-      });
-      
-      return res.json({ success: false, message: resultMsg });
-    }
-    
-  } catch (error) {
-    console.error('❌ 이니시스 결제 완료 처리 오류:', error);
-    return res.status(500).json({ message: '결제 처리 중 오류가 발생했습니다.' });
-  }
+// 예전 결제 완료 API: 결제 검증 없이 코인을 지급할 수 있어 막는다 (실제 결제는 /inicis-return 에서 승인 확인 후 처리)
+router.post('/inicis-complete', (req, res) => {
+  res.status(410).json({ success: false, message: '더 이상 사용하지 않는 결제 경로입니다.' });
 });
 
-// INICIS 결제 완료 콜백 (returnUrl에서 호출) - 기존 유지
-router.post('/inicis-return', async (req, res) => {
+// INICIS 결제 결과 수신 → 서버가 INICIS 에 승인 요청을 보내 확인된 경우에만 코인 지급 (2026-09-29 보안 수정)
+// 예전 코드는 폼으로 넘어온 resultCode 만 믿고 지급해, 누구나 주문번호로 코인을 받을 수 있었고 반복 지급도 됐다.
+const INICIS_SIGN_KEY = process.env.INICIS_SIGN_KEY || 'SU5JTElURV9UUklQTEVERVNfS0VZU1RS'; // INIpayTest 공개 테스트 키
+const frontendUrl = () => process.env.FRONTEND_URL || 'https://arata.co.kr';
+const completeRedirect = (res, code, msg) =>
+  res.redirect(`${frontendUrl()}/payment/complete?resultCode=${code}&resultMsg=${encodeURIComponent(msg || '')}`);
+const sha256 = (text) => require('crypto').createHash('sha256').update(text).digest('hex');
+const isInicisUrl = (value) => {
   try {
-    console.log('INICIS 결제 콜백 수신:', req.body);
-    
-    const {
-      resultCode,
-      resultMsg,
-      mid,
-      oid: merchantUid,
-      price,
+    const url = new URL(value);
+    return url.protocol === 'https:' && (url.hostname === 'inicis.com' || url.hostname.endsWith('.inicis.com'));
+  } catch {
+    return false;
+  }
+};
+
+router.post('/inicis-return', async (req, res) => {
+  const { resultCode, resultMsg, mid, orderNumber, oid, authToken, authUrl, netCancelUrl } = req.body || {};
+  const merchantUid = orderNumber || oid;
+  try {
+    if (resultCode !== '0000') {
+      if (merchantUid) {
+        await prisma.payment.updateMany({ where: { merchantUid, status: 'PENDING' }, data: { status: 'FAILED', failReason: String(resultMsg || resultCode || '').slice(0, 200) } });
+      }
+      return completeRedirect(res, resultCode || '99', resultMsg || '결제가 취소되었거나 실패했습니다.');
+    }
+    const payment = merchantUid ? await prisma.payment.findFirst({ where: { merchantUid } }) : null;
+    if (!payment) return completeRedirect(res, '99', '결제 정보를 찾을 수 없습니다.');
+    if (payment.status === 'COMPLETED') return completeRedirect(res, '00', '이미 처리된 결제입니다.');
+    if (payment.status !== 'PENDING') return completeRedirect(res, '99', '처리할 수 없는 결제 상태입니다.');
+    if (!authToken || !isInicisUrl(authUrl)) return completeRedirect(res, '99', '결제 승인 정보가 올바르지 않습니다.');
+
+    // INICIS 승인 요청 (표준결제 authUrl)
+    const timestamp = Date.now();
+    const form = new URLSearchParams({
+      mid: mid || process.env.INICIS_MID || 'INIpayTest',
       authToken,
-      authUrl,
-      netCancelUrl,
-      tid
-    } = req.body;
-
-    // 결제 성공 여부 확인
-    if (resultCode === '0000') {
-      // 결제 성공 - 승인 요청 처리
-      console.log('✅ INICIS 결제 성공, 승인 요청 시작');
-      
-      // 결제 정보 조회
-      const payment = await prisma.payment.findFirst({
-        where: { merchantUid: merchantUid }
-      });
-
-      if (!payment) {
-        console.error('❌ 결제 정보 없음:', merchantUid);
-        return res.render('payment-error', { message: '결제 정보를 찾을 수 없습니다.' });
+      timestamp: String(timestamp),
+      signature: sha256(`authToken=${authToken}&timestamp=${timestamp}`),
+      verification: sha256(`authToken=${authToken}&signKey=${INICIS_SIGN_KEY}&timestamp=${timestamp}`),
+      charset: 'UTF-8',
+      format: 'JSON',
+    });
+    let approval;
+    try {
+      const response = await fetch(authUrl, { method: 'POST', body: form, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, signal: AbortSignal.timeout(15000) });
+      approval = await response.json();
+    } catch (error) {
+      console.error('INICIS 승인 요청 실패:', error.message);
+      return completeRedirect(res, '99', '결제 승인 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+    const approvedAmount = Number(approval?.TotPrice);
+    const approvedOid = approval?.MOID;
+    if (approval?.resultCode !== '0000' || approvedOid !== merchantUid || approvedAmount !== Number(payment.amount)) {
+      console.error('INICIS 승인 불일치:', { resultCode: approval?.resultCode, approvedOid, approvedAmount, expected: payment.amount });
+      // 승인은 됐는데 금액·주문이 다르면 망취소
+      if (approval?.resultCode === '0000' && isInicisUrl(netCancelUrl)) {
+        fetch(netCancelUrl, { method: 'POST', body: form, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }).catch(() => {});
       }
-
-      try {
-        // 승인 요청 처리 (실제로는 authUrl로 요청해야 함)
-        await prisma.$transaction(async (prisma) => {
-          // 1. 결제 상태 업데이트
-          await prisma.payment.update({
-            where: { id: payment.id },
-            data: {
-              impUid: tid,
-              status: 'COMPLETED',
-              completedAt: new Date()
-            }
-          });
-
-          // 2. 사용자 코인 잔액 업데이트
-          const user = await prisma.user.findUnique({
-            where: { id: payment.userId }
-          });
-
-          const totalCoins = payment.coinAmount + (payment.bonusCoins || 0);
-        const newBalance = (user.coinBalance || 0) + totalCoins;
-
-          await prisma.user.update({
-            where: { id: payment.userId },
-            data: {
-              coinBalance: newBalance
-            }
-          });
-
-          // 3. 코인 거래 내역 생성
-          await prisma.coinTransaction.create({
-            data: {
-              userId: payment.userId,
-              amount: payment.coinAmount,
-              balance: newBalance,
-              type: 'CHARGE',
-              description: `코인 충전 (${payment.coinAmount}코인)`,
-              paymentId: payment.id
-            }
-          });
-        });
-
-        console.log('✅ INICIS 결제 완료 처리 성공:', merchantUid);
-        
-        // 성공 페이지로 리다이렉트
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/complete?resultCode=00&resultMsg=${encodeURIComponent('결제가 완료되었습니다')}&tid=${tid}&oid=${merchantUid}`);
-        
-      } catch (error) {
-        console.error('❌ 결제 완료 처리 실패:', error);
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/complete?resultCode=99&resultMsg=${encodeURIComponent('결제 처리 중 오류가 발생했습니다')}`);
-      }
-      
-    } else {
-      // 결제 실패
-      console.log('❌ INICIS 결제 실패:', resultMsg);
-      
-      // 결제 상태를 실패로 업데이트
-      await prisma.payment.updateMany({
-        where: { merchantUid: merchantUid },
-        data: {
-          status: 'FAILED',
-          failReason: resultMsg
-        }
-      });
-      
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/complete?resultCode=${resultCode}&resultMsg=${encodeURIComponent(resultMsg)}`);
+      await prisma.payment.updateMany({ where: { id: payment.id, status: 'PENDING' }, data: { status: 'FAILED', failReason: `승인 불일치 ${approval?.resultCode || ''}`.slice(0, 200) } });
+      return completeRedirect(res, '99', approval?.resultMsg || '결제 승인에 실패했습니다.');
     }
 
+    // 한 번만 지급: PENDING → COMPLETED 로 바뀐 경우에만 코인 적립
+    await prisma.$transaction(async (tx) => {
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: 'PENDING' },
+        data: { status: 'COMPLETED', completedAt: new Date(), impUid: approval.tid || payment.impUid, pgTid: approval.tid || null },
+      });
+      if (claimed.count !== 1) return;
+      const totalCoins = payment.coinAmount + (payment.bonusCoins || 0);
+      const user = await tx.user.update({ where: { id: payment.userId }, data: { coinBalance: { increment: totalCoins } }, select: { coinBalance: true } });
+      await tx.coinTransaction.create({
+        data: { userId: payment.userId, amount: totalCoins, balance: user.coinBalance, type: 'CHARGE', description: `코인 충전 (${totalCoins}코인)`, paymentId: payment.id },
+      });
+    });
+    return completeRedirect(res, '00', '결제가 완료되었습니다.');
   } catch (error) {
     console.error('INICIS 결제 콜백 처리 오류:', error);
-    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/complete?resultCode=99&resultMsg=${encodeURIComponent('결제 처리 중 시스템 오류가 발생했습니다')}`);
+    return completeRedirect(res, '99', '결제 처리 중 오류가 발생했습니다.');
   }
 });
 
-// 결제 완료 처리 (기존 API 호환성 유지)
 router.post('/complete', authenticateToken, async (req, res) => {
   try {
     const { imp_uid, merchant_uid } = req.body;
@@ -566,18 +465,14 @@ router.post('/complete', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: '결제 정보를 찾을 수 없습니다.' });
     }
 
-    if (payment.status === 'PAID') {
-      return res.json({
-        success: true,
-        message: '이미 처리된 결제입니다.',
-        coinAmount: payment.coinAmount
-      });
+    // 실제 상태를 알려준다 (코인 지급은 /inicis-return 에서 INICIS 승인 확인 후에만)
+    if (payment.status === 'COMPLETED' || payment.status === 'PAID') {
+      return res.json({ success: true, message: '결제가 완료되었습니다.', coinAmount: payment.coinAmount + (payment.bonusCoins || 0) });
     }
-
-    res.json({
-      success: true,
-      message: '결제가 완료되었습니다.',
-      coinAmount: payment.coinAmount
+    res.status(409).json({
+      success: false,
+      status: payment.status,
+      message: payment.status === 'FAILED' ? '결제가 완료되지 않았습니다.' : '결제 확인 중입니다. 잠시 후 코인 내역을 확인해 주세요.'
     });
 
   } catch (error) {

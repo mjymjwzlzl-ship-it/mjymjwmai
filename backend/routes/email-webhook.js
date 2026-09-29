@@ -112,7 +112,8 @@ router.post('/inbound', upload.none(), async (req, res) => {
 });
 
 // 테스트용 엔드포인트
-router.post('/test-inbound', async (req, res) => {
+// 테스트 메일 주입은 관리자만 (누구나 고객센터함에 가짜 메일을 넣을 수 있던 문제)
+router.post('/test-inbound', ...[require('../middleware/auth').authenticate, require('../middleware/auth').requireAdmin], async (req, res) => {
   try {
     // 테스트 이메일 데이터
     const testMail = {
