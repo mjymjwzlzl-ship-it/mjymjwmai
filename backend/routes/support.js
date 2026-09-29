@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+// 고객센터 메일 열람·답장·발송·삭제는 관리자만 (2026-09-29: 인증 없이 누구나 269건 열람 가능하던 문제 수정). 공개 문의(/contact)만 예외.
+const { authenticate, requireAdmin } = require('../middleware/auth');
+const adminOnly = [authenticate, requireAdmin];
 const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -58,7 +61,7 @@ async function initMailsFile() {
 }
 
 // 메일 목록 조회 (관리자용)
-router.get('/mails', async (req, res) => {
+router.get('/mails', ...adminOnly, async (req, res) => {
   try {
     await initMailsFile();
     const data = await fs.readFile(MAILS_FILE, 'utf-8');
@@ -77,7 +80,7 @@ router.get('/mails', async (req, res) => {
 });
 
 // 메일 상세 조회
-router.get('/mails/:id', async (req, res) => {
+router.get('/mails/:id', ...adminOnly, async (req, res) => {
   try {
     await initMailsFile();
     const { id } = req.params;
@@ -206,7 +209,7 @@ router.post('/contact', async (req, res) => {
 });
 
 // 답장 전송 (관리자용) - 파일 첨부 지원
-router.post('/mails/:id/reply', upload.array('attachments', 5), async (req, res) => {
+router.post('/mails/:id/reply', ...adminOnly, upload.array('attachments', 5), async (req, res) => {
   try {
     await initMailsFile();
     const { id } = req.params;
@@ -343,7 +346,7 @@ ${originalMail.message}`;
 });
 
 // 메일 상태 변경 (관리자용)
-router.patch('/mails/:id/status', async (req, res) => {
+router.patch('/mails/:id/status', ...adminOnly, async (req, res) => {
   try {
     await initMailsFile();
     const { id } = req.params;
@@ -374,7 +377,7 @@ router.patch('/mails/:id/status', async (req, res) => {
 });
 
 // 메일 즐겨찾기 토글 (관리자용)
-router.patch('/mails/:id/star', async (req, res) => {
+router.patch('/mails/:id/star', ...adminOnly, async (req, res) => {
   try {
     await initMailsFile();
     const { id } = req.params;
@@ -403,7 +406,7 @@ router.patch('/mails/:id/star', async (req, res) => {
 });
 
 // 메일 휴지통으로 이동 (관리자용)
-router.patch('/mails/:id/trash', async (req, res) => {
+router.patch('/mails/:id/trash', ...adminOnly, async (req, res) => {
   try {
     await initMailsFile();
     const { id } = req.params;
@@ -441,7 +444,7 @@ router.patch('/mails/:id/trash', async (req, res) => {
 });
 
 // 메일 영구 삭제 (관리자용)
-router.delete('/mails/:id', async (req, res) => {
+router.delete('/mails/:id', ...adminOnly, async (req, res) => {
   try {
     await initMailsFile();
     const { id } = req.params;
@@ -482,7 +485,7 @@ router.delete('/mails/:id', async (req, res) => {
 });
 
 // 관리자가 새 메일 발송 (Resend API 사용)
-router.post('/send-email', async (req, res) => {
+router.post('/send-email', ...adminOnly, async (req, res) => {
   try {
     const { to, subject, message, cc = [], bcc = [] } = req.body;
 
@@ -566,7 +569,7 @@ router.post('/send-email', async (req, res) => {
 });
 
 // 메일 전달 (Forward)
-router.post('/mails/:id/forward', async (req, res) => {
+router.post('/mails/:id/forward', ...adminOnly, async (req, res) => {
   try {
     await initMailsFile();
     const { id } = req.params;
