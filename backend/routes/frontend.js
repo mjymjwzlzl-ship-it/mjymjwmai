@@ -932,61 +932,10 @@ router.get('/comics/:id/episodes', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 먼저 이 웹툰이 승인되었는지 확인 (일반 + 성인)
-    let categorySettings = { all: [], popular: [], editors: [], new: [], waitfree: [], banner: [], realtime: [], daily: [], week: [], complete: [], latest: [], finished: [] };
-    let adultCategorySettings = { all: [], popular: [], editors: [], new: [], waitfree: [], banner: [], realtime: [], daily: [], week: [], complete: [], latest: [], finished: [] };
-    try {
-      const { getCategorySettings, getAdultCategorySettings } = require('./admin');
-      categorySettings = getCategorySettings();
-      adultCategorySettings = getAdultCategorySettings();
-    } catch (error) {
-    }
-    
-    // 모든 카테고리에서 승인된 웹툰 ID 수집
-    // week는 객체일 수 있으므로 평탄화 필요
-    let weekIds = [];
-    if (categorySettings.week) {
-      if (Array.isArray(categorySettings.week)) {
-        weekIds = categorySettings.week;
-      } else if (typeof categorySettings.week === 'object') {
-        weekIds = Object.values(categorySettings.week).flat();
-      }
-    }
-
-    const generalIds = [
-      ...(categorySettings.all || []),
-      ...(categorySettings.popular || []),
-      ...(categorySettings.editors || []),
-      ...(categorySettings.new || []),
-      ...(categorySettings.waitfree || []),
-      ...(categorySettings.banner || []),
-      ...(categorySettings.realtime || []),
-      ...(categorySettings.daily || []),
-      ...weekIds,
-      ...(categorySettings.complete || []),
-      ...(categorySettings.latest || []),
-      ...(categorySettings.finished || [])
-    ];
-    
-    const adultIds = [
-      ...(adultCategorySettings.all || []),
-      ...(adultCategorySettings.popular || []),
-      ...(adultCategorySettings.editors || []),
-      ...(adultCategorySettings.new || []),
-      ...(adultCategorySettings.waitfree || []),
-      ...(adultCategorySettings.banner || []),
-      ...(adultCategorySettings.realtime || []),
-      ...(adultCategorySettings.daily || []),
-      ...(adultCategorySettings.week || []),
-      ...(adultCategorySettings.complete || []),
-      ...(adultCategorySettings.latest || []),
-      ...(adultCategorySettings.finished || [])
-    ];
-    
-    // 중복 제거
-    const allApprovedIds = [...new Set([...generalIds, ...adultIds])];
-    
-    if (!allApprovedIds.includes(id)) {
+    // 공개 작품이면 회차 목록을 준다 (예전엔 관리자 카테고리에 올라간 작품만 허용해 단행본 등이 404 였다)
+    // 성인 작품 접근은 router.param('id', guardComicParam) 에서 따로 막는다
+    const visible = await prisma.comic.findUnique({ where: { id }, select: { isPublished: true, status: true } });
+    if (!visible || visible.isPublished === false || visible.status === 'HIDDEN') {
       return res.status(404).json({ message: '웹툰을 찾을 수 없습니다.' });
     }
     
