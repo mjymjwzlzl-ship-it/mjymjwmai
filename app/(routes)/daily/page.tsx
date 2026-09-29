@@ -17,6 +17,7 @@ export default function DailyPage() {
   return (
     <GeneralComicListPage
       hideHeader
+      includeAdult
       title={t('nav.webtoons')}
       queryKey={['home-data', 'daily']}
       selectItems={selectDailyItems}

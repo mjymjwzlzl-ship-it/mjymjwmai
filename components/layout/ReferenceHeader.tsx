@@ -10,6 +10,7 @@ import {
   Clock,
   ChevronDown,
   Gamepad2,
+  Gift,
   GalleryVertical,
   Globe2,
   Home,
@@ -41,6 +42,7 @@ const navItems = [
   { href: '/chat', labelKey: 'nav.chat', icon: MessageCircle },
   { href: '#shortform', labelKey: 'nav.shortAnime', icon: PlaySquare, comingSoon: true },
   { href: '/gallery', labelKey: 'nav.gallery', icon: Image },
+  { href: '/events', labelKey: 'nav.events', icon: Gift },
   { href: '/community', labelKey: 'nav.community', icon: ClipboardList },
   { href: '/games', labelKey: 'nav.games', icon: Gamepad2 },
 ];
@@ -109,7 +111,16 @@ export default function ReferenceHeader() {
       : pathname?.startsWith('/novel')
         ? '/novel'
         : null;
-  const contentSubnavItems = contentPath === '/novel' ? novelSubnavItems : comicSubnavItems;
+  // [성인] 장르 탭: 성인인증 후 19 ON 일 때 웹툰 목록에서만 보인다
+  const contentSubnavItems = contentPath === '/novel'
+    ? novelSubnavItems
+    : adultEnabled && contentPath === '/daily'
+      ? [...comicSubnavItems, { value: 'adult', labelKey: 'category.adult' }]
+      : comicSubnavItems;
+
+  useEffect(() => {
+    if (!adultEnabled && activeSubnav === 'adult') setActiveSubnav('all');
+  }, [adultEnabled, activeSubnav]);
 
   useEffect(() => {
     const rail = categoryNavScrollRef.current;

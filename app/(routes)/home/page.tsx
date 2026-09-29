@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, Heart, Sparkles } from 'lucide-react';
+import { Eye, Gift, Heart, Sparkles } from 'lucide-react';
+import EventCard, { type SiteEvent } from '@/components/events/EventCard';
 import MainBannerRail, { MainBannerItem } from '@/components/ui/MainBannerRail';
 import Skeleton from '@/components/ui/Skeleton';
 import { api } from '@/lib/api';
@@ -248,6 +249,16 @@ export default function HomePage() {
   }, []);
 
   const [weekday, setWeekday] = useState<WeekdayKey | null>(null);
+
+  // 홈 이벤트 코너: 진행 중 이벤트 중 '홈 우선 노출' 먼저, 최대 4개
+  const { data: homeEvents = [] } = useQuery({
+    queryKey: ['events', 'home'],
+    queryFn: async () => {
+      const events = ((await api.get('/events', { params: { status: 'ongoing' } })).data.events || []) as (SiteEvent & { isFeatured?: boolean })[];
+      return [...events].sort((a, b) => Number(Boolean(b.isFeatured)) - Number(Boolean(a.isFeatured))).slice(0, 4);
+    },
+    retry: false,
+  });
 
   const { banners, comics, weekdayIds } = useMemo(() => {
     const data = homeData?.data || {};
@@ -562,8 +573,24 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+
+        {homeEvents.length > 0 && (
+          <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+            <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
+              <h2 className="flex items-center gap-2 text-xl font-black">
+                <Gift className="h-5 w-5 text-[#00dc64]" />
+                {t('nav.events')}
+              </h2>
+              <Link href="/events" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">
+                이벤트 전체보기 →
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+              {homeEvents.map((event) => <EventCard key={event.id} event={event} />)}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
 }
-

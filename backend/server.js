@@ -330,6 +330,7 @@ app.use('/api/email', emailWebhookRouter);
 app.use('/api', commentsRouter); // 댓글 라우트 추가
 app.use('/api', ratingsRouter); // 평점 라우트 추가
 app.use('/api', require('./routes/photobooks')); // 화보(PHOTOBOOK) 목록·상세·코인 소장
+app.use('/api', require('./routes/events')); // 이벤트 목록 + 관리자 등록·수정
 app.use('/api/novels', novelsRouter); // 소설 라우트 추가
 app.use('/api/community', communityRouter); // 커뮤니티 라우트 추가
 app.use('/api/games', gamesRouter); // 게임 라우트 추가

@@ -96,6 +96,8 @@ interface GeneralComicListPageProps {
   selectItems?: (homeData: any) => Comic[];
   emptyMessage?: string;
   beforeGrid?: ReactNode;
+  /** 19 ON(성인인증 완료)일 때 성인 작품도 같은 목록·장르 탭([성인])에 섞는다 */
+  includeAdult?: boolean;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -154,6 +156,7 @@ const categories = [
   { query: 'thriller', value: '스릴러' },
   { query: 'sports', value: '스포츠' },
   { query: 'daily', value: '일상' },
+  { query: 'adult', value: '성인' },
 ];
 
 const optionChips = [
@@ -279,6 +282,7 @@ export default function GeneralComicListPage({
   selectItems,
   emptyMessage = '표시할 작품이 없습니다.',
   beforeGrid,
+  includeAdult = false,
 }: GeneralComicListPageProps) {
   const { locale, t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState('전체');
@@ -344,10 +348,31 @@ export default function GeneralComicListPage({
     retry: false,
   });
 
+  // 성인 작품은 성인 전용 API(성인인증 + 19 ON 필요)에서 따로 받는다
+  const { data: adultHomeData } = useQuery({
+    queryKey: ['adult-home-list'],
+    queryFn: async () => (await api.get('/frontend/adult-home', { timeout: 8000 })).data,
+    enabled: includeAdult && adultEnabled,
+    retry: false,
+  });
+
+  // 19 OFF 로 바꾸면 [성인] 탭에서 전체로 돌아간다
+  useEffect(() => {
+    if (!adultEnabled && activeCategory === '성인') {
+      setActiveCategory('전체');
+      if (new URLSearchParams(window.location.search).get('category') === 'adult') {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }, [adultEnabled, activeCategory]);
+
   const baseItems = useMemo<NormalizedComic[]>(() => {
     const data = homeData?.data || {};
     const fallback = data.categories?.allComics || data.allComics || data.comics || [];
-    const selected = selectItems ? selectItems(homeData) : fallback;
+    const general = selectItems ? selectItems(homeData) : fallback;
+    const adultComics = includeAdult && adultEnabled ? (adultHomeData?.data?.allComics || []) : [];
+    const generalIds = new Set((general || []).map((comic: Comic) => String(comic?.id)));
+    const selected = [...(general || []), ...adultComics.filter((comic: Comic) => !generalIds.has(String(comic?.id)))];
     const backendItems = removeHiddenComicDuplicates(selected || []).filter(
       (comic: Comic) => adultEnabled || !isAdultComic(comic),
     );
@@ -367,19 +392,19 @@ export default function GeneralComicListPage({
     }
 
     return [];
-  }, [homeData, selectItems, adultEnabled, isLoading, locale, t]);
+  }, [homeData, adultHomeData, includeAdult, selectItems, adultEnabled, isLoading, locale, t]);
 
   const items = useMemo<NormalizedComic[]>(() => {
     const query = searchQuery.trim().toLowerCase();
 
     const filteredItems = baseItems.filter((comic) => {
-      const categoryOk =
+      const categoryOk = activeCategory === '성인' ? comic.isAdult : (
         activeCategory === '전체' ||
         activeCategory === '실시간' ||
         activeCategory === '신작' ||
         activeCategory === '랭킹' ||
         comic.tags.includes(activeCategory) ||
-        comic.genreText.includes(activeCategory.toLowerCase());
+        comic.genreText.includes(activeCategory.toLowerCase()));
 
       const optionOk = matchesOption(comic, activeOption);
 

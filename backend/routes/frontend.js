@@ -1306,7 +1306,7 @@ router.get('/adult-home', requireVerifiedAdultMode, async (req, res) => {
           { rating: '19' },
           { rating: 'adult' },
           { rating: 'ADULT' },
-          { genre: 'adult' }
+          { genre: { contains: 'adult' } }
         ]
       },
       include: {
@@ -1314,8 +1314,8 @@ router.get('/adult-home', requireVerifiedAdultMode, async (req, res) => {
           select: { episodes: true }
         }
       },
-      orderBy: { createdAt: 'desc' },
-      take: 50
+      orderBy: { createdAt: 'desc' }
+      // 목록·[성인] 장르 탭에서 전체를 써야 하므로 개수 제한 없음
     });
 
     res.json({

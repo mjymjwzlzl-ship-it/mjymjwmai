@@ -713,3 +713,22 @@ model ContentItem {
   @@index([characterId, contentType, isActive])
   @@map("content_items")
 }
+
+// 이벤트 (홈 이벤트 코너·/events 페이지). 상태는 기간으로 계산: 예정(startAt 전) · 진행 중 · 종료(endAt 지남)
+model Event {
+  id           String    @id @default(cuid())
+  title        String
+  summary      String?
+  thumbnailUrl String    // 목록 카드 이미지 (16:9 권장)
+  link         String    // 누르면 이동할 곳 (/attendance, /subscribe 등)
+  startAt      DateTime
+  endAt        DateTime? // 비우면 상시 진행
+  isActive     Boolean   @default(true) // 끄면 어디에도 노출 안 함
+  isFeatured   Boolean   @default(false) // 홈 이벤트 코너에 우선 노출
+  order        Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([isActive, startAt])
+  @@map("events")
+}
