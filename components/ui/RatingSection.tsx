@@ -9,9 +9,11 @@ interface RatingSectionProps {
   // 작품 평점 모드: comicId 를 주면 작품 단위로 평가한다
   comicId?: string | string[] | number | undefined
   onRated?: (summary: { averageRating: number; totalRatings: number }) => void
+  // 작품 평점 모드 제목 (기본 '작품 평점')
+  title?: string
 }
 
-const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRated }) => {
+const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRated, title }) => {
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [averageRating, setAverageRating] = useState(0)
@@ -146,7 +148,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRat
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="whitespace-nowrap text-sm font-black text-gray-950 dark:text-white">작품 평점</h3>
+          <h3 className="whitespace-nowrap text-sm font-black text-gray-950 dark:text-white">{title || '작품 평점'}</h3>
           <span className="whitespace-nowrap text-xs font-bold text-gray-400">{totalRatings.toLocaleString()}명 참여</span>
         </div>
         <div className="mt-2 flex items-center gap-2">

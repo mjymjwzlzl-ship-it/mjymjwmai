@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, Share2, Settings, Eye, EyeOff, Coins, Lock, X, AlertTriangle } from 'lucide-react';
 import FastImage from '@/components/ui/FastImage';
 import CommentSection from '@/components/ui/CommentSection';
+import RatingSection from '@/components/ui/RatingSection';
 import EpisodeEndMembershipBanner from '@/components/ui/EpisodeEndMembershipBanner';
 import { useAdultStore } from '@/store/adult';
 
@@ -625,17 +626,6 @@ export default function EpisodePage() {
                     </p>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleLikeToggle}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-full transition-colors ${
-                          isLiked ? 'text-red-500 bg-red-500/10' : 'text-gray-400 hover:text-red-400 bg-gray-700'
-                        }`}
-                      >
-                        <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                        <span className="text-sm">{likeCount || 0}</span>
-                      </button>
-                    </div>
                     <button
                       onClick={handleShare}
                       className="p-2 rounded-full text-gray-400 hover:text-purple-400 bg-gray-700 transition-colors"
@@ -654,6 +644,10 @@ export default function EpisodePage() {
               </div>
 
               <div className="max-w-2xl mx-auto px-4 pb-20">
+                {/* 작품 평점: 작품 소개의 평점과 같은 기록 (여기서 매겨도 작품 전체 평점에 반영) */}
+                <div className="mb-4">
+                  <RatingSection comicId={params.id} title="이 작품 어떠셨나요?" />
+                </div>
                 <CommentSection
                   episodeId={params.episodeId}
                 />
