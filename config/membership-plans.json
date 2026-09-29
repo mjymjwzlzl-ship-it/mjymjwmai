@@ -1,0 +1,32 @@
+[
+  {
+    "code": "BASIC",
+    "name": "BASIC",
+    "monthlyPrice": 3400,
+    "yearlyPrice": 33600,
+    "isRecommended": false,
+    "sortOrder": 10,
+    "benefits": ["웹툰 본편 무제한", "완결 작품 자유 열람", "신규 작품·회차 이용", "매일 업데이트되는 기본 콘텐츠"],
+    "entitlement": {"mainAccess": true, "extraAccess": false, "photobookAccess": false, "chatbotAccess": false, "adsRemoved": false}
+  },
+  {
+    "code": "PREMIUM",
+    "name": "PREMIUM",
+    "monthlyPrice": 6900,
+    "yearlyPrice": 72000,
+    "isRecommended": true,
+    "sortOrder": 20,
+    "benefits": ["웹툰 본편 무제한", "작품별 외전·특별편", "캐릭터 화보", "프리미엄 전용 콘텐츠", "일부 숏폼·확장 콘텐츠 (순차 공개)"],
+    "entitlement": {"mainAccess": true, "extraAccess": true, "photobookAccess": true, "chatbotAccess": false, "adsRemoved": true}
+  },
+  {
+    "code": "ALL_ACCESS",
+    "name": "ALL-IN-ONE",
+    "monthlyPrice": 14000,
+    "yearlyPrice": 156000,
+    "isRecommended": false,
+    "sortOrder": 30,
+    "benefits": ["웹툰 본편·외전·화보", "AI 캐릭터 채팅", "숏폼 애니메이션 (순차 공개)", "주요 프리미엄 콘텐츠 통합", "캐릭터 중심 장기 이용 경험"],
+    "entitlement": {"mainAccess": true, "extraAccess": true, "photobookAccess": true, "chatbotAccess": true, "adsRemoved": true}
+  }
+]

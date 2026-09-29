@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARATA - 결제 결과</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .success {
+            color: #22c55e;
+        }
+        .fail {
+            color: #ef4444;
+        }
+        .icon {
+            font-size: 64px;
+            margin: 20px 0;
+        }
+        .info {
+            margin: 20px 0;
+            text-align: left;
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .value {
+            color: #111827;
+            font-weight: 600;
+        }
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        .button:hover {
+            background: #5a67d8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <% if(resultCode === '00' || resultCode === '0000') { %>
+            <div class="icon success">✅</div>
+            <h1 class="success">결제가 완료되었습니다!</h1>
+            <div class="info">
+                <div class="info-row">
+                    <span class="label">주문번호</span>
+                    <span class="value"><%=MOID%></span>
+                </div>
+                <div class="info-row">
+                    <span class="label">결제금액</span>
+                    <span class="value">₩<%=Number(TotPrice).toLocaleString()%></span>
+                </div>
+                <% if(tid) { %>
+                <div class="info-row">
+                    <span class="label">거래번호</span>
+                    <span class="value"><%=tid%></span>
+                </div>
+                <% } %>
+                <% if(applDate && applTime) { %>
+                <div class="info-row">
+                    <span class="label">승인일시</span>
+                    <span class="value"><%=applDate%> <%=applTime%></span>
+                </div>
+                <% } %>
+            </div>
+            <p style="color: #6b7280; margin-top: 20px;">
+                코인이 충전되었습니다. 이제 웹툰을 감상하실 수 있습니다!
+            </p>
+        <% } else { %>
+            <div class="icon fail">❌</div>
+            <h1 class="fail">결제에 실패했습니다</h1>
+            <div class="info">
+                <div class="info-row">
+                    <span class="label">오류코드</span>
+                    <span class="value"><%=resultCode%></span>
+                </div>
+                <div class="info-row">
+                    <span class="label">오류메시지</span>
+                    <span class="value"><%=resultMsg%></span>
+                </div>
+                <% if(MOID) { %>
+                <div class="info-row">
+                    <span class="label">주문번호</span>
+                    <span class="value"><%=MOID%></span>
+                </div>
+                <% } %>
+            </div>
+            <p style="color: #6b7280; margin-top: 20px;">
+                결제 처리 중 문제가 발생했습니다. 다시 시도해 주세요.
+            </p>
+        <% } %>
+        
+        <button class="button" onclick="closeWindow()">확인</button>
+    </div>
+
+    <script>
+        function closeWindow() {
+            // 부모 창으로 메시지 전송
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'payment-complete',
+                    resultCode: '<%=resultCode%>',
+                    resultMsg: '<%=resultMsg%>',
+                    tid: '<%=tid%>',
+                    MOID: '<%=MOID%>',
+                    TotPrice: '<%=TotPrice%>'
+                }, '*');
+            }
+            
+            // 창 닫기 또는 메인 페이지로 이동
+            if (window.opener) {
+                window.close();
+            } else {
+                window.location.href = 'http://localhost:3000/coin';
+            }
+        }
+        
+        // 5초 후 자동으로 닫기
+        setTimeout(closeWindow, 5000);
+    </script>
+</body>
+</html>

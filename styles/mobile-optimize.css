@@ -1,0 +1,145 @@
+/* 모바일 터치 최적화 CSS */
+
+/* 터치 디바이스 최적화 */
+@media (hover: none) and (pointer: coarse) {
+  /* 터치 타겟 최소 크기 보장 */
+  button, a, .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 호버 효과 제거 */
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+  
+  .hover\:-translate-y-1:hover {
+    transform: none;
+  }
+}
+
+/* 터치 스크롤 최적화 */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 탭 하이라이트 제거 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 터치 선택 방지 */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* 빠른 터치 반응 */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* 모바일 이미지 최적화 */
+@media (max-width: 768px) {
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+  
+  /* 작은 화면에서 애니메이션 제거 */
+  .animate-pulse {
+    animation: none;
+    opacity: 0.7;
+  }
+  
+  /* 트랜지션 속도 향상 */
+  * {
+    transition-duration: 0.15s !important;
+  }
+}
+
+/* iOS 바운스 스크롤 방지 */
+html, body {
+  overscroll-behavior: none;
+}
+
+/* 가로 스크롤 방지 */
+html, body {
+  overflow-x: hidden;
+}
+
+/* 모바일 폰트 최적화 */
+@media (max-width: 768px) {
+  body {
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* 3D 하드웨어 가속 */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 모바일 클릭 지연 제거 */
+a, button, input, select, textarea {
+  touch-action: manipulation;
+}
+
+/* 스켈레톤 로더 최적화 */
+@media (max-width: 768px) {
+  @keyframes shimmer {
+    0% {
+      background-position: -200px 0;
+    }
+    100% {
+      background-position: 200px 0;
+    }
+  }
+  
+  .skeleton {
+    background: linear-gradient(90deg, #374151 0%, #4b5563 50%, #374151 100%);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+/* 모바일 버튼 활성 상태 */
+button:active {
+  transform: scale(0.95);
+}
+
+/* iOS 안전 영역 */
+.safe-area-inset {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 모바일 그리드 최적화 */
+@media (max-width: 640px) {
+  .grid {
+    gap: 0.75rem !important;
+  }
+}
+
+/* 레이지 로딩 이미지 플레이스홀더 */
+img[loading="lazy"] {
+  background: #374151;
+}
+
+/* 모바일 스크롤바 숨기기 */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

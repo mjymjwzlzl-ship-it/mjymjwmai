@@ -1,0 +1,9 @@
+node_modules
+.next
+backend/prisma/*.json
+# 개인정보·사용자 데이터: 저장소에 올리지 않음
+backend/data/support-mails*
+backend/data/favorites.json
+.env*
+*.db
+*.db-*

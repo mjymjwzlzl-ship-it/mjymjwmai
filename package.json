@@ -1,0 +1,78 @@
+{
+  "name": "arata",
+  "version": "1.0.0",
+  "description": "ARATA - AI 기반 웹툰 플랫폼 - 광고기반 반응형 서비스",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "build:prod": "set NODE_ENV=production&& next build",
+    "start": "node scripts/ensure-prerender.js && next start -H 127.0.0.1 -p 4000",
+    "start:prod": "NODE_ENV=production node server.js",
+    "start:safe": "start-production.bat",
+    "lint": "next lint",
+    "analyze": "cross-env ANALYZE=true next build",
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@portone/browser-sdk": "^0.0.24",
+    "@prisma/client": "^5.22.0",
+    "@sendgrid/mail": "^8.1.5",
+    "@tanstack/react-query": "^5.51.1",
+    "@types/js-cookie": "^3.0.6",
+    "axios": "^1.11.0",
+    "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "i18next": "^25.5.0",
+    "js-cookie": "^3.0.5",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.292.0",
+    "next": "^15.5.18",
+    "next-i18next": "^15.4.2",
+    "nodemailer": "^7.0.5",
+    "prisma": "^5.22.0",
+    "react": "19.0.0-rc-66855b96-20241106",
+    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "react-hook-form": "^7.62.0",
+    "react-i18next": "^15.7.3",
+    "sharp": "^0.34.3",
+    "swiper": "^11.0.0",
+    "tailwind-merge": "^2.3.0",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@next/bundle-analyzer": "^15.5.6",
+    "@tailwindcss/postcss": "^4.1.12",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10",
+    "cross-env": "^7.0.3",
+    "eslint": "^8",
+    "eslint-config-next": "15.0.3",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5"
+  },
+  "main": "add-coins.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/carryer123/ARATA.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/carryer123/ARATA/issues"
+  },
+  "homepage": "https://github.com/carryer123/ARATA#readme"
+}

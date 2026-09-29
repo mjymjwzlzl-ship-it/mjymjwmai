@@ -1,0 +1,573 @@
+﻿'use client';
+
+import { ReactNode, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import {
+  ArrowUpDown,
+  Check,
+  Clock3,
+  Filter,
+  Gift,
+  Heart,
+  LayoutGrid,
+  List,
+  Palette,
+  PenTool,
+  Search,
+  Unlock,
+  User,
+} from 'lucide-react';
+import Skeleton from '@/components/ui/Skeleton';
+import AppDownloadBanner from '@/components/ui/AppDownloadBanner';
+import { api } from '@/lib/api';
+import {
+  localizeComicAuthor,
+  localizeComicGenre,
+  localizeComicStatus,
+  localizeComicSynopsis,
+  localizeComicTitle,
+  resolveComicGenre,
+} from '@/lib/comic-localization';
+import { getImageUrl } from '@/lib/utils';
+import { useAdultModeStore } from '@/store/adultMode';
+import { useLanguage, type Locale } from '@/components/providers/LanguageProvider';
+import { removeHiddenComicDuplicates } from '@/lib/comic-deduplication';
+import { isMonochromeComic } from '@/lib/comic-content-format';
+import { comicTimestamp, getComicFreeAccess, sortCatalog, type CatalogSort } from '@/lib/catalog-list';
+
+type Comic = any;
+
+type NormalizedComic = {
+  id: string;
+  title: string;
+  author: string;
+  image: string;
+  synopsis: string;
+  updatedAt: string;
+  views: number;
+  likes: number;
+  tags: string[];
+  genreText: string;
+  isAdult: boolean;
+  isFullyFree: boolean;
+  isFirstEpisodeFree: boolean;
+  isMonochrome: boolean;
+  audience: 'male' | 'female';
+  createdAtTimestamp: number;
+  updatedAtTimestamp: number;
+};
+
+interface GeneralComicListPageProps {
+  title: string;
+  description?: string;
+  hideHeader?: boolean;
+  queryKey?: string[];
+  selectItems?: (homeData: any) => Comic[];
+  emptyMessage?: string;
+  beforeGrid?: ReactNode;
+}
+
+const ITEMS_PER_PAGE = 10;
+const GRID_ITEMS_PER_PAGE = 12;
+type ComicViewMode = 'list' | 'grid';
+
+const viewModeLabels: Record<Locale, Record<ComicViewMode, string>> = {
+  ko: { list: '목록형', grid: '격자형' },
+  en: { list: 'List', grid: 'Grid' },
+  ja: { list: 'リスト', grid: 'グリッド' },
+  fr: { list: 'Liste', grid: 'Grille' },
+};
+
+const listLabels = {
+  ko: { sort: '작품 정렬', updated: '업데이트순', created: '신작순', oldest: '오래된순', popular: '인기순', error: '작품을 불러오지 못했습니다.', retry: '다시 시도' },
+  en: { sort: 'Sort works', updated: 'Updated', created: 'Newest', oldest: 'Oldest', popular: 'Popular', error: 'Unable to load works.', retry: 'Try again' },
+  ja: { sort: '作品の並び順', updated: '更新順', created: '新作順', oldest: '古い順', popular: '人気順', error: '作品を読み込めませんでした。', retry: '再試行' },
+  fr: { sort: 'Trier les œuvres', updated: 'Mise à jour', created: 'Nouveautés', oldest: 'Anciennes', popular: 'Popularité', error: 'Impossible de charger les œuvres.', retry: 'Réessayer' },
+} as const;
+
+const SPECIAL_COMIC_THUMBNAILS: Record<string, string> = {
+  cmfgk7zw60000hfzdcb4xi7ie: '/uploads/webtoons/general/%EC%82%AC%EB%A7%89/thumbnail.webp?v=no-logo-20260709b',
+  cmfkt0q1a0001142ov9e5yqch: '/uploads/webtoons/general/%EC%84%B8%EC%83%81%EC%9D%98%20%EC%A2%85%EB%A7%90/thumbnail.webp?v=no-logo-20260709b',
+  cmfgk82x5002ghfzdampkgahf: '/uploads/webtoons/adult/%EC%84%B8%EC%83%81%EC%9D%98%20%EC%A2%85%EB%A7%90/thumbnail.webp?v=no-logo-20260709b',
+  cmfkt9a7w000j142oi8vh7tm0: '/uploads/webtoons/general/%EA%B5%90%EC%A3%BC%EC%9D%98%20%EC%97%B0%EC%9D%B8/thumbnail.webp?v=no-logo-20260709b',
+  cmfgk83c6002rhfzdiw8gcsow: '/uploads/webtoons/adult/%EA%B5%90%EC%A3%BC%EC%9D%98%20%EC%97%B0%EC%9D%B8/thumbnail.webp?v=no-logo-20260709b',
+  cmhupnvhs0000cbnjbz2mg9l5: '/uploads/webtoons/general/%EC%B5%9C%EA%B0%95%EC%9D%BC%EC%A7%84%EC%9D%B4%EC%97%88%EB%8D%98%20%EC%82%AC%EB%82%98%EC%9D%B4/thumbnail.webp?v=no-logo-20260709b',
+  cmhd1wrdp0000dtqp2vqkumzx: '/uploads/webtoons/general/%EA%B3%A0%EA%B5%90%EC%A0%84%EC%84%A4%20%EB%A0%88%EB%93%9C%EB%93%9C%EB%9E%98%EA%B3%A4/thumbnail.webp?v=no-logo-20260709b',
+  cmhd1z63y00h3dtqp6d0rsnuc: '/uploads/webtoons/general/%EA%B3%A0%EA%B5%90%EC%A0%84%EC%84%A4%20%EC%8B%9C%EC%A6%8C2/thumbnail.webp?v=no-logo-20260709b',
+  cmr7krmru0000hizzkwf4qaqj: '/uploads/webtoons/general/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EC%9D%B4%EB%8D%94/thumbnail.webp?v=no-logo-20260709b',
+  cmhcw1u3d0000wcdwylb39b6i: '/uploads/webtoons/general/%EC%82%BC%EA%B5%AD%EC%A7%80%20%EB%B3%91%EC%9D%98/thumbnail.webp?v=no-logo-20260709b',
+  cmrcomt1k0000ymjsmdcepx76: '/uploads/webtoons/general/%EC%9D%BC%EC%A7%84%EC%96%91%EC%84%B1%ED%95%99%EA%B5%90/thumbnail.webp?v=no-logo-20260711',
+  cmrbzm61x000011itpx93faas: '/uploads/webtoons/general/%EA%B3%A0%EA%B5%90%EC%9D%BC%EB%B0%98%ED%95%99%EC%83%9D/thumbnail.webp?v=no-logo-20260711',
+  cmrcowqbn000026hcnl74lq6v: '/uploads/webtoons/general/%EC%A3%BD%EC%9D%8C%EC%9D%98%20%EC%82%AC%EB%A7%89/thumbnail.webp?v=cel-2d-20260711',
+  cmrcoup2n0000sjeecwxzyale: '/uploads/webtoons/general/%EC%A3%BC%EC%82%AC%EC%9C%84%EA%B2%8C%EC%9E%84/thumbnail.webp?v=cel-2d-20260711',
+  cmrcoks1r0000az2ud9wupoy5: '/uploads/webtoons/general/%EC%98%A4%ED%83%9C%EC%84%A0%EC%9D%98%20%ED%8F%AC%EC%9E%A5%EB%A7%88%EC%B0%A8/thumbnail.webp?v=no-logo-20260711',
+  cmrcokbhd000013p03boxrp10: '/uploads/webtoons/general/%EA%B8%B0%EC%96%B5%EC%9D%84%20%EA%B0%80%EC%A7%80%EA%B3%A0%205%EB%85%84%20%EC%A0%84%EC%9C%BC%EB%A1%9C%20%EB%8F%8C%EC%95%84%EA%B0%88%20%EA%B8%B0%ED%9A%8C%EA%B0%80%20%EC%83%9D%EA%B2%BC%EB%8B%A4/thumbnail.webp?v=cel-2d-20260711',
+};
+
+const getSpecialComicThumbnail = (comic: Comic, fallback: string) => {
+  return SPECIAL_COMIC_THUMBNAILS[String(comic?.id)] || fallback;
+};
+
+const categories = [
+  { query: 'all', value: '전체' },
+  { query: 'new', value: '신작' },
+  { query: 'ranking', value: '랭킹' },
+  { query: 'realtime', value: '실시간' },
+  { query: 'romance', value: '로맨스' },
+  { query: 'fantasy', value: '판타지' },
+  { query: 'action', value: '액션' },
+  { query: 'martial', value: '무협' },
+  { query: 'drama', value: '드라마' },
+  { query: 'school', value: '학원' },
+  { query: 'comedy', value: '코미디' },
+  { query: 'thriller', value: '스릴러' },
+  { query: 'sports', value: '스포츠' },
+  { query: 'daily', value: '일상' },
+];
+
+const optionChips = [
+  { value: '완전무료', labelKey: 'option.freeAll', icon: Gift },
+  { value: '1화 무료', labelKey: 'option.firstFree', icon: Unlock },
+  { value: '컬러만화', labelKey: 'option.color', icon: Palette },
+  { value: '흑백만화', labelKey: 'option.blackWhite', icon: PenTool },
+  { value: '남성향', labelKey: 'option.male', icon: User },
+  { value: '여성향', labelKey: 'option.female', icon: Heart },
+];
+
+const genreLabels: Record<string, string> = {
+  romance: '로맨스',
+  fantasy: '판타지',
+  action: '액션',
+  martial: '무협',
+  drama: '드라마',
+  school: '학원',
+  comedy: '코미디',
+  thriller: '스릴러',
+  sports: '스포츠',
+  daily: '일상',
+  'slice-of-life': '일상',
+};
+
+const brokenTextPattern = /\uFFFD/;
+
+const safeText = (value: unknown, fallback: string) => {
+  const text = String(value || '').trim();
+  if (!text || brokenTextPattern.test(text)) return fallback;
+  return text;
+};
+
+const compactSynopsis = (value: unknown, fallback: string) => {
+  const text = safeText(value, fallback);
+  return text.length > 68 ? `${text.slice(0, 68).trim()}...` : text;
+};
+
+const isAdultComic = (comic: Comic) => {
+  const rating = String(comic?.rating || comic?.ageRating || '').toLowerCase();
+  const genre = String(comic?.genre || '').toLowerCase();
+  return rating === 'adult' || rating === '19' || rating.includes('19') || genre.includes('adult');
+};
+
+const resolveAudience = (comic: Comic, searchableText: string): 'male' | 'female' => {
+  const explicitAudience = String(
+    comic?.audience || comic?.targetAudience || comic?.targetGender || comic?.genderTarget || '',
+  ).toLowerCase();
+
+  if (/female|women|woman|여성|女性/.test(explicitAudience)) return 'female';
+  if (/male|men|man|남성|男性/.test(explicitAudience)) return 'male';
+
+  return /romance|로맨스|연인|恋愛|ロマンス|lover|bl\b/.test(searchableText.toLowerCase())
+    ? 'female'
+    : 'male';
+};
+
+const normalizeComic = (
+  comic: Comic,
+  index: number,
+  locale: Locale,
+  defaultSynopsis: string,
+  noTitle: string,
+): NormalizedComic => {
+  const genre = String(resolveComicGenre(comic)).trim();
+  const sourceGenreLabel = genreLabels[genre.toLowerCase()] || safeText(genre, '미상');
+  const genreLabel = localizeComicGenre(genre, locale, sourceGenreLabel);
+  const statusLabel = localizeComicStatus(comic.status, locale);
+  const localizedTitle = localizeComicTitle(comic, locale, safeText(comic.title, noTitle));
+  const localizedSynopsis = compactSynopsis(localizeComicSynopsis(comic, locale, defaultSynopsis), defaultSynopsis);
+  const freeAccess = getComicFreeAccess(comic);
+  const updatedAtTimestamp = comicTimestamp(comic.updatedAt) || comicTimestamp(comic.createdAt);
+  const dateLocale = { ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', fr: 'fr-FR' }[locale];
+  const searchableAudienceText = `${genre} ${sourceGenreLabel} ${localizedTitle} ${localizedSynopsis}`;
+
+  return {
+    id: String(comic.id),
+    title: localizedTitle,
+    author: localizeComicAuthor(comic, locale, 'ARATA'),
+    image: getSpecialComicThumbnail(comic, comic.thumbnailUrl || comic.thumbnail || comic.image || ''),
+    synopsis: localizedSynopsis,
+    updatedAt: comic.updatedAtText || comic.updatedAtLabel || (updatedAtTimestamp
+      ? new Intl.DateTimeFormat(dateLocale, { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Seoul' }).format(updatedAtTimestamp)
+      : '—'),
+    views: Number(comic.views || comic.viewCount || 0),
+    likes: Number(comic.likes || comic.likeCount || comic.favoriteCount || 0),
+    tags: [genreLabel, statusLabel].filter(Boolean),
+    genreText: `${genre} ${sourceGenreLabel} ${genreLabel}`.toLowerCase(),
+    isAdult: isAdultComic(comic),
+    ...freeAccess,
+    isMonochrome: isMonochromeComic(comic),
+    audience: resolveAudience(comic, searchableAudienceText),
+    createdAtTimestamp: comicTimestamp(comic.createdAt),
+    updatedAtTimestamp,
+  };
+};
+
+const matchesOption = (comic: NormalizedComic, option: string | null) => {
+  switch (option) {
+    case '완전무료':
+      return comic.isFullyFree;
+    case '1화 무료':
+      return comic.isFirstEpisodeFree;
+    case '컬러만화':
+      return !comic.isMonochrome;
+    case '흑백만화':
+      return comic.isMonochrome;
+    case '남성향':
+      return comic.audience === 'male';
+    case '여성향':
+      return comic.audience === 'female';
+    default:
+      return true;
+  }
+};
+
+export default function GeneralComicListPage({
+  title,
+  description = '작품명, 작가명, 태그로 검색해보세요.',
+  hideHeader = false,
+  queryKey = ['frontend-home', title],
+  selectItems,
+  emptyMessage = '표시할 작품이 없습니다.',
+  beforeGrid,
+}: GeneralComicListPageProps) {
+  const { locale, t } = useLanguage();
+  const [activeCategory, setActiveCategory] = useState('전체');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeOption, setActiveOption] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ComicViewMode>('list');
+  const [sort, setSort] = useState<CatalogSort>('updated');
+  const labels = listLabels[locale];
+  const [page, setPage] = useState(1);
+  const adultEnabled = useAdultModeStore((state) => state.enabled);
+  const hydrateAdultMode = useAdultModeStore((state) => state.hydrate);
+
+  useEffect(() => {
+    hydrateAdultMode();
+  }, [hydrateAdultMode]);
+
+  useEffect(() => {
+    try {
+    const savedViewMode = window.localStorage.getItem('arata-comic-view-mode');
+    if (savedViewMode === 'list' || savedViewMode === 'grid') {
+      setViewMode(savedViewMode);
+    }
+    } catch { /* The view toggle still works when storage is unavailable. */ }
+  }, []);
+
+  const changeViewMode = (nextViewMode: ComicViewMode) => {
+    setViewMode(nextViewMode);
+    setPage(1);
+    try { window.localStorage.setItem('arata-comic-view-mode', nextViewMode); } catch {}
+  };
+
+  useEffect(() => {
+    const applyCategory = (queryCategory: string) => {
+      setActiveCategory(categories.find((category) => category.query === queryCategory)?.value || '전체');
+      setSort(queryCategory === 'ranking' ? 'popular' : queryCategory === 'new' ? 'created' : 'updated');
+    };
+    const syncFromLocation = () => {
+      applyCategory(new URLSearchParams(window.location.search).get('category') || 'all');
+    };
+    const handleCategoryChange = (event: Event) => {
+      applyCategory((event as CustomEvent<string>).detail || 'all');
+    };
+
+    syncFromLocation();
+    window.addEventListener('popstate', syncFromLocation);
+    window.addEventListener('arata-content-category-change', handleCategoryChange);
+    return () => {
+      window.removeEventListener('popstate', syncFromLocation);
+      window.removeEventListener('arata-content-category-change', handleCategoryChange);
+    };
+  }, []);
+
+  const { data: homeData, isLoading, isError, refetch, isFetching } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const response = await api.get('/frontend/home', { timeout: 8000 });
+      return response.data;
+    },
+    retry: false,
+  });
+
+  const baseItems = useMemo<NormalizedComic[]>(() => {
+    const data = homeData?.data || {};
+    const fallback = data.categories?.allComics || data.allComics || data.comics || [];
+    const selected = selectItems ? selectItems(homeData) : fallback;
+    const backendItems = removeHiddenComicDuplicates(selected || []).filter(
+      (comic: Comic) => adultEnabled || !isAdultComic(comic),
+    );
+
+    if (backendItems.length > 0) {
+      return backendItems.map((comic: Comic, index: number) => normalizeComic(
+        comic,
+        index,
+        locale,
+        t('list.defaultSynopsis'),
+        t('list.noTitle'),
+      ));
+    }
+
+    if (isLoading) {
+      return [];
+    }
+
+    return [];
+  }, [homeData, selectItems, adultEnabled, isLoading, locale, t]);
+
+  const items = useMemo<NormalizedComic[]>(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const filteredItems = baseItems.filter((comic) => {
+      const categoryOk =
+        activeCategory === '전체' ||
+        activeCategory === '실시간' ||
+        activeCategory === '신작' ||
+        activeCategory === '랭킹' ||
+        comic.tags.includes(activeCategory) ||
+        comic.genreText.includes(activeCategory.toLowerCase());
+
+      const optionOk = matchesOption(comic, activeOption);
+
+      const searchOk =
+        !query ||
+        comic.title.toLowerCase().includes(query) ||
+        comic.author.toLowerCase().includes(query) ||
+        comic.synopsis.toLowerCase().includes(query) ||
+        comic.tags.some((tag) => tag.toLowerCase().includes(query));
+
+      return categoryOk && optionOk && searchOk;
+    });
+
+    return sortCatalog(filteredItems, sort);
+  }, [activeCategory, activeOption, baseItems, searchQuery, sort]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeCategory, activeOption, searchQuery, sort]);
+
+  const itemsPerPage = viewMode === 'grid' ? GRID_ITEMS_PER_PAGE : ITEMS_PER_PAGE;
+  const pageCount = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const currentPage = Math.min(page, pageCount);
+  const pagedItems = items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
+      <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-6">
+        <AppDownloadBanner />
+        {beforeGrid && <div className="mb-6">{beforeGrid}</div>}
+
+        <section className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-md shadow-gray-200/70 transition-colors dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+          <div className="border-b border-gray-200 p-3 sm:p-5 dark:border-gray-800">
+            {!hideHeader && (
+              <div className="mb-5">
+                <h1 className="text-2xl font-black">{title}</h1>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+              </div>
+            )}
+
+            <label className="relative block">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <input
+                aria-label={t('list.searchPlaceholder')}
+                type="search"
+                enterKeyHint="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={t('list.searchPlaceholder')}
+                className="h-12 w-full rounded-xl border border-gray-200 bg-gray-50 pl-12 pr-4 text-sm outline-none transition focus:border-[#00dc64] focus:ring-2 focus:ring-[#00dc64]/20 dark:border-gray-700 dark:bg-[#121212] dark:text-white"
+              />
+            </label>
+
+            <div className="mt-3 flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+              <div data-catalog-filters="true" className="no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
+                <div className="mr-2 hidden items-center gap-2 text-xs font-black uppercase tracking-wider text-gray-400 sm:flex">
+                  <Filter className="h-4 w-4" />
+                  Option
+                </div>
+                  {optionChips.map(({ value, labelKey, icon: Icon }) => {
+                  const active = activeOption === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setActiveOption(active ? null : value)}
+                      className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-bold transition sm:min-h-8 ${
+                        active
+                          ? 'border-[#00dc64] bg-[#00dc64] text-black shadow-md shadow-green-500/10'
+                          : 'border-gray-200 bg-white text-gray-500 hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-400'
+                      }`}
+                    >
+                      {active ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                      {t(labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex w-full min-w-0 items-center justify-between gap-1 sm:w-auto sm:gap-2 sm:self-end lg:self-auto">
+                <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-[#121212]" aria-label="View mode">
+                  {(['list', 'grid'] as ComicViewMode[]).map((mode) => {
+                    const active = viewMode === mode;
+                    const Icon = mode === 'list' ? List : LayoutGrid;
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={viewModeLabels[locale][mode]}
+                        title={viewModeLabels[locale][mode]}
+                        onClick={() => changeViewMode(mode)}
+                        className={`inline-flex h-11 min-w-11 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-bold transition sm:h-8 sm:min-w-0 ${
+                          active
+                            ? 'bg-[#00dc64] text-black shadow-sm'
+                            : 'text-gray-500 hover:bg-white dark:text-gray-400 dark:hover:bg-white/10'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="hidden sm:inline">{viewModeLabels[locale][mode]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <label className="inline-flex min-h-11 min-w-0 flex-1 items-center gap-1 rounded-lg pl-2 text-xs font-bold text-gray-600 sm:flex-none sm:gap-2 sm:px-3 dark:text-gray-300">
+                  <ArrowUpDown className="hidden h-4 w-4 shrink-0 text-gray-400 sm:block" />
+                  <select aria-label={labels.sort} value={sort} onChange={(event) => setSort(event.target.value as CatalogSort)} className="h-11 w-full min-w-0 cursor-pointer bg-white sm:h-auto sm:w-auto dark:bg-[#1b1b1b]">
+                    {(['updated', 'created', 'oldest', 'popular'] as const).map((value) => <option key={value} value={value}>{labels[value]}</option>)}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-2 p-2 sm:gap-4 sm:p-4 md:grid-cols-3' : 'divide-y divide-gray-200 dark:divide-gray-800'}>
+            {isLoading && items.length === 0 ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className={viewMode === 'grid' ? 'overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700' : 'flex gap-4 p-4'}>
+                  <Skeleton className={viewMode === 'grid' ? 'aspect-[16/9] w-full dark:bg-gray-800' : 'h-[146px] w-[260px] shrink-0 dark:bg-gray-800 max-sm:h-[104px] max-sm:w-[138px]'} />
+                  <div className={viewMode === 'grid' ? 'p-3' : 'flex-1 py-1'}>
+                    <Skeleton className="h-5 w-1/3 dark:bg-gray-800" />
+                    <Skeleton className="mt-3 h-4 w-2/3 dark:bg-gray-800" />
+                    <Skeleton className="mt-2 h-4 w-1/2 dark:bg-gray-800" />
+                  </div>
+                </div>
+              ))
+            ) : isError && baseItems.length === 0 ? (
+              <div role="alert" className="col-span-full py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+                <p>{labels.error}</p>
+                <button type="button" disabled={isFetching} onClick={() => void refetch()} className="mt-3 rounded-lg bg-[#00dc64] px-4 py-2 font-bold text-black disabled:opacity-50">{labels.retry}</button>
+              </div>
+            ) : items.length === 0 ? (
+              <div className="col-span-full py-16 text-center text-sm text-gray-500 dark:text-gray-400">{emptyMessage || t('list.empty')}</div>
+            ) : (
+              pagedItems.map((comic) => (
+                <Link
+                  key={comic.id}
+                  href={`/webtoons/${comic.id}`}
+                  className={viewMode === 'grid'
+                    ? 'group block min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white transition hover:-translate-y-0.5 hover:border-[#00dc64] hover:shadow-md dark:border-gray-700 dark:bg-[#181818]'
+                    : 'group flex min-w-0 gap-3 p-3 transition hover:bg-gray-50/90 sm:gap-4 sm:p-4 dark:hover:bg-white/5'}
+                >
+                  <div className={viewMode === 'grid'
+                    ? 'relative aspect-[16/9] w-full overflow-hidden bg-gray-200 dark:bg-gray-800'
+                    : 'relative aspect-[16/9] w-[40%] max-w-[160px] shrink-0 self-start overflow-hidden rounded-md border border-gray-200 bg-gray-200 shadow-sm sm:h-[146px] sm:w-[260px] sm:max-w-none dark:border-gray-700 dark:bg-gray-800 dark:shadow-none'}>
+                    {comic.image ? (
+                      <img
+                        src={getImageUrl(comic.image, { width: 480 })}
+                        alt={comic.title}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : null}
+                    {comic.isAdult && (
+                      <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-[11px] font-black text-white">
+                        19
+                      </span>
+                    )}
+                    <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white">
+                      <Heart className="h-4 w-4" />
+                    </span>
+                  </div>
+
+                  <div className={viewMode === 'grid' ? 'min-w-0 p-2 sm:p-3' : 'min-w-0 flex-1 py-0.5'}>
+                    <h2 className={`line-clamp-2 break-words font-black leading-snug text-gray-950 group-hover:text-[#00dc64] dark:text-white ${viewMode === 'grid' ? 'min-h-[2.75em] text-sm sm:text-base' : 'text-sm sm:text-lg'}`}>
+                      {comic.title}
+                    </h2>
+                    <p className="mt-1 line-clamp-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {comic.author}
+                    </p>
+                    <p className={`${viewMode === 'grid' ? 'line-clamp-2 min-h-10 text-xs leading-5' : 'hidden line-clamp-1 text-sm leading-6 sm:block'} mt-1 text-gray-600 dark:text-gray-400`}>
+                      {comic.synopsis}
+                    </p>
+                    <div className={`${viewMode === 'grid' ? 'gap-2' : 'gap-3'} mt-2 flex flex-wrap items-center text-xs text-gray-500`}>
+                      <span className="inline-flex items-center gap-1 text-red-500">
+                        <Clock3 className="h-3.5 w-3.5" />
+                        {comic.updatedAt}
+                      </span>
+                      <span className="hidden sm:inline">{t('list.likes', { count: comic.likes.toLocaleString() })}</span>
+                      <span>{t('list.views', { count: comic.views.toLocaleString() })}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5 sm:gap-2">
+                      {comic.tags.slice(0, viewMode === 'grid' ? 2 : 3).map((tag) => (
+                        <span key={tag} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+
+          {items.length > 0 && (
+            <div className="flex flex-col items-center gap-3 border-t border-gray-100 p-6 dark:border-gray-800">
+              <div className="flex flex-wrap justify-center gap-2">
+                {Array.from({ length: pageCount }).map((_, index) => {
+                  const pageNumber = index + 1;
+                  return (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setPage(pageNumber)}
+                      aria-current={pageNumber === currentPage ? 'page' : undefined}
+                      className={`h-11 min-w-11 rounded-md px-2 text-sm font-black ${
+                        pageNumber === currentPage
+                          ? 'bg-[#00dc64] text-black shadow-md shadow-green-500/20'
+                          : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10'
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
