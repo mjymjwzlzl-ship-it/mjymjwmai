@@ -11,6 +11,7 @@ import RatingSection from '@/components/ui/RatingSection';
 import SimilarWorksRail from '@/components/ui/SimilarWorksRail';
 import EpisodeEndMembershipBanner from '@/components/ui/EpisodeEndMembershipBanner';
 import { useAdultStore } from '@/store/adult';
+import { useAdultModeStore } from '@/store/adultMode';
 
 // Dynamic Import로 모달 컴포넌트 로드 (초기 번들 사이즈 감소)
 const AdultVerificationModal = dynamic(() => import('@/components/ui/AdultVerificationModal'), {
@@ -96,6 +97,13 @@ export default function EpisodePage() {
   const [likeCount, setLikeCount] = useState(0);
   const [dislikeCount, setDislikeCount] = useState(0);
   const [showCoinPurchase, setShowCoinPurchase] = useState(false);
+  // 구매창 대상: null 이면 지금 회차, 값이 있으면 [다음 화]로 가려던 회차
+  const [purchaseTarget, setPurchaseTarget] = useState<null | { id: string; episodeNumber: number; title: string; ownPrice: number; rentPrice?: number; rentalDays?: number; rentalEnabled?: boolean }>(null);
+  const [nextChecking, setNextChecking] = useState(false);
+  // 회차를 못 불러온 이유 (성인인증 필요 등) — 일반 오류 화면 대신 안내
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const setAdultModeEnabled = useAdultModeStore((state) => state.setEnabled);
+  const adultRetryRef = useRef(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
   // fetchEpisodeData 함수를 useEffect 전에 정의
@@ -263,12 +271,57 @@ export default function EpisodePage() {
           console.error('반응 상태 확인 실패:', error);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('에피소드 데이터를 불러오는데 실패했습니다', error);
+      const code = error?.response?.data?.code;
+      if (code === 'ADULT_MODE_REQUIRED' && !adultRetryRef.current) {
+        // 성인 작품 회차인데 19 모드가 꺼져 있으면 켜고 한 번 다시 불러온다
+        adultRetryRef.current = true;
+        setAdultModeEnabled(true);
+        setAdult('on');
+        setTimeout(() => { void fetchEpisodeData(); }, 0);
+        return;
+      }
+      setAccessError(code || 'LOAD_FAILED');
+      if (code === 'ADULT_VERIFICATION_REQUIRED') setShowAdultVerification(true);
     } finally {
       setLoading(false);
     }
   }, [params.id, params.episodeId, router]);
+
+  // 유료 회차에 들어오면 구매창을 먼저 띄운다
+  useEffect(() => {
+    if (episode?.needsPurchase && !episode.canView) {
+      setPurchaseTarget(null);
+      setShowCoinPurchase(true);
+    }
+  }, [episode?.id, episode?.needsPurchase, episode?.canView]);
+
+  // [다음 화]: 구매가 필요한 회차면 이동하기 전에 이 화면에서 구매창을 연다
+  const goNextEpisode = async () => {
+    if (!nextEpisodeId || nextChecking) return;
+    const nextHref = `/webtoons/${params.id}/episode/${nextEpisodeId}`;
+    const token = localStorage.getItem('authToken');
+    if (!token) { router.push(nextHref); return; }
+    setNextChecking(true);
+    try {
+      const { data } = await api.get(`/episodes/${nextEpisodeId}`, { headers: { Authorization: `Bearer ${token}` } });
+      const next = data?.episode;
+      if (next && next.needsPurchase && !next.canView) {
+        setPurchaseTarget({
+          id: String(next.id), episodeNumber: next.episodeNumber, title: next.title,
+          ownPrice: next.ownPrice || next.coinPrice || 3, rentPrice: next.rentPrice, rentalDays: next.rentalDays, rentalEnabled: next.rentalEnabled,
+        });
+        setShowCoinPurchase(true);
+        return;
+      }
+      router.push(nextHref);
+    } catch {
+      router.push(nextHref); // 다음 화 화면이 사유(성인인증 등)를 안내한다
+    } finally {
+      setNextChecking(false);
+    }
+  };
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -387,6 +440,7 @@ export default function EpisodePage() {
   };
 
   const handlePurchaseConfirm = async (mode: 'RENT' | 'OWN' = 'OWN') => {
+    const target = purchaseTarget;
     const token = localStorage.getItem('authToken');
     if (!token) {
       alert(t('webtoon.loginRequiredGeneral'));
@@ -397,7 +451,7 @@ export default function EpisodePage() {
     try {
       // 코인 구매 API 호출
       const response = await api.post(
-        `/episodes/${params.episodeId}/purchase`,
+        `/episodes/${target ? target.id : params.episodeId}/purchase`,
         { mode },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -417,6 +471,12 @@ export default function EpisodePage() {
         
         // 모달 닫기
         setShowCoinPurchase(false);
+        // [다음 화]에서 산 경우: 그 회차로 이동
+        if (target) {
+          setPurchaseTarget(null);
+          router.push(`/webtoons/${params.id}/episode/${target.id}`);
+          return;
+        }
         
         // 구매한 에피소드 이미지 바로 설정
         if (response.data.episode && response.data.episode.images) {
@@ -524,6 +584,28 @@ export default function EpisodePage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
           <p className="text-gray-400">에피소드를 불러오는 중...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!episode && accessError === 'ADULT_VERIFICATION_REQUIRED') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-black flex items-center justify-center px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-xl dark:border-gray-800 dark:bg-[#1b1b1b]">
+          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15">
+            <Lock className="h-6 w-6 text-red-500" />
+          </span>
+          <h2 className="text-lg font-black text-gray-950 dark:text-white">성인 인증이 필요한 회차예요</h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">PASS 본인인증으로 성인 인증을 완료하면 바로 볼 수 있어요.</p>
+          <button onClick={() => setShowAdultVerification(true)} className="mt-5 h-12 w-full rounded-xl bg-[#00dc64] font-black text-black transition hover:bg-[#00c85a]">성인 인증하기</button>
+          <button onClick={() => router.push(`/webtoons/${params.id}`)} className="mt-2 h-11 w-full rounded-xl bg-gray-100 text-sm font-bold text-gray-700 dark:bg-white/10 dark:text-gray-200">작품 홈으로</button>
+        </div>
+        <AdultVerificationModal
+          isOpen={showAdultVerification}
+          onClose={() => setShowAdultVerification(false)}
+          onSuccess={() => { setShowAdultVerification(false); setAccessError(null); setLoading(true); void fetchEpisodeData(); }}
+          mode="simple"
+        />
       </div>
     );
   }
@@ -678,6 +760,42 @@ export default function EpisodePage() {
                 </button>
               </div>
             </div>
+          ) : episode.needsPurchase ? (
+            // 유료 회차: 대여/소장 안내 (구매창은 자동으로 열리고, 닫아도 이 화면에 머문다)
+            <div className="min-h-screen flex items-center justify-center px-4">
+              <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-xl dark:border-gray-800 dark:bg-[#1b1b1b]">
+                <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-yellow-400/15">
+                  <Coins className="h-6 w-6 text-yellow-500" />
+                </span>
+                <h2 className="text-lg font-black text-gray-950 dark:text-white">유료 회차예요</h2>
+                <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                  {episode.rentalEnabled && episode.rentPrice
+                    ? `대여 ${episode.rentPrice}코인(${episode.rentalDays || 3}일) · 소장 ${episode.ownPrice || episode.coinPrice}코인`
+                    : `소장 ${episode.ownPrice || episode.coinPrice}코인`}
+                  {episode.rentalExpired ? ' · 대여 기간이 끝났어요' : ''}
+                </p>
+                <button
+                  onClick={() => { setPurchaseTarget(null); setShowCoinPurchase(true); }}
+                  className="mt-5 h-12 w-full rounded-xl bg-[#00dc64] font-black text-black shadow-lg shadow-green-500/15 transition hover:bg-[#00c85a]"
+                >
+                  대여 / 소장하기
+                </button>
+                {prevEpisodeId && (
+                  <button
+                    onClick={() => router.push(`/webtoons/${params.id}/episode/${prevEpisodeId}`)}
+                    className="mt-2 h-11 w-full rounded-xl bg-gray-100 text-sm font-bold text-gray-700 transition hover:bg-gray-200 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15"
+                  >
+                    이전 화로 돌아가기
+                  </button>
+                )}
+                <button
+                  onClick={() => router.push(`/webtoons/${params.id}`)}
+                  className="mt-2 h-11 w-full rounded-xl text-sm font-bold text-gray-500 transition hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"
+                >
+                  작품 홈으로
+                </button>
+              </div>
+            </div>
           ) : (
             // 기타 오류
             <div className="min-h-screen flex items-center justify-center">
@@ -712,9 +830,7 @@ export default function EpisodePage() {
                   </button>
                   <button
                     onClick={() => {
-                      if (nextEpisodeId) {
-                        router.push(`/webtoons/${params.id}/episode/${nextEpisodeId}`);
-                      }
+                      void goNextEpisode();
                     }}
                     disabled={isLastEpisode}
                     className={`flex-1 ml-2 px-4 py-3 rounded-lg transition-colors flex items-center justify-center ${
@@ -813,9 +929,7 @@ export default function EpisodePage() {
 
           <button
             onClick={() => {
-              if (nextEpisodeId) {
-                router.push(`/webtoons/${params.id}/episode/${nextEpisodeId}`);
-              }
+              void goNextEpisode();
             }}
             disabled={isLastEpisode}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
@@ -848,17 +962,18 @@ export default function EpisodePage() {
       <CoinPurchaseModal
         isOpen={showCoinPurchase}
         onClose={() => {
+          // 닫으면 지금 화면에 그대로 머문다 (다음 화 구매를 취소하면 보던 회차 그대로)
           setShowCoinPurchase(false);
-          router.back();
+          setPurchaseTarget(null);
         }}
         onConfirm={handlePurchaseConfirm}
-        episodeTitle={episode?.title || ''}
-        episodeNumber={episode?.episodeNumber || 1}
-        coinPrice={episode?.ownPrice || episode?.coinPrice || 3}
-        rentPrice={episode?.rentPrice}
-        rentalDays={episode?.rentalDays}
-        rentalEnabled={episode?.rentalEnabled}
-        currentlyRented={episode?.purchaseType === 'RENT' && !!episode?.canView}
+        episodeTitle={purchaseTarget ? purchaseTarget.title : (episode?.title || '')}
+        episodeNumber={purchaseTarget ? purchaseTarget.episodeNumber : (episode?.episodeNumber || 1)}
+        coinPrice={purchaseTarget ? purchaseTarget.ownPrice : (episode?.ownPrice || episode?.coinPrice || 3)}
+        rentPrice={purchaseTarget ? purchaseTarget.rentPrice : episode?.rentPrice}
+        rentalDays={purchaseTarget ? purchaseTarget.rentalDays : episode?.rentalDays}
+        rentalEnabled={purchaseTarget ? purchaseTarget.rentalEnabled : episode?.rentalEnabled}
+        currentlyRented={!purchaseTarget && episode?.purchaseType === 'RENT' && !!episode?.canView}
         userCoinBalance={coinBalance}
         webtoonTitle={episode?.webtoonTitle || ''}
       />
