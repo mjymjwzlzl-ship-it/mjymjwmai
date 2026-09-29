@@ -241,6 +241,24 @@ export default function HomePage() {
     };
 
     loadRecentViewed();
+    // 로그인 상태면 서버 열람 기록(다른 기기 포함)을 앞에 두고, 이 기기에만 있는 기록을 뒤에 붙인다
+    if (window.localStorage.getItem('authToken') || window.localStorage.getItem('token')) {
+      api.get('/users/library/reading')
+        .then(({ data }) => {
+          const server: RecentViewedWebtoon[] = (data?.webtoons || []).map((item: any) => ({
+            webtoonId: String(item.comicId),
+            webtoonTitle: item.comic?.title,
+            lastEpisode: item.lastReadEpisodeNumber,
+            viewedAt: item.lastReadAt,
+            thumbnailUrl: item.comic?.thumbnail,
+          }));
+          setRecentViewed((local) => {
+            const seen = new Set(server.map((item) => item.webtoonId));
+            return [...server, ...local.filter((item) => !seen.has(String(item.webtoonId)))].slice(0, 12);
+          });
+        })
+        .catch(() => {});
+    }
     window.addEventListener('storage', loadRecentViewed);
     window.addEventListener('viewedWebtoonsUpdated', loadRecentViewed);
 
