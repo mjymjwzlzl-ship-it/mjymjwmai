@@ -52,6 +52,7 @@ interface Episode {
   purchaseType?: 'OWN' | 'RENT' | null;
   expiresAt?: string | null;
   rentalExpired?: boolean;
+  saleSuspended?: boolean;
   canView?: boolean;
   needsPurchase?: boolean;
   needsLogin?: boolean;
@@ -258,6 +259,7 @@ export default function EpisodePage() {
           purchaseType: episodeData.purchaseType,
           expiresAt: episodeData.expiresAt,
           rentalExpired: episodeData.rentalExpired,
+          saleSuspended: episodeData.saleSuspended,
           canView: episodeData.canView,
           needsPurchase: episodeData.needsPurchase,
           needsLogin: episodeData.needsLogin,
@@ -323,7 +325,7 @@ export default function EpisodePage() {
 
   // 유료 회차에 들어오면 구매창을 먼저 띄운다
   useEffect(() => {
-    if (episode?.needsPurchase && !episode.canView) {
+    if (episode?.needsPurchase && !episode.canView && !episode.saleSuspended) {
       setPurchaseTarget(null);
       setShowCoinPurchase(true);
     }
@@ -339,7 +341,7 @@ export default function EpisodePage() {
     try {
       const { data } = await api.get(`/episodes/${nextEpisodeId}`, { headers: { Authorization: `Bearer ${token}` } });
       const next = data?.episode;
-      if (next && next.needsPurchase && !next.canView) {
+      if (next && next.needsPurchase && !next.canView && !next.saleSuspended) {
         setPurchaseTarget({
           id: String(next.id), episodeNumber: next.episodeNumber, title: next.title,
           ownPrice: next.ownPrice || next.coinPrice || 3, rentPrice: next.rentPrice, rentalDays: next.rentalDays, rentalEnabled: next.rentalEnabled,
@@ -925,7 +927,7 @@ export default function EpisodePage() {
                 <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-yellow-400/15">
                   <Coins className="h-6 w-6 text-yellow-500" />
                 </span>
-                <h2 className="text-lg font-black text-gray-950 dark:text-white">유료 회차예요</h2>
+                <h2 className="text-lg font-black text-gray-950 dark:text-white">{episode.saleSuspended ? '판매가 중지된 작품이에요' : '유료 회차예요'}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
                   {episode.rentalEnabled && typeof episode.rentPrice === 'number'
                     ? `대여 ${episode.rentPrice === 0 ? '무료' : `${episode.rentPrice}코인`}(${episode.rentalDays || 3}일) · 소장 ${episode.ownPrice || episode.coinPrice}코인`
@@ -933,12 +935,18 @@ export default function EpisodePage() {
                   {episode.promotion ? ` · ${episode.promotion.label}(${episode.promotion.remaining})` : ''}
                   {episode.rentalExpired ? ' · 대여 기간이 끝났어요' : ''}
                 </p>
-                <button
-                  onClick={() => { setPurchaseTarget(null); setShowCoinPurchase(true); }}
-                  className="mt-5 h-12 w-full rounded-xl bg-[#00dc64] font-black text-black shadow-lg shadow-green-500/15 transition hover:bg-[#00c85a]"
-                >
-                  대여 / 소장하기
-                </button>
+                {episode.saleSuspended ? (
+                  <p className="mt-4 rounded-lg bg-red-50 px-3 py-2.5 text-sm font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                    새로 대여·소장할 수 없어요. 이미 소장했거나 대여 기간이 남은 회차는 계속 볼 수 있어요.
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => { setPurchaseTarget(null); setShowCoinPurchase(true); }}
+                    className="mt-5 h-12 w-full rounded-xl bg-[#00dc64] font-black text-black shadow-lg shadow-green-500/15 transition hover:bg-[#00c85a]"
+                  >
+                    대여 / 소장하기
+                  </button>
+                )}
                 {prevEpisodeId && (
                   <button
                     onClick={() => router.push(`/webtoons/${params.id}/episode/${prevEpisodeId}`)}

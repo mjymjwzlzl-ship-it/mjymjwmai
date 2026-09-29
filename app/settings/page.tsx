@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import NotificationSettings from '@/components/notifications/NotificationSettings'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Settings, User, Shield, Bell, Eye, Edit2, Mail, Lock, Save } from 'lucide-react'
 import { useThemeStore } from '@/store/theme'
@@ -8,6 +9,11 @@ import { useThemeStore } from '@/store/theme'
 export default function SettingsPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('general')
+  // /settings?tab=notifications 로 바로 열기 (알림함의 '알림 설정')
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab')
+    if (tab === 'notifications') setActiveTab('notifications')
+  }, [])
   const [user, setUser] = useState<any>(null)
   const [isEditingNickname, setIsEditingNickname] = useState(false)
   const [isEditingPassword, setIsEditingPassword] = useState(false)
@@ -450,23 +456,7 @@ export default function SettingsPage() {
             {activeTab === 'notifications' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold mb-6">알림 설정</h2>
-                
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4">푸시 알림</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">신작 알림</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">새로운 웹툰이 업로드될 때 알림</div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
-                        <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-emerald-600 peer-checked:to-teal-600"></div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
+                <NotificationSettings />
               </div>
             )}
           </div>

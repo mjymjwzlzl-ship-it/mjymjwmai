@@ -9,6 +9,7 @@ import {
   BookOpen,
   Clock,
   ChevronDown,
+  Bell,
   Gamepad2,
   Gift,
   GalleryVertical,
@@ -90,6 +91,8 @@ export default function ReferenceHeader() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [sessionUser, setSessionUser] = useState<{ name: string } | null>(null);
+  // 알림함: 로그인 상태면 안 읽은 알림 수를 1분마다·페이지 이동 때 확인
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [activeSubnav, setActiveSubnav] = useState('all');
@@ -242,6 +245,18 @@ export default function ReferenceHeader() {
     void verifyAdultMode();
   };
 
+  useEffect(() => {
+    if (!sessionUser) { setUnreadNotifications(0); return; }
+    let alive = true;
+    const load = () => api.get('/notifications/unread-count')
+      .then(({ data }) => { if (alive) setUnreadNotifications(Number(data?.unread) || 0); })
+      .catch(() => {});
+    load();
+    const timer = window.setInterval(load, 60 * 1000);
+    window.addEventListener('notificationsUpdated', load);
+    return () => { alive = false; window.clearInterval(timer); window.removeEventListener('notificationsUpdated', load); };
+  }, [sessionUser, pathname]);
+
   // 로그인 상태: 토큰이 있으면 로그인으로 본다 (메뉴 하단 로그인/로그아웃 버튼)
   const readSession = () => {
     try {
@@ -339,6 +354,23 @@ export default function ReferenceHeader() {
           >
             <Search className="h-5 w-5" />
           </Link>
+          {sessionUser && (
+            <Link
+              href="/notifications"
+              className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:h-9 md:w-9 ${
+                pathname?.startsWith('/notifications') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
+              }`}
+              aria-label={unreadNotifications > 0 ? `알림함 (안 읽은 알림 ${unreadNotifications}개)` : '알림함'}
+              title="알림함"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadNotifications > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white md:right-0 md:top-0">
+                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                </span>
+              )}
+            </Link>
+          )}
           <Link
             href="/my/library?tab=viewed"
             className={`hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex ${

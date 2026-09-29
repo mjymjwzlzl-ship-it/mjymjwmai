@@ -64,6 +64,7 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
             title: true,
             authorName: true,
             rating: true,
+            status: true,
             paidStartEpisode: true,
             episodeCoinPrice: true,
             rentalCoinPrice: true,
@@ -120,6 +121,8 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
       ...(isEpisodeFree ? {} : episodePrices(episode.comic, episode.comicId)),
       purchaseType: null,
       expiresAt: null,
+      // 판매중지 작품: 구매 버튼 대신 안내
+      saleSuspended: episode.comic.status === 'SUSPENDED',
       canView: false,
       needsPurchase: false,
       needsLogin: false,
@@ -492,6 +495,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
           select: {
             title: true,
             rating: true,
+            status: true,
             paidStartEpisode: true,
             episodeCoinPrice: true,
             rentalCoinPrice: true,
@@ -542,6 +546,11 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
           isFree: true
         }
       });
+    }
+
+    // 판매중지 작품: 새 구매 불가 (이미 소장·대여 중인 회차는 계속 열람)
+    if (episode.comic.status === 'SUSPENDED') {
+      return res.status(403).json({ success: false, code: 'SALE_SUSPENDED', message: '판매가 중지된 작품이라 새로 구매할 수 없어요. 이미 소장·대여한 회차는 계속 볼 수 있어요.' });
     }
 
     // 유료 회차: 소장(OWN) 또는 대여(RENT)

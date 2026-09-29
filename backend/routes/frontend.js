@@ -649,6 +649,10 @@ router.get('/comics/:id/info', async (req, res) => {
     const formattedComic = {
       id: comic.id,
       title: comic.title,
+      // 연재 상태 배지·공지사항 탭: ONGOING | HIATUS | COMPLETED | SUSPENDED
+      status: comic.status,
+      statusNotice: comic.statusNotice || null,
+      resumeAt: comic.resumeAt || null,
       author: comic.authorName || comic.author?.username || '작가',
       genre: comic.genre,
       description: comic.description || '',

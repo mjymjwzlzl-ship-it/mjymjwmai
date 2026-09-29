@@ -100,7 +100,9 @@ model Comic {
   genre       String     // JSON string으로 저장
   isPublished Boolean    @default(true) // soft-hide: 공개목록 노출여부
   isOfficial  Boolean    @default(false) // 정식연재 여부
-  status      String     @default("ONGOING") // ONGOING, COMPLETED, HIATUS
+  status      String     @default("ONGOING") // ONGOING(연재중), HIATUS(휴재), COMPLETED(완결), SUSPENDED(판매중지: 새 구매 불가, 보유 회차는 열람), HIDDEN
+  statusNotice String?   // 작품 상세 [공지사항] 탭 안내 (휴재 사유·판매중지 안내 등)
+  resumeAt    DateTime?  // 휴재 작품 연재 재개 예정일
   rating      String     @default("all") // 연령 등급 (all, 12, 15, 19)
   authorName  String?    // 정식연재 작가명
   viewCount   Int        @default(0)
@@ -267,6 +269,7 @@ model Like {
   user      User     @relation(fields: [userId], references: [id])
   comicId   String
   comic     Comic    @relation(fields: [comicId], references: [id])
+  notify    Boolean  @default(true) // 이 작품 새 회차 알림 (작품별 on/off)
 
   @@unique([userId, comicId])
   @@map("likes")
@@ -749,4 +752,36 @@ model ComicPromotion {
 
   @@index([comicId, isActive])
   @@map("comic_promotions")
+}
+
+// 알림함. 알림을 볼 때(목록·안 읽은 수 조회) 그 사용자 것만 만들어 둔다 (services/notifications.js)
+// type: UPDATE(찜한 작품 새 회차) | EVENT(이벤트 시작·종료 임박) | PROMOTION(할인·무료)
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  link      String?
+  imageUrl  String?
+  dedupeKey String   // 같은 소식을 두 번 만들지 않기 위한 키
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+// 알림 종류별 on/off + 마지막으로 새 소식을 확인한 시각
+model NotificationPreference {
+  userId     String   @id
+  updates    Boolean  @default(true)
+  events     Boolean  @default(true)
+  promotions Boolean  @default(true)
+  syncedAt   DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("notification_preferences")
 }

@@ -45,9 +45,23 @@ interface Episode {
   promoFree?: boolean;
 }
 
+// 연재 상태 배지 (장르 태그 옆)
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  ONGOING: { label: '연재중', className: 'bg-[#00dc64]/15 text-[#00a84c] dark:text-[#00dc64]' },
+  HIATUS: { label: '휴재중', className: 'bg-amber-400/20 text-amber-700 dark:text-amber-300' },
+  COMPLETED: { label: '완결', className: 'bg-gray-800 text-white dark:bg-white dark:text-black' },
+  SUSPENDED: { label: '판매중지', className: 'bg-red-600/15 text-red-600 dark:text-red-400' },
+};
+
+const formatKstDate = (value?: string | null) =>
+  value ? new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' }) : '';
+
 interface WebtoonDetail {
   id: number;
   title: string;
+  status?: 'ONGOING' | 'HIATUS' | 'COMPLETED' | 'SUSPENDED' | string;
+  statusNotice?: string | null;
+  resumeAt?: string | null;
   author: string;
   genre: string;
   description?: string;
@@ -158,6 +172,8 @@ const WebtoonDetailPage = () => {
   const { locale, t } = useLanguage();
   const [webtoon, setWebtoon] = useState<WebtoonDetail | null>(null);
   const [allEpisodes, setAllEpisodes] = useState<Episode[]>([]);
+  // 가운데 영역 탭: 회차 목록 / 공지사항(휴재·판매중지 안내)
+  const [mainTab, setMainTab] = useState<'episodes' | 'notice'>('episodes');
   // 진행 중인 할인·무료 이벤트 (회차 목록 위에 안내)
   const [promotions, setPromotions] = useState<{ id: string; label: string; remaining: string; endAt: string }[]>([]);
   const [similarComics, setSimilarComics] = useState<SimilarComic[]>([]);
@@ -496,6 +512,16 @@ const WebtoonDetailPage = () => {
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">
                     {displayGenre}
                   </span>
+                  {webtoon.status && STATUS_BADGE[webtoon.status] && (
+                    <button
+                      type="button"
+                      onClick={() => setMainTab('notice')}
+                      title="공지사항 보기"
+                      className={`rounded-full px-3 py-1 text-xs font-black ${STATUS_BADGE[webtoon.status].className}`}
+                    >
+                      {STATUS_BADGE[webtoon.status].label}
+                    </button>
+                  )}
                   {webtoon.ageRating && (webtoon.ageRating === '19' || String(webtoon.ageRating) === '19') && (
                     <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-black text-white">19+</span>
                   )}
@@ -642,10 +668,64 @@ const WebtoonDetailPage = () => {
           {/* 以묒븰 硫붿씤 - ?먰뵾?뚮뱶 紐⑸줉 */}
           <main className="flex-1 min-w-0">
             <div className="bg-white dark:bg-gray-900 rounded-lg p-4 md:p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-950 dark:text-white">{t('detail.allEpisodes')}</h2>
-                <span className="text-gray-500 dark:text-gray-400 text-sm">{t('detail.episodeCount', { count: allEpisodes.length })}</span>
+              <div className="mb-6 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+                <div className="flex gap-1" role="tablist">
+                  {([['episodes', t('detail.allEpisodes')], ['notice', '공지사항']] as const).map(([key, label]) => {
+                    const hasNotice = key === 'notice' && (Boolean(webtoon.statusNotice) || webtoon.status === 'HIATUS' || webtoon.status === 'SUSPENDED');
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={mainTab === key}
+                        onClick={() => setMainTab(key)}
+                        className={`-mb-px border-b-2 px-2 pb-3 text-lg font-bold transition sm:text-xl ${mainTab === key ? 'border-[#00dc64] text-gray-950 dark:text-white' : 'border-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                      >
+                        {label}
+                        {hasNotice && <span className="ml-1 inline-block h-2 w-2 rounded-full bg-red-600 align-top" aria-label="공지 있음" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {mainTab === 'episodes' && <span className="text-gray-500 dark:text-gray-400 text-sm">{t('detail.episodeCount', { count: allEpisodes.length })}</span>}
               </div>
+              {mainTab === 'notice' ? (
+                <div className="space-y-3 text-sm leading-relaxed">
+                  {webtoon.status === 'HIATUS' && (
+                    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+                      <p className="font-black text-amber-800 dark:text-amber-300">현재 휴재 중인 작품이에요.</p>
+                      <p className="mt-1 text-gray-700 dark:text-gray-300">
+                        {webtoon.resumeAt ? `연재 재개 예정일: ${formatKstDate(webtoon.resumeAt)}` : '연재 재개 일정이 정해지면 이곳에 안내해 드릴게요.'}
+                      </p>
+                      <p className="mt-1 text-gray-500 dark:text-gray-400">지금까지 공개된 회차는 그대로 볼 수 있어요. 찜해 두면 새 회차가 올라올 때 알림함으로 알려 드려요.</p>
+                    </div>
+                  )}
+                  {webtoon.status === 'SUSPENDED' && (
+                    <div className="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-500/10">
+                      <p className="font-black text-red-700 dark:text-red-400">판매가 중지된 작품이에요.</p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-5 text-gray-700 dark:text-gray-300">
+                        <li>유료 회차는 새로 대여·소장할 수 없어요.</li>
+                        <li>이미 소장한 회차와 대여 기간이 남은 회차는 계속 볼 수 있어요.</li>
+                        <li>무료 회차는 그대로 볼 수 있어요.</li>
+                      </ul>
+                    </div>
+                  )}
+                  {webtoon.status === 'COMPLETED' && (
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                      <p className="font-black text-gray-900 dark:text-white">완결된 작품이에요.</p>
+                      <p className="mt-1 text-gray-600 dark:text-gray-300">전체 {allEpisodes.length}화를 처음부터 끝까지 감상할 수 있어요.</p>
+                    </div>
+                  )}
+                  {webtoon.statusNotice ? (
+                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                      <p className="mb-1 text-xs font-bold text-gray-500 dark:text-gray-400">작품 공지</p>
+                      <p className="whitespace-pre-line text-gray-800 dark:text-gray-200">{webtoon.statusNotice}</p>
+                    </div>
+                  ) : webtoon.status !== 'HIATUS' && webtoon.status !== 'SUSPENDED' && webtoon.status !== 'COMPLETED' ? (
+                    <p className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-gray-500 dark:border-gray-700 dark:text-gray-400">등록된 공지가 없습니다.</p>
+                  ) : null}
+                </div>
+              ) : (<>
               {promotions.length > 0 && (
                 <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm dark:border-red-500/30 dark:bg-red-500/10">
                   <span className="font-black text-red-600 dark:text-red-400">이벤트 진행 중</span>
@@ -739,6 +819,7 @@ const WebtoonDetailPage = () => {
                   ))}
                 </div>
               )}
+              </>)}
             </div>
 
             {/* 전체 댓글 (모든 회차) */}

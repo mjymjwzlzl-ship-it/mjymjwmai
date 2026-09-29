@@ -322,11 +322,13 @@ app.use('/api/comics', comicsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/frontend', require('./routes/rankings')); // 인기·실시간·유형별 TOP 랭킹
 app.use('/api', require('./routes/promotions')); // 할인·무료 이벤트 작품
+app.use('/api', require('./routes/comic-status')); // 관리자: 연재 상태·공지
 app.use('/api/frontend', frontendRouter);
 app.use('/api/episodes', episodesRouter);
 app.use('/api/payment', paymentRouter);
 app.use('/api/banners', bannersRouter);
 app.use('/api/favorites', favoritesRouter);
+app.use('/api/notifications', require('./routes/notifications')); // 알림함
 app.use('/api/support', supportRouter);
 app.use('/api/email', emailWebhookRouter);
 app.use('/api', commentsRouter); // 댓글 라우트 추가
