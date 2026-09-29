@@ -331,10 +331,10 @@ export default function ReferenceHeader() {
             className={`hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex ${
               pathname?.startsWith('/my/library') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
             }`}
-            aria-label={t('recent.title')}
-            title={t('recent.title')}
+            aria-label={t('common.myLibrary')}
+            title={t('common.myLibrary')}
           >
-            <Clock className="h-5 w-5" />
+            <Library className="h-5 w-5" />
           </Link>
           {sessionUser ? (
             <Link
@@ -585,7 +585,7 @@ export default function ReferenceHeader() {
                       onClick={() => setMenuOpen(false)}
                       className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-300 text-sm font-black text-gray-700 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:text-gray-200"
                     >
-                      <Clock className="h-4 w-4" />
+                      <Library className="h-4 w-4" />
                       {t('common.myLibrary')}
                     </Link>
                     <Link

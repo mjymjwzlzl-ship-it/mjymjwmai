@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, ChevronRight, Clock, Coins, Heart, LogOut, Settings, ShieldCheck, User } from 'lucide-react';
+import { ChevronRight, Clock, Coins, Heart, Library, LogOut, Settings, ShieldCheck, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAdultModeStore } from '@/store/adultMode';
 
@@ -144,7 +144,7 @@ export default function ProfilePage() {
         </section>
 
         <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#1b1b1b]">
-          <MenuRow href="/my/library" icon={<BookOpen className="h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />} label="내 서재" />
+          <MenuRow href="/my/library" icon={<Library className="h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />} label="내 서재" />
           <MenuRow href="/coin" icon={<Coins className="h-5 w-5 text-yellow-500" />} label="코인 충전" />
           <MenuRow href="/settings" icon={<Settings className="h-5 w-5 text-gray-500" />} label="계정 설정" />
           <button

@@ -767,9 +767,9 @@ export default function EpisodePage() {
               
               {/* 작품 평점 및 댓글 */}
               <div className="max-w-2xl mx-auto px-4 pb-20">
-                {/* 작품 평점: 작품 소개의 평점과 같은 기록 (여기서 매겨도 작품 전체 평점에 반영) */}
+                {/* 회차 평점: 회차마다 따로 저장. 작품 상세의 평점은 모든 회차 평점의 평균 */}
                 <div className="mb-4">
-                  <RatingSection comicId={params.id} title="이 작품 어떠셨나요?" />
+                  <RatingSection episodeId={params.episodeId} title="이 회차 어떠셨나요?" />
                 </div>
                 {/* 추천 작품: 작품 상세의 '비슷한 인기 작품'과 같은 기준. 최종화면 같은 장르 인기작도 함께 */}
                 <div className="mb-4">

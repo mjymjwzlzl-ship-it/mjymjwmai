@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { goBackOr } from '@/lib/nav-history';
 import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy } from 'lucide-react';
 import CheerModal from '@/components/ui/CheerModal';
-import RatingSection from '@/components/ui/RatingSection';
 import ComicCommentsSection from '@/components/ui/ComicCommentsSection';
 import { REASON_LABEL } from '@/components/ui/SimilarWorksRail';
 import { getImageUrl } from '@/lib/config';
@@ -616,13 +615,6 @@ const WebtoonDetailPage = () => {
                   </p>
                 </div>
 
-                {/* 작품 평점 (작품 단위, 회차 끝 별점 대체) */}
-                <RatingSection
-                  comicId={params.id}
-                  onRated={({ averageRating }) =>
-                    setWebtoon((prev) => (prev ? { ...prev, rating: Math.round(averageRating * 10) / 10 } : prev))
-                  }
-                />
 
                 {/* ?묓뭹 ?뚭컻 */}
                 {displayDescription && (

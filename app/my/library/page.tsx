@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BookOpen, Clock, Heart, Play } from 'lucide-react';
+import { Clock, Heart, Library, Play } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { useLoginModalStore } from '@/store/loginModal';
@@ -125,7 +125,7 @@ function LibraryContent() {
         <div className="mb-5 flex items-end justify-between gap-3">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-black">
-              <BookOpen className="h-6 w-6 text-[#00a84c] dark:text-[#00dc64]" />
+              <Library className="h-6 w-6 text-[#00a84c] dark:text-[#00dc64]" />
               내 서재
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">보던 작품을 이어 보고, 찜한 작품을 모아 봅니다.</p>

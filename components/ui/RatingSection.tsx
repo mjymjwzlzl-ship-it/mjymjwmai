@@ -142,13 +142,13 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRat
     )
   }
 
-  // 작품 평점: 좁은 사이드 칸에서도 깨지지 않도록 위아래로 쌓는 간단한 배치
-  if (isComic) {
+  // 간결한 세로 배치 (작품 평점, 또는 제목을 준 회차 평점)
+  if (isComic || title) {
     const shown = hoverRating || rating
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="whitespace-nowrap text-sm font-black text-gray-950 dark:text-white">{title || '작품 평점'}</h3>
+          <h3 className="whitespace-nowrap text-sm font-black text-gray-950 dark:text-white">{title || (isComic ? '작품 평점' : '회차 평점')}</h3>
           <span className="whitespace-nowrap text-xs font-bold text-gray-400">{totalRatings.toLocaleString()}명 참여</span>
         </div>
         <div className="mt-2 flex items-center gap-2">
@@ -157,7 +157,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRat
         </div>
         <div className="mt-3 border-t border-gray-100 pt-3 dark:border-white/10">
           <p className="whitespace-nowrap text-xs font-bold text-gray-500 dark:text-gray-400">
-            {hasRated ? '내 평점' : '이 작품을 평가해주세요'}
+            {hasRated ? '내 평점' : isComic ? '이 작품을 평가해주세요' : '이 회차를 평가해주세요'}
             {shown > 0 && <span className="ml-1.5 text-yellow-500">{shown}.0</span>}
           </p>
           <div className="mt-1 -ml-1">{renderStars(rating, isLoggedIn, 'w-6 h-6')}</div>

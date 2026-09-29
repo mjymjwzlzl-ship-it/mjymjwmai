@@ -830,9 +830,9 @@ router.get('/comics/:id', async (req, res) => {
     const episodeAverageRating = episodesWithRating.length > 0
       ? episodesWithRating.reduce((sum, ep) => sum + ep.rating, 0) / episodesWithRating.length / 2
       : 0;
-    // 작품 평점이 있으면 우선 사용, 없으면 기존 회차 평균으로 대체
-    const comicRatingAgg = await prisma.comicRating.aggregate({
-      where: { comicId: comic.id },
+    // 작품 평점 = 모든 회차에서 받은 평점 전체의 평균 (10점 → 5점)
+    const comicRatingAgg = await prisma.rating.aggregate({
+      where: { episode: { comicId: comic.id } },
       _avg: { score: true },
       _count: { _all: true }
     });
@@ -1573,12 +1573,19 @@ router.get('/comics/:id/similar', async (req, res) => {
       },
       include: { _count: { select: { episodes: true } } },
     });
-    const ratingAgg = await prisma.comicRating.groupBy({
-      by: ['comicId'],
-      where: { comicId: { in: candidates.map((comic) => comic.id) } },
-      _avg: { score: true },
+    // 작품 평점 = 회차 평점 전체 평균
+    const ratingRows = await prisma.rating.findMany({
+      where: { episode: { comicId: { in: candidates.map((comic) => comic.id) } } },
+      select: { score: true, episode: { select: { comicId: true } } },
     });
-    const ratingMap = new Map(ratingAgg.map((row) => [row.comicId, row._avg.score || 0]));
+    const ratingSums = new Map();
+    for (const row of ratingRows) {
+      const entry = ratingSums.get(row.episode.comicId) || { sum: 0, count: 0 };
+      entry.sum += row.score;
+      entry.count += 1;
+      ratingSums.set(row.episode.comicId, entry);
+    }
+    const ratingMap = new Map([...ratingSums].map(([comicId, entry]) => [comicId, entry.sum / entry.count]));
     const currentGenres = normalizeGenres(current.genre);
     const currentAuthor = authorKey(current.authorName);
 
