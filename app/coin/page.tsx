@@ -261,22 +261,22 @@ export default function CoinChargePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#141414] pb-8 px-3 sm:px-6 md:px-8 lg:px-12">
+    <div className="min-h-screen bg-[#141414] pb-8 pt-6 px-3 sm:px-6 md:px-8 lg:px-12">
       <div className="max-w-6xl mx-auto">
         {/* 헤더 */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">코인 충전</h1>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-gray-400">웹툰을 감상하기 위한 코인을 충전하세요</p>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <button
                 onClick={() => router.push('/coin/history')}
-                className="px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                className="shrink-0 whitespace-nowrap px-4 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
               >
                 <span>📜</span>
                 <span className="text-sm text-white">사용 내역</span>
               </button>
-              <div className="bg-gray-800 px-4 py-2 rounded-lg border border-[#3E7A5A]">
+              <div className="whitespace-nowrap bg-gray-800 px-4 py-2 rounded-lg border border-[#3E7A5A]">
                 <span className="text-sm text-gray-400">보유 코인</span>
                 <span className="ml-2 text-xl font-bold text-[#3E7A5A]">
                   {userCoins.toLocaleString()} 코인

@@ -164,13 +164,13 @@ export default function NovelPage() {
             ))}
           </div>
 
-          <div className="flex justify-center gap-2 p-7">
-            {[1, 2, 3].map((page) => (
-              <button key={page} className={`h-11 w-11 rounded-md text-sm font-black ${page === 1 ? 'border border-[#00dc64] text-[#00a84c]' : 'border border-gray-200 text-gray-500'}`}>
-                {page}
-              </button>
-            ))}
-          </div>
+          {/* 동작하지 않던 1·2·3 페이지 버튼 대신, 작품이 없을 때 안내 */}
+          {visibleNovels.length === 0 && (
+            <div className="px-6 py-16 text-center">
+              <p className="font-bold text-gray-600 dark:text-gray-300">아직 공개된 웹소설이 없습니다.</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">연재가 시작되면 이곳에서 볼 수 있어요.</p>
+            </div>
+          )}
         </section>
       </div>
     </div>
