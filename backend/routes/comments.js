@@ -124,14 +124,16 @@ router.post('/episodes/:episodeId/comments', authenticate, async (req, res) => {
       id: comment.id.toString(),
       content: comment.content,
       author: comment.user.nickname || comment.user.email.split('@')[0],
+      authorId: comment.user.id,
       authorAvatar: null,
       createdAt: comment.createdAt.toISOString(),
       likes: 0,
       isLiked: false,
+      isMyComment: true,
       replies: []
     };
 
-    res.json({ comment: formattedComment });
+    res.json({ success: true, comment: formattedComment });
   } catch (error) {
     console.error('댓글 작성 오류:', error);
     res.status(500).json({ error: '댓글을 작성할 수 없습니다' });
@@ -139,50 +141,80 @@ router.post('/episodes/:episodeId/comments', authenticate, async (req, res) => {
 });
 
 // 댓글 좋아요
-router.post('/episodes/comments/:commentId/like', authenticate, async (req, res) => {
+// 댓글 좋아요 토글. 화면은 /api/comments/:id/like 를 부른다(옛 경로도 유지).
+// 본인 댓글에는 좋아요 불가 — 베스트 댓글이 좋아요 순이라 자기 추천을 막는다.
+async function toggleCommentLike(req, res) {
   try {
     const { commentId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.id || req.user.userId;
 
-    // 이미 좋아요를 눌렀는지 확인
-    const existingLike = await prisma.commentLike.findUnique({
-      where: {
-        userId_commentId: {
-          userId,
-          commentId: commentId
-        }
-      }
-    });
-
-    if (existingLike) {
-      // 좋아요 취소
-      await prisma.commentLike.delete({
-        where: { id: existingLike.id }
-      });
-      
-      const count = await prisma.commentLike.count({
-        where: { commentId: commentId }
-      });
-      
-      res.json({ liked: false, likes: count });
-    } else {
-      // 좋아요 추가
-      await prisma.commentLike.create({
-        data: {
-          userId,
-          commentId: commentId
-        }
-      });
-      
-      const count = await prisma.commentLike.count({
-        where: { commentId: commentId }
-      });
-      
-      res.json({ liked: true, likes: count });
+    const comment = await prisma.comment.findUnique({ where: { id: commentId }, select: { userId: true } });
+    if (!comment) {
+      return res.status(404).json({ error: '댓글을 찾을 수 없습니다' });
     }
+    if (comment.userId === userId) {
+      return res.status(400).json({ error: '내 댓글에는 좋아요를 누를 수 없습니다', code: 'OWN_COMMENT' });
+    }
+
+    const existingLike = await prisma.commentLike.findUnique({
+      where: { userId_commentId: { userId, commentId } }
+    });
+    if (existingLike) {
+      await prisma.commentLike.delete({ where: { id: existingLike.id } });
+    } else {
+      await prisma.commentLike.create({ data: { userId, commentId } });
+    }
+    const count = await prisma.commentLike.count({ where: { commentId } });
+    await prisma.comment.update({ where: { id: commentId }, data: { likes: count } });
+    res.json({ success: true, liked: !existingLike, likes: count });
   } catch (error) {
     console.error('댓글 좋아요 오류:', error);
     res.status(500).json({ error: '좋아요 처리 중 오류가 발생했습니다' });
+  }
+}
+router.post('/comments/:commentId/like', authenticate, toggleCommentLike);
+router.post('/episodes/comments/:commentId/like', authenticate, toggleCommentLike);
+
+// 작품 전체 댓글 (모든 회차의 최상위 댓글을 모아서). sort=best(좋아요순)|latest
+router.get('/comic-comments/:comicId', async (req, res) => {
+  try {
+    const { comicId } = req.params;
+    const sort = req.query.sort === 'latest' ? 'latest' : 'best';
+    const take = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
+    const skip = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+    const where = { parentId: null, episode: { comicId } };
+
+    const [total, comments] = await Promise.all([
+      prisma.comment.count({ where }),
+      prisma.comment.findMany({
+        where,
+        include: {
+          user: { select: { id: true, nickname: true, email: true } },
+          episode: { select: { id: true, episodeNumber: true } },
+          _count: { select: { commentLikes: true, replies: true } }
+        },
+        orderBy: sort === 'best' ? [{ likes: 'desc' }, { createdAt: 'desc' }] : [{ createdAt: 'desc' }],
+        skip,
+        take
+      })
+    ]);
+
+    res.json({
+      total,
+      comments: comments.map((comment) => ({
+        id: comment.id,
+        content: comment.content,
+        author: comment.user.nickname || comment.user.email.split('@')[0],
+        createdAt: comment.createdAt.toISOString(),
+        likes: comment._count.commentLikes,
+        replyCount: comment._count.replies,
+        episodeId: comment.episode?.id || null,
+        episodeNumber: comment.episode?.episodeNumber ?? null
+      }))
+    });
+  } catch (error) {
+    console.error('작품 전체 댓글 조회 오류:', error);
+    res.status(500).json({ error: '댓글을 불러올 수 없습니다' });
   }
 });
 

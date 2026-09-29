@@ -6,6 +6,7 @@ import { goBackOr } from '@/lib/nav-history';
 import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy } from 'lucide-react';
 import CheerModal from '@/components/ui/CheerModal';
 import RatingSection from '@/components/ui/RatingSection';
+import ComicCommentsSection from '@/components/ui/ComicCommentsSection';
 import { getImageUrl } from '@/lib/config';
 import { api } from '@/lib/api';
 import dynamic from 'next/dynamic';
@@ -691,6 +692,11 @@ const WebtoonDetailPage = () => {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* 전체 댓글 (모든 회차) */}
+            <div className="mt-6">
+              <ComicCommentsSection comicId={String(params.id)} />
             </div>
           </main>
 

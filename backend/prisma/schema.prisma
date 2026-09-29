@@ -191,9 +191,6 @@ model Comment {
   // 좋아요 관계
   commentLikes CommentLike[]
   reports      Report[]      // 신고 관계 추가
-  
-  // 평점 연결 (베스트 댓글용)
-  rating       Rating?  @relation(fields: [userId, episodeId], references: [userId, episodeId])
 
   @@map("comments")
 }
@@ -433,7 +430,6 @@ model Rating {
   user      User     @relation(fields: [userId], references: [id])
   episodeId String
   episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  comments  Comment[] // 이 평점과 연결된 댓글들
 
   // 유저별 에피소드당 하나의 평점만 가능
   @@unique([userId, episodeId])

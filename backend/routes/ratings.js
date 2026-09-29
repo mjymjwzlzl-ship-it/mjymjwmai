@@ -205,54 +205,24 @@ router.delete('/episodes/:episodeId/rating', authenticateToken, async (req, res)
   }
 });
 
-// GET: 베스트 댓글 (평점 높은 사용자의 댓글)
+// GET: 베스트 댓글 (좋아요 많은 순 상위 3개)
 router.get('/episodes/:episodeId/best-comments', async (req, res) => {
   try {
     const { episodeId } = req.params;
-
-    // 평점 높은 사용자의 댓글 가져오기
     const bestComments = await prisma.comment.findMany({
-      where: { 
-        episodeId,
-        rating: {
-          score: {
-            gte: 8 // 8점 이상 평점을 준 사용자의 댓글
-          }
-        }
-      },
-      include: {
-        user: {
-          select: {
-            username: true,
-            nickname: true,
-            avatar: true
-          }
-        },
-        rating: {
-          select: {
-            score: true
-          }
-        }
-      },
-      orderBy: [
-        { likes: 'desc' },
-        { createdAt: 'desc' }
-      ],
+      where: { episodeId, parentId: null },
+      include: { user: { select: { username: true, nickname: true, avatar: true } } },
+      orderBy: [{ likes: 'desc' }, { createdAt: 'desc' }],
       take: 3
     });
-
-    const formattedComments = bestComments.map(comment => ({
+    res.json(bestComments.map(comment => ({
       id: comment.id,
       content: comment.content,
       author: comment.user.nickname || comment.user.username,
       authorAvatar: comment.user.avatar,
-      rating: comment.rating?.score || 0,
       likes: comment.likes,
       createdAt: comment.createdAt
-    }));
-
-    res.json(formattedComments);
-
+    })));
   } catch (error) {
     console.error('베스트 댓글 조회 오류:', error);
     res.status(500).json({ message: '베스트 댓글 조회 중 오류가 발생했습니다.' });
