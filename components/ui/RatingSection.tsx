@@ -107,11 +107,11 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRat
     }
   }
 
-  const renderStars = (value: number, isInteractive: boolean = false) => {
+  const renderStars = (value: number, isInteractive: boolean = false, size: string = 'w-7 h-7') => {
     const displayValue = isInteractive && hoverRating > 0 ? hoverRating : value
     
     return (
-      <div className="flex items-center gap-0">
+      <div className="flex shrink-0 items-center gap-0">
         {[1, 2, 3, 4, 5].map((i) => (
           <button
             key={i}
@@ -127,7 +127,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRat
             onClick={isInteractive && !isSubmitting ? () => submitRating(i) : undefined}
           >
             <Star
-              className={`w-7 h-7 ${
+              className={`${size} ${
                 displayValue >= i 
                   ? 'text-yellow-400 fill-yellow-400' 
                   : 'text-gray-400 fill-transparent dark:text-gray-500'
@@ -136,6 +136,43 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRat
             />
           </button>
         ))}
+      </div>
+    )
+  }
+
+  // 작품 평점: 좁은 사이드 칸에서도 깨지지 않도록 위아래로 쌓는 간단한 배치
+  if (isComic) {
+    const shown = hoverRating || rating
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="whitespace-nowrap text-sm font-black text-gray-950 dark:text-white">작품 평점</h3>
+          <span className="whitespace-nowrap text-xs font-bold text-gray-400">{totalRatings.toLocaleString()}명 참여</span>
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <span className="text-2xl font-black leading-none text-gray-950 dark:text-white">{averageRating.toFixed(1)}</span>
+          {renderStars(Math.round(averageRating), false, 'w-4 h-4')}
+        </div>
+        <div className="mt-3 border-t border-gray-100 pt-3 dark:border-white/10">
+          <p className="whitespace-nowrap text-xs font-bold text-gray-500 dark:text-gray-400">
+            {hasRated ? '내 평점' : '이 작품을 평가해주세요'}
+            {shown > 0 && <span className="ml-1.5 text-yellow-500">{shown}.0</span>}
+          </p>
+          <div className="mt-1 -ml-1">{renderStars(rating, isLoggedIn, 'w-6 h-6')}</div>
+          {!isLoggedIn && (
+            <button
+              type="button"
+              onClick={() => (window.location.href = '/login')}
+              className="mt-2 text-xs font-bold text-[#00a84c] hover:underline dark:text-[#00dc64]"
+            >
+              로그인하고 평점 남기기
+            </button>
+          )}
+          {hasRated && !isSubmitting && (
+            <p className="mt-1.5 text-[11px] text-gray-400">별을 다시 누르면 평점을 바꿀 수 있어요.</p>
+          )}
+          {isSubmitting && <p className="mt-1.5 text-[11px] text-gray-400">평점을 저장하는 중...</p>}
+        </div>
       </div>
     )
   }
