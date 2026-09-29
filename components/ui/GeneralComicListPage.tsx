@@ -609,6 +609,11 @@ export default function GeneralComicListPage({
                     <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white">
                       <Heart className="h-4 w-4" />
                     </span>
+                    {(comic.status === 'HIATUS' || comic.status === 'SUSPENDED') && (
+                      <span className={`absolute bottom-2 left-2 rounded px-1.5 py-0.5 text-[11px] font-black ${comic.status === 'SUSPENDED' ? 'bg-red-600 text-white' : 'bg-amber-400 text-black'}`}>
+                        {comic.status === 'SUSPENDED' ? '판매중지' : '휴재'}
+                      </span>
+                    )}
                   </div>
 
                   <div className={viewMode === 'grid' ? 'min-w-0 p-2 sm:p-3' : 'min-w-0 flex-1 py-0.5'}>

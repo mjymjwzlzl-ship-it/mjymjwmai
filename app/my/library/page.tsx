@@ -26,6 +26,7 @@ interface LibraryItem {
   /** 탭 기준 시각: 열람=마지막으로 본 시각, 찜=찜한 시각, 구매=마지막 구매 시각 */
   at?: string;
   updatedAt?: string;
+  status?: string;
   contentType: Exclude<ContentType, 'all'>;
 }
 
@@ -110,6 +111,7 @@ function fromServer(item: any, at: string | undefined): LibraryItem {
     author: item.comic?.authorName,
     totalEpisodes: item.totalEpisodes ?? item.comic?._count?.episodes,
     updatedAt: item.lastUpdatedAt,
+    status: item.comic?.status,
     at,
     contentType: contentTypeOf(comicId),
   };
@@ -304,6 +306,11 @@ function LibraryContent() {
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                       />
                     ) : null}
+                    {(item.status === 'HIATUS' || item.status === 'SUSPENDED') && (
+                      <span className={`absolute bottom-2 left-1.5 rounded px-1.5 py-0.5 text-[10px] font-black ${item.status === 'SUSPENDED' ? 'bg-red-600 text-white' : 'bg-amber-400 text-black'}`}>
+                        {item.status === 'SUSPENDED' ? '판매중지' : '휴재'}
+                      </span>
+                    )}
                     {item.contentType === 'book' && (
                       <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">단행본</span>
                     )}

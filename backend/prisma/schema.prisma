@@ -785,3 +785,18 @@ model NotificationPreference {
 
   @@map("notification_preferences")
 }
+
+// 작품 공지 (작품 상세 [작품 공지] 탭). type: HIATUS(휴재 안내) | RESUME(연재 재개) | SCHEDULE(업로드 일정 변경) | SUSPENDED(판매중지 안내) | GENERAL(공지)
+model ComicNotice {
+  id        String   @id @default(cuid())
+  comicId   String
+  type      String   @default("GENERAL")
+  title     String
+  content   String
+  isPinned  Boolean  @default(false) // [중요] 상단 고정
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([comicId, isPinned, createdAt])
+  @@map("comic_notices")
+}

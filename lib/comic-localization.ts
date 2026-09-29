@@ -345,6 +345,7 @@ const statusByKey: Record<string, Record<SupportedLocale, string>> = {
   ONGOING: { ko: '연재중', en: 'Ongoing', ja: '連載中', fr: 'En cours' },
   COMPLETED: { ko: '완결', en: 'Completed', ja: '完結', fr: 'Terminé' },
   HIATUS: { ko: '휴재', en: 'On hiatus', ja: '休載', fr: 'En pause' },
+  SUSPENDED: { ko: '판매중지', en: 'Sales suspended', ja: '販売停止', fr: 'Vente suspendue' },
 };
 
 const getLocale = (locale: string): SupportedLocale => {

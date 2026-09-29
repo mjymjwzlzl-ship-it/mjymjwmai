@@ -979,7 +979,8 @@ router.get('/comics/:id/episodes', async (req, res) => {
         paidStartEpisode: true,
         episodeCoinPrice: true,
         rentalCoinPrice: true,
-        rentalDays: true
+        rentalDays: true,
+        status: true
       }
     });
     // 회차 구매창과 같은 가격 규칙 (목록에 '대여 N코인 · 소장 N코인' 으로 표기)
@@ -1027,6 +1028,8 @@ router.get('/comics/:id/episodes', async (req, res) => {
         originalOwnPrice: isFree ? undefined : prices.originalOwnPrice,
         originalRentPrice: isFree || !prices.rentalEnabled ? undefined : prices.originalRentPrice,
         promoFree: isFree && !(comicSettings.paidStartEpisode === 0 || ep.episodeNumber < comicSettings.paidStartEpisode),
+        // 판매중지 작품의 유료 회차: 새 구매 불가 (이미 산 회차는 화면에서 소장/대여 중으로 표시)
+        saleEnded: !isFree && comicSettings.status === 'SUSPENDED',
         isLocked: false,
         voiceVideoUrl: voiceVideoUrl // voice.mp4 URL 추가
       };
