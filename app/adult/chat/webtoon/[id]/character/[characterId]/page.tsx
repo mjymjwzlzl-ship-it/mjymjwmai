@@ -448,7 +448,7 @@ export default function AdultChatPage() {
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
       {/* 헤더 */}
-      <div className="bg-[#1c1c1c] border-b border-gray-800 fixed top-0 left-0 right-0 z-40">
+      <div className="bg-[#1c1c1c] border-b border-gray-800 fixed left-0 right-0 top-[calc(96px+env(safe-area-inset-top,0px))] z-40 md:top-[calc(104px+env(safe-area-inset-top,0px))]">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <button
@@ -484,7 +484,7 @@ export default function AdultChatPage() {
       </div>
 
       {/* 메시지 영역 - ChatGPT 스타일 중앙 정렬 */}
-      <div className="flex-1 overflow-y-auto pb-6 pt-20 space-y-4">
+      <div className="flex-1 overflow-y-auto pb-6 pt-[calc(176px+env(safe-area-inset-top,0px))] md:pt-[calc(184px+env(safe-area-inset-top,0px))] space-y-4">
         <div className="w-full md:max-w-3xl md:mx-auto px-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6">

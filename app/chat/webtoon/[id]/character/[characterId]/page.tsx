@@ -310,7 +310,7 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-950 dark:bg-gray-950 dark:text-white">
-      <div className="fixed top-0 left-0 right-0 z-40 border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+      <div className="fixed left-0 right-0 top-[calc(96px+env(safe-area-inset-top,0px))] z-40 md:top-[calc(104px+env(safe-area-inset-top,0px))] border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3 min-w-0">
             <button
@@ -346,7 +346,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-6 pt-20">
+      <div className="flex-1 overflow-y-auto pb-6 pt-[calc(176px+env(safe-area-inset-top,0px))] md:pt-[calc(184px+env(safe-area-inset-top,0px))]">
         <div className="w-full md:max-w-3xl md:mx-auto px-4 space-y-4">
           {messages.map((msg) => (
             <div
