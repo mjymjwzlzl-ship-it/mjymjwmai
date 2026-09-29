@@ -61,6 +61,8 @@ export default function ChatPage() {
   const [webtoon, setWebtoon] = useState<WebtoonInfo | null>(null);
   const [userProgress, setUserProgress] = useState(1);
   const [dailyCount, setDailyCount] = useState({ remaining: 20 });
+  // 무료 20회를 다 쓴 뒤 사용자가 '코인으로 계속'을 고르면 이후 메시지마다 코인 1개 사용
+  const [useCoin, setUseCoin] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -193,7 +195,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev.filter((msg) => msg.role !== 'notice'), { id: newId(), role: 'notice', content, timestamp: new Date(), ...extra }]);
   };
 
-  const sendText = async (userInput: string, existingId?: string) => {
+  const sendText = async (userInput: string, existingId?: string, withCoin: boolean = useCoin) => {
     if (!userInput || loading || !character || !webtoonId || !characterId) return;
     const token = authToken();
     if (!token) {
@@ -213,13 +215,13 @@ export default function ChatPage() {
       const response = await fetch(`${apiUrl}/chat/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ webtoonId, characterId, message: userInput, userProgress }),
+        body: JSON.stringify({ webtoonId, characterId, message: userInput, userProgress, useCoin: withCoin }),
       });
       if (!response.ok || !response.body) {
         const data = await response.json().catch(() => ({}));
         setMessages((prev) => prev.map((msg) => (msg.id === userMsgId ? { ...msg, failed: true } : msg)));
         if (response.status === 401) pushNotice('로그인이 만료됐어요. 다시 로그인해 주세요.', { action: 'login' });
-        else if (response.status === 402) pushNotice(data.message || '오늘 무료 대화를 모두 사용했어요.', { action: 'coin' });
+        else if (response.status === 402) pushNotice(data.message || '오늘 무료 대화를 모두 사용했어요.', { action: 'coin', retryText: userInput, id: `notice-${userMsgId}` });
         else pushNotice(data.message || '캐릭터가 잠시 응답하지 못했어요.', { action: 'retry', retryText: userInput, id: `notice-${userMsgId}` });
         return;
       }
@@ -356,7 +358,23 @@ export default function ChatPage() {
                   <button type="button" onClick={() => openLogin(true)} className="rounded-full bg-arata-green px-4 py-1.5 text-xs font-black text-black">로그인</button>
                 )}
                 {msg.action === 'coin' && (
-                  <button type="button" onClick={() => router.push('/coin')} className="rounded-full bg-arata-green px-4 py-1.5 text-xs font-black text-black">코인 충전</button>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {msg.retryText && (
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setUseCoin(true);
+                          const failedId = msg.id.startsWith('notice-') ? msg.id.slice(7) : undefined;
+                          void sendText(msg.retryText as string, failedId, true);
+                        }}
+                        className="rounded-full bg-arata-green px-4 py-1.5 text-xs font-black text-black disabled:opacity-60"
+                      >
+                        코인 1개로 계속 대화
+                      </button>
+                    )}
+                    <button type="button" onClick={() => router.push('/coin')} className="rounded-full border border-gray-400 px-4 py-1.5 text-xs font-bold text-gray-700 dark:border-gray-500 dark:text-gray-200">코인 충전</button>
+                  </div>
                 )}
               </div>
             </div>
@@ -474,7 +492,7 @@ export default function ChatPage() {
           </div>
           <div className="flex items-center justify-between text-xs mt-2 px-1 font-medium text-gray-600 dark:text-gray-300">
             <p>독자 진행: {userProgress}화까지 반영</p>
-            <p>오늘 무료: {dailyCount.remaining}/20회</p>
+            <p>{useCoin && dailyCount.remaining <= 0 ? '코인 사용 중 (메시지당 1코인)' : `오늘 무료: ${dailyCount.remaining}/20회`}</p>
           </div>
         </div>
       </div>

@@ -109,6 +109,8 @@ model Comic {
   // 결제 관련 설정
   paidStartEpisode  Int    @default(1)  // 몇 화부터 유료인지 (1이면 전체 무료, 2면 2화부터 유료)
   episodeCoinPrice  Int    @default(3)  // 에피소드당 코인 가격
+  rentalCoinPrice   Int?          // 대여 가격 (비우면 소장가-1, 최소 1)
+  rentalDays        Int    @default(3) // 대여 기간(일)
 
   // 연재 요일 (mon, tue, wed, thu, fri, sat, sun)
   updateDays        String?  // JSON array로 저장 ["mon", "thu"] 형태
@@ -383,6 +385,8 @@ model Payment {
 model Purchase {
   id        String   @id @default(cuid())
   coinPrice Int      // 구매 시 사용한 코인 수량
+  type      String   @default("OWN") // OWN(소장) | RENT(대여)
+  expiresAt DateTime? // 대여 만료 시각 (소장은 null)
   createdAt DateTime @default(now())
 
   // 관계

@@ -3,6 +3,7 @@ const { prisma } = require('../lib/prisma');
 const { optionalAuth } = require('../middleware/auth');
 const { episodeContent } = require('./episode-policy');
 const { rejectAdultRequest } = require('./adult-access');
+const { isActivePurchase } = require('./purchase-access');
 
 async function checkContentAccess({ userId, content, adultVerified }) {
   if (content.comic?.isPublished === false) return { allowed: false, reason: 'NOT_AVAILABLE' };
@@ -10,7 +11,9 @@ async function checkContentAccess({ userId, content, adultVerified }) {
   if (content.isFree) return { allowed: true, reason: 'FREE' };
   if (!userId) return { allowed: false, reason: 'LOGIN_REQUIRED' };
   const purchase = await prisma.purchase.findUnique({ where: { userId_episodeId: { userId, episodeId: content.id } } });
-  return { allowed: !!purchase, reason: purchase ? 'PURCHASED' : 'PAYWALL' };
+  // 만료된 대여는 구매하지 않은 것으로 본다
+  const active = isActivePurchase(purchase);
+  return { allowed: active, reason: active ? 'PURCHASED' : (purchase ? 'RENTAL_EXPIRED' : 'PAYWALL') };
 }
 
 function guardEpisode({ purchasing = false } = {}) {

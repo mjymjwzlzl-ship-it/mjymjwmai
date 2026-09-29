@@ -1,17 +1,25 @@
 'use client'
 
-import React, { useState } from 'react';
-import { X, Coins, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Coins, AlertCircle, Clock, BookmarkCheck } from 'lucide-react';
+
+export type PurchaseMode = 'RENT' | 'OWN';
 
 interface CoinPurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (mode: PurchaseMode) => void | Promise<void>;
   episodeTitle: string;
   episodeNumber: number;
+  /** 소장 가격 (예전 호출과 호환: coinPrice 만 주면 소장만 표시) */
   coinPrice: number;
   userCoinBalance: number;
   webtoonTitle: string;
+  rentPrice?: number;
+  rentalDays?: number;
+  rentalEnabled?: boolean;
+  /** 이미 대여 중이면 소장 전환만 */
+  currentlyRented?: boolean;
 }
 
 export default function CoinPurchaseModal({
@@ -22,143 +30,118 @@ export default function CoinPurchaseModal({
   episodeNumber,
   coinPrice,
   userCoinBalance,
-  webtoonTitle
+  webtoonTitle,
+  rentPrice,
+  rentalDays = 3,
+  rentalEnabled = false,
+  currentlyRented = false,
 }: CoinPurchaseModalProps) {
+  const canRent = rentalEnabled && typeof rentPrice === 'number' && rentPrice > 0 && !currentlyRented;
+  const [mode, setMode] = useState<PurchaseMode>(canRent ? 'RENT' : 'OWN');
   const [isProcessing, setIsProcessing] = useState(false);
-  const hasEnoughCoins = userCoinBalance >= coinPrice;
+
+  useEffect(() => {
+    if (isOpen) setMode(canRent ? 'RENT' : 'OWN');
+  }, [isOpen, canRent]);
+
+  if (!isOpen) return null;
+
+  const price = mode === 'RENT' && canRent ? (rentPrice as number) : coinPrice;
+  const hasEnoughCoins = userCoinBalance >= price;
 
   const handleConfirm = async () => {
-    if (!hasEnoughCoins) return;
-    
+    if (!hasEnoughCoins || isProcessing) return;
     setIsProcessing(true);
     try {
-      await onConfirm();
+      await onConfirm(mode);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (!isOpen) return null;
+  const option = (value: PurchaseMode, title: string, sub: string, amount: number, Icon: typeof Clock) => {
+    const selected = mode === value;
+    const affordable = userCoinBalance >= amount;
+    return (
+      <button
+        type="button"
+        onClick={() => setMode(value)}
+        aria-pressed={selected}
+        className={`flex w-full items-center justify-between rounded-xl border-2 px-4 py-3 text-left transition ${
+          selected ? 'border-[#00dc64] bg-[#00dc64]/10' : 'border-gray-700 hover:border-gray-500'
+        }`}
+      >
+        <span className="flex items-center gap-3">
+          <Icon className={`h-5 w-5 ${selected ? 'text-[#00dc64]' : 'text-gray-400'}`} />
+          <span>
+            <span className="block font-bold text-white">{title}</span>
+            <span className="block text-xs text-gray-400">{sub}</span>
+          </span>
+        </span>
+        <span className={`flex items-center gap-1 font-black ${affordable ? 'text-yellow-400' : 'text-red-400'}`}>
+          <Coins className="h-4 w-4" />{amount}
+        </span>
+      </button>
+    );
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* 배경 오버레이 */}
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* 모달 컨텐츠 */}
-      <div className="relative bg-gray-900 rounded-2xl p-6 m-4 max-w-md w-full shadow-xl border border-gray-800">
-        {/* 닫기 버튼 */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
-        >
-          <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-label="회차 구매">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative mx-4 w-full max-w-md rounded-2xl border border-gray-800 bg-gray-900 p-6">
+        <button onClick={onClose} className="absolute right-4 top-4 text-gray-400 transition-colors hover:text-white" aria-label="닫기">
+          <X className="h-6 w-6" />
         </button>
 
-        {/* 아이콘 */}
-        <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center">
-            <Coins className="w-8 h-8 text-yellow-500" />
+        <div className="mb-5 text-center">
+          <p className="text-sm text-gray-400">{webtoonTitle}</p>
+          <h2 className="mt-1 text-xl font-bold text-white">
+            {episodeNumber}화{episodeTitle ? ` · ${episodeTitle}` : ''}
+          </h2>
+          <p className="mt-1 text-sm text-gray-400">{currentlyRented ? '대여 중인 회차를 소장으로 바꿀 수 있어요' : '이 회차는 유료입니다'}</p>
+        </div>
+
+        <div className="space-y-2">
+          {canRent && option('RENT', '대여', `${rentalDays}일 동안 볼 수 있어요`, rentPrice as number, Clock)}
+          {option('OWN', '소장', '기간 제한 없이 계속 볼 수 있어요', coinPrice, BookmarkCheck)}
+        </div>
+
+        <div className="mt-4 space-y-1.5 rounded-lg bg-gray-800 p-3 text-sm">
+          <div className="flex justify-between text-gray-300">
+            <span>보유 코인</span>
+            <span className="font-bold text-white">{userCoinBalance.toLocaleString()}</span>
           </div>
-        </div>
-
-        {/* 제목 */}
-        <h2 className="text-xl font-bold text-white text-center mb-2">
-          에피소드 구매
-        </h2>
-
-        {/* 에피소드 정보 */}
-        <div className="bg-gray-800 rounded-lg p-4 mb-4">
-          <p className="text-gray-300 text-sm mb-1">{webtoonTitle}</p>
-          <p className="text-white font-medium">
-            {episodeNumber}화: {episodeTitle}
-          </p>
-        </div>
-
-        {/* 코인 정보 */}
-        <div className="space-y-3 mb-6">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">필요 코인</span>
-            <span className="text-yellow-500 font-bold flex items-center">
-              <Coins className="w-4 h-4 mr-1" />
-              {coinPrice} 코인
+          <div className="flex justify-between text-gray-300">
+            <span>결제 후 잔액</span>
+            <span className={`font-bold ${hasEnoughCoins ? 'text-[#00dc64]' : 'text-red-400'}`}>
+              {hasEnoughCoins ? (userCoinBalance - price).toLocaleString() : '부족'}
             </span>
           </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400">보유 코인</span>
-            <span className={`font-bold flex items-center ${hasEnoughCoins ? 'text-white' : 'text-red-500'}`}>
-              <Coins className="w-4 h-4 mr-1" />
-              {userCoinBalance.toLocaleString()} 코인
-            </span>
-          </div>
-
-          <div className="border-t border-gray-700 pt-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">구매 후 잔액</span>
-              <span className={`font-bold flex items-center ${hasEnoughCoins ? 'text-green-500' : 'text-red-500'}`}>
-                <Coins className="w-4 h-4 mr-1" />
-                {hasEnoughCoins ? (userCoinBalance - coinPrice).toLocaleString() : '부족'} 코인
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* 경고 메시지 */}
         {!hasEnoughCoins && (
-          <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 mb-4">
-            <div className="flex items-start">
-              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
-              <div>
-                <p className="text-red-400 text-sm font-medium">코인이 부족합니다</p>
-                <p className="text-red-400/80 text-xs mt-1">
-                  {coinPrice - userCoinBalance}코인이 더 필요합니다.
-                </p>
-              </div>
-            </div>
-          </div>
+          <p className="mt-3 flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            코인이 {price - userCoinBalance}개 부족합니다. 충전 후 이용해 주세요.
+          </p>
         )}
 
-        {/* 안내 메시지 */}
-        <p className="text-gray-500 text-xs text-center mb-6">
-          구매한 에피소드는 영구적으로 이용할 수 있습니다
-        </p>
-
-        {/* 버튼 */}
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium py-3 rounded-lg transition-colors"
-            disabled={isProcessing}
-          >
+        <div className="mt-5 flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-lg bg-gray-800 py-3 font-bold text-white transition-colors hover:bg-gray-700">
             취소
           </button>
-          
           {hasEnoughCoins ? (
             <button
               onClick={handleConfirm}
               disabled={isProcessing}
-              className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white font-medium py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 rounded-lg bg-[#00dc64] py-3 font-black text-black transition hover:brightness-95 disabled:opacity-60"
             >
-              {isProcessing ? (
-                <span className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  구매 중...
-                </span>
-              ) : (
-                '구매하기'
-              )}
+              {isProcessing ? '처리 중...' : `${price}코인으로 ${mode === 'RENT' ? '대여' : '소장'}`}
             </button>
           ) : (
             <button
-              onClick={() => {
-                onClose();
-                window.location.href = '/coin';
-              }}
-              className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-medium py-3 rounded-lg transition-all"
+              onClick={() => { window.location.href = '/coin'; }}
+              className="flex-1 rounded-lg bg-yellow-400 py-3 font-black text-black transition hover:brightness-95"
             >
               코인 충전하기
             </button>

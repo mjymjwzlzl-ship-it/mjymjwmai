@@ -1021,8 +1021,9 @@ router.get('/comics/:id/episodes', async (req, res) => {
 
     const formattedEpisodes = episodes.map(ep => {
       // DB의 에피소드별 설정 사용
-      const isFree = ep.isFree !== undefined ? ep.isFree : (comicSettings.paidStartEpisode === 0 || ep.episodeNumber < comicSettings.paidStartEpisode);
-      const coinPrice = ep.coinPrice !== undefined ? ep.coinPrice : (isFree ? 0 : (comicSettings.episodeCoinPrice || 3));
+      // 열람 권한(episode-policy)과 같은 기준: 작품의 '몇 화부터 유료' 설정이 정답
+      const isFree = comicSettings.paidStartEpisode === 0 || ep.episodeNumber < comicSettings.paidStartEpisode;
+      const coinPrice = isFree ? 0 : (comicSettings.episodeCoinPrice || 3);
 
       return {
         id: ep.id,

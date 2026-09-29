@@ -1,4 +1,5 @@
 const { guardEpisode } = require('../services/legacy-episode-access');
+const { isActivePurchase, episodePrices } = require('../services/purchase-access');
 const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const router = express.Router();
@@ -64,6 +65,8 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
             rating: true,
             paidStartEpisode: true,
             episodeCoinPrice: true,
+            rentalCoinPrice: true,
+            rentalDays: true,
             author: {
               select: {
                 nickname: true
@@ -112,6 +115,10 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
       viewCount: episode.viewCount,
       isFree: isEpisodeFree,
       coinPrice: actualCoinPrice,
+      // 대여/소장 가격 (유료 회차에서만 의미 있음)
+      ...(isEpisodeFree ? {} : episodePrices(episode.comic)),
+      purchaseType: null,
+      expiresAt: null,
       canView: false,
       needsPurchase: false,
       needsLogin: false,
@@ -161,12 +168,15 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
           }
         });
         
-        if (purchase) {
-          // 구매한 에피소드
+        if (isActivePurchase(purchase)) {
+          // 구매한 에피소드 (소장, 또는 기간이 남은 대여)
           episodeInfo.canView = true;
           episodeInfo.images = parseImages(episode.images);
           episodeInfo.purchaseDate = purchase.createdAt;
+          episodeInfo.purchaseType = purchase.type || 'OWN';
+          episodeInfo.expiresAt = purchase.expiresAt;
         } else {
+          if (purchase) episodeInfo.rentalExpired = true;
           // 아직 구매하지 않은 에피소드
           episodeInfo.canView = false;
           episodeInfo.needsPurchase = true;
@@ -481,7 +491,9 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
             title: true,
             rating: true,
             paidStartEpisode: true,
-            episodeCoinPrice: true
+            episodeCoinPrice: true,
+            rentalCoinPrice: true,
+            rentalDays: true
           }
         }
       }
@@ -530,168 +542,87 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
       });
     }
 
-    // 이미 구매한 에피소드인지 확인
-    const existingPurchase = await prisma.purchase.findUnique({
-      where: {
-        userId_episodeId: {
-          userId: userId,
-          episodeId: episodeId
-        }
-      }
+    // 유료 회차: 소장(OWN) 또는 대여(RENT)
+    const prices = episodePrices(episode.comic);
+    const mode = String(req.body?.mode || 'OWN').toUpperCase() === 'RENT' && prices.rentalEnabled ? 'RENT' : 'OWN';
+    const price = mode === 'RENT' ? prices.rentPrice : prices.ownPrice;
+    const parseEpisodeImages = () => {
+      if (Array.isArray(episode.images)) return episode.images;
+      try { return JSON.parse(episode.images); } catch { return String(episode.images || '').split(',').map((img) => img.trim()).filter(Boolean); }
+    };
+    const episodePayload = (purchase) => ({
+      id: episode.id,
+      title: episode.title,
+      images: parseEpisodeImages(),
+      purchaseDate: purchase.createdAt,
+      purchaseType: purchase.type || 'OWN',
+      expiresAt: purchase.expiresAt,
     });
 
-    if (existingPurchase) {
-      console.log('이미 구매한 에피소드:', episodeId);
-      
-      // 이미지 파싱 처리
-      let parsedImages = [];
-      try {
-        if (typeof episode.images === 'string') {
-          parsedImages = JSON.parse(episode.images);
-        } else if (Array.isArray(episode.images)) {
-          parsedImages = episode.images;
-        }
-      } catch (e) {
-        if (typeof episode.images === 'string') {
-          parsedImages = episode.images.split(',').map(img => img.trim());
-        }
-      }
-      
+    const existingPurchase = await prisma.purchase.findUnique({ where: { userId_episodeId: { userId, episodeId } } });
+    const active = isActivePurchase(existingPurchase);
+    // 중복 결제 방지: 소장했거나, 대여 중에 또 대여하려는 경우
+    if (active && ((existingPurchase.type || 'OWN') === 'OWN' || mode === 'RENT')) {
       return res.json({
         success: true,
-        message: '이미 구매한 에피소드입니다.',
-        episode: {
-          id: episode.id,
-          title: episode.title,
-          images: parsedImages,
-          purchaseDate: existingPurchase.createdAt
-        }
+        alreadyPurchased: true,
+        message: (existingPurchase.type || 'OWN') === 'OWN' ? '이미 소장한 회차입니다.' : '이미 대여 중인 회차입니다.',
+        episode: episodePayload(existingPurchase),
       });
     }
 
-    // 사용자 정보 및 코인 잔액 확인
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user) {
-      return res.status(404).json({ 
-        success: false,
-        message: '사용자를 찾을 수 없습니다.' 
-      });
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { coinBalance: true, adultVerified: true } });
+    if (!user) return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
+    if (episode.comic.rating === '19' && !user.adultVerified) {
+      return res.status(403).json({ success: false, message: '성인인증이 필요한 콘텐츠입니다.', requiresAdultVerification: true });
     }
 
-    // coinBalance 필드가 없는 경우 0으로 처리 (프로덕션 호환성)
-    const userCoinBalance = user.coinBalance !== undefined ? user.coinBalance : 0;
-
-    if (userCoinBalance < coinPrice) {
-      return res.status(400).json({ 
-        success: false,
-        message: '코인이 부족합니다.',
-        required: coinPrice,
-        current: userCoinBalance,
-        needed: coinPrice - userCoinBalance
-      });
-    }
-
-    // 성인 콘텐츠 확인 (adultVerified 필드가 없는 경우 false로 처리)
-    const isAdultVerified = user.adultVerified !== undefined ? user.adultVerified : false;
-    if (episode.comic.rating === '19' && !isAdultVerified) {
-      return res.status(403).json({ 
-        success: false,
-        message: '성인인증이 필요한 콘텐츠입니다.',
-        requiresAdultVerification: true
-      });
-    }
-
-    console.log(`에피소드 구매 진행: ${episode.title} (${coinPrice}코인)`);
-
-    // 트랜잭션으로 구매 처리
+    const expiresAt = mode === 'RENT' ? new Date(Date.now() + prices.rentalDays * 24 * 60 * 60 * 1000) : null;
     let result;
     try {
       result = await prisma.$transaction(async (tx) => {
-        console.log('트랜잭션 시작 - userId:', userId, ', episodeId:', episodeId, ', coinPrice:', coinPrice);
-        
-        // 1. 사용자 코인 차감
-        const updatedUser = await tx.user.update({
-          where: { id: userId },
-          data: {
-            coinBalance: {
-              decrement: coinPrice
-            }
-          }
-        });
-        console.log('코인 차감 완료 - 남은 코인:', updatedUser.coinBalance);
-
-        // 2. 구매 기록 생성
-        const purchase = await tx.purchase.create({
-          data: {
-            userId: userId,
-            episodeId: episodeId,
-            coinPrice: coinPrice
-          }
-        });
-        console.log('구매 기록 생성 완료:', purchase.id);
-
-        // 3. 코인 거래 내역 생성 (테이블이 있는 경우만)
-        try {
-          await tx.coinTransaction.create({
-            data: {
-              userId: userId,
-              amount: -coinPrice, // 차감이므로 음수
-              balance: updatedUser.coinBalance || 0,
-              type: 'PURCHASE',
-              description: `에피소드 구매: ${episode.title} (${episode.episodeNumber}화)`
-            }
-          });
-          console.log('코인 거래 내역 생성 완료');
-        } catch (txError) {
-          console.warn('coinTransaction 테이블 생성 실패:', txError.message);
-          // 거래 내역 기록 실패는 구매 자체를 막지 않음
+        const fresh = await tx.user.findUnique({ where: { id: userId }, select: { coinBalance: true } });
+        const balance = fresh?.coinBalance || 0;
+        if (balance < price) {
+          const error = new Error('INSUFFICIENT_COINS');
+          error.insufficient = { required: price, current: balance };
+          throw error;
         }
-
-        console.log('트랜잭션 성공 - 구매 완료');
-        return {
-          purchase,
-          newBalance: updatedUser.coinBalance
-        };
+        const updatedUser = await tx.user.update({ where: { id: userId }, data: { coinBalance: { decrement: price } }, select: { coinBalance: true } });
+        // 기록은 회원·회차당 1건: 만료된 대여 재대여, 대여→소장 전환은 기존 기록을 갱신
+        const purchase = await tx.purchase.upsert({
+          where: { userId_episodeId: { userId, episodeId } },
+          create: { userId, episodeId, coinPrice: price, type: mode, expiresAt },
+          update: { coinPrice: price, type: mode, expiresAt, createdAt: new Date() },
+        });
+        await tx.coinTransaction.create({
+          data: {
+            userId,
+            amount: -price,
+            balance: updatedUser.coinBalance || 0,
+            type: 'PURCHASE',
+            description: `에피소드 ${mode === 'RENT' ? `대여(${prices.rentalDays}일)` : '소장'}: ${episode.title} (${episode.episodeNumber}화)`,
+          },
+        });
+        return { purchase, newBalance: updatedUser.coinBalance };
       });
     } catch (transactionError) {
-      console.error('트랜잭션 실패:', transactionError.message);
-      console.error('트랜잭션 에러 상세:', transactionError);
+      if (transactionError.insufficient) {
+        const { required, current } = transactionError.insufficient;
+        return res.status(400).json({ success: false, code: 'INSUFFICIENT_COINS', message: '코인이 부족합니다.', required, current, needed: required - current });
+      }
       throw transactionError;
     }
 
-    console.log(`에피소드 구매 완료: ${episode.title}, 남은 코인: ${result.newBalance}`);
-
-    // 에피소드 내용 반환
-    // 이미지 파싱 처리
-    let parsedImages = [];
-    try {
-      if (typeof episode.images === 'string') {
-        parsedImages = JSON.parse(episode.images);
-      } else if (Array.isArray(episode.images)) {
-        parsedImages = episode.images;
-      }
-    } catch (e) {
-      if (typeof episode.images === 'string') {
-        parsedImages = episode.images.split(',').map(img => img.trim());
-      }
-    }
-    
     res.json({
       success: true,
-      message: `${coinPrice}코인으로 에피소드를 구매했습니다.`,
-      episode: {
-        id: episode.id,
-        title: episode.title,
-        images: parsedImages,
-        coinPrice: coinPrice,
-        purchaseDate: result.purchase.createdAt
-      },
-      coinBalance: result.newBalance
+      mode,
+      message: mode === 'RENT'
+        ? `${price}코인으로 ${prices.rentalDays}일 동안 대여했습니다.`
+        : `${price}코인으로 소장했습니다.`,
+      episode: { ...episodePayload(result.purchase), coinPrice: price },
+      coinBalance: result.newBalance,
     });
-
   } catch (error) {
     console.error('에피소드 구매 오류 상세:', error);
     console.error('에러 스택:', error.stack);
@@ -743,6 +674,9 @@ router.get('/comic/:comicId/purchases', auth, async (req, res) => {
       select: {
         episodeId: true,
         createdAt: true,
+        coinPrice: true,
+        type: true,
+        expiresAt: true,
         episode: {
           select: {
             episodeNumber: true
@@ -751,12 +685,15 @@ router.get('/comic/:comicId/purchases', auth, async (req, res) => {
       }
     });
 
+    // 만료된 대여는 목록에서 뺀다 (다시 대여/소장 가능)
     res.json({
       success: true,
-      purchasedEpisodes: purchases.map(p => ({
+      purchasedEpisodes: purchases.filter((p) => isActivePurchase(p)).map(p => ({
         episodeId: p.episodeId,
         episodeNumber: p.episode.episodeNumber,
-        purchaseDate: p.createdAt
+        purchaseDate: p.createdAt,
+        purchaseType: p.coinPrice > 0 ? (p.type || 'OWN') : 'READ',
+        expiresAt: p.expiresAt
       }))
     });
   } catch (error) {

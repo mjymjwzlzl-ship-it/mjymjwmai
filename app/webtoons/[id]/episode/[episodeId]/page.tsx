@@ -41,6 +41,13 @@ interface Episode {
   author?: string;
   isFree?: boolean;
   coinPrice?: number;
+  ownPrice?: number;
+  rentPrice?: number;
+  rentalDays?: number;
+  rentalEnabled?: boolean;
+  purchaseType?: 'OWN' | 'RENT' | null;
+  expiresAt?: string | null;
+  rentalExpired?: boolean;
   canView?: boolean;
   needsPurchase?: boolean;
   needsLogin?: boolean;
@@ -204,6 +211,13 @@ export default function EpisodePage() {
           author: episodeData.comic?.author?.nickname || '작가',
           isFree: episodeData.isFree,
           coinPrice: episodeData.coinPrice,
+          ownPrice: episodeData.ownPrice,
+          rentPrice: episodeData.rentPrice,
+          rentalDays: episodeData.rentalDays,
+          rentalEnabled: episodeData.rentalEnabled,
+          purchaseType: episodeData.purchaseType,
+          expiresAt: episodeData.expiresAt,
+          rentalExpired: episodeData.rentalExpired,
           canView: episodeData.canView,
           needsPurchase: episodeData.needsPurchase,
           needsLogin: episodeData.needsLogin,
@@ -372,7 +386,7 @@ export default function EpisodePage() {
     }
   };
 
-  const handlePurchaseConfirm = async () => {
+  const handlePurchaseConfirm = async (mode: 'RENT' | 'OWN' = 'OWN') => {
     const token = localStorage.getItem('authToken');
     if (!token) {
       alert(t('webtoon.loginRequiredGeneral'));
@@ -384,7 +398,7 @@ export default function EpisodePage() {
       // 코인 구매 API 호출
       const response = await api.post(
         `/episodes/${params.episodeId}/purchase`,
-        {},
+        { mode },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -411,11 +425,13 @@ export default function EpisodePage() {
             images: response.data.episode.images,
             canView: true,
             needsPurchase: false,
-            purchaseDate: response.data.episode.purchaseDate
+            purchaseDate: response.data.episode.purchaseDate,
+            purchaseType: response.data.episode.purchaseType,
+            expiresAt: response.data.episode.expiresAt,
           } : null);
           
-          // 구매 성공 메시지 표시
-          alert(t('webtoon.episodePurchaseComplete'));
+          // 구매 성공 메시지 표시 (대여면 기간 안내)
+          alert(response.data.message || t('webtoon.episodePurchaseComplete'));
           
           // 에피소드 구매 이벤트 발생
           eventBus.emit(EVENTS.EPISODE_PURCHASED, { 
@@ -719,6 +735,15 @@ export default function EpisodePage() {
                     <p className="text-gray-500 text-sm dark:text-gray-400">
                       {episode.episodeNumber === 0 ? t('webtoon.prologue') : t('webtoon.episodeNumber', { number: episode.episodeNumber })} - {episode.title}
                     </p>
+                    {!episode.isFree && episode.purchaseType === 'RENT' && episode.expiresAt && (
+                      <p className="mt-1 text-xs font-bold text-[#00a84c] dark:text-[#00dc64]">
+                        대여 중 · {new Date(episode.expiresAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}까지
+                        <button type="button" onClick={() => setShowCoinPurchase(true)} className="ml-2 underline">소장하기</button>
+                      </p>
+                    )}
+                    {!episode.isFree && episode.purchaseType === 'OWN' && (
+                      <p className="mt-1 text-xs font-bold text-gray-500 dark:text-gray-400">소장한 회차</p>
+                    )}
                   </div>
                   <div className="flex items-center space-x-3">
                     <button 
@@ -829,7 +854,11 @@ export default function EpisodePage() {
         onConfirm={handlePurchaseConfirm}
         episodeTitle={episode?.title || ''}
         episodeNumber={episode?.episodeNumber || 1}
-        coinPrice={episode?.coinPrice || 3}
+        coinPrice={episode?.ownPrice || episode?.coinPrice || 3}
+        rentPrice={episode?.rentPrice}
+        rentalDays={episode?.rentalDays}
+        rentalEnabled={episode?.rentalEnabled}
+        currentlyRented={episode?.purchaseType === 'RENT' && !!episode?.canView}
         userCoinBalance={coinBalance}
         webtoonTitle={episode?.webtoonTitle || ''}
       />

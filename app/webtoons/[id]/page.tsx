@@ -154,6 +154,7 @@ const WebtoonDetailPage = () => {
   const [webtoon, setWebtoon] = useState<WebtoonDetail | null>(null);
   const [allEpisodes, setAllEpisodes] = useState<Episode[]>([]);
   const [similarComics, setSimilarComics] = useState<SimilarComic[]>([]);
+  const [purchaseMap, setPurchaseMap] = useState<Record<string, { purchaseType: string; expiresAt: string | null }>>({});
   const [episodesLoading, setEpisodesLoading] = useState(true);
   const [userProgress, setUserProgress] = useState<UserProgress>({ lastReadEpisode: 0, readEpisodes: [] });
   const [loading, setLoading] = useState(true);
@@ -256,6 +257,16 @@ const WebtoonDetailPage = () => {
       const response = await api.get(`/frontend/comics/${params.id}/episodes`);
       if (response.data) {
         setAllEpisodes(response.data.episodes || []);
+      }
+      // 로그인 사용자: 회차별 소장/대여 상태
+      if (localStorage.getItem('authToken')) {
+        api.get(`/episodes/comic/${params.id}/purchases`)
+          .then(({ data }) => {
+            const map: Record<string, { purchaseType: string; expiresAt: string | null }> = {};
+            for (const item of data?.purchasedEpisodes || []) map[item.episodeId] = { purchaseType: item.purchaseType, expiresAt: item.expiresAt };
+            setPurchaseMap(map);
+          })
+          .catch(() => {});
       }
     } catch (error) {
       console.error('Failed to fetch episodes:', error);
@@ -676,6 +687,13 @@ const WebtoonDetailPage = () => {
                             {userProgress.readEpisodes.includes(episode.episodeNumber) && (
                               <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500 dark:bg-white/10 dark:text-gray-400">{t('detail.read')}</span>
                             )}
+                            {!episode.isFree && (() => {
+                              const owned = purchaseMap[episode.id];
+                              if (owned?.purchaseType === 'OWN') return <span className="rounded bg-[#00dc64]/15 px-2 py-0.5 text-xs font-bold text-[#00a84c] dark:text-[#00dc64]">소장</span>;
+                              if (owned?.purchaseType === 'RENT') return <span className="rounded bg-[#00dc64]/15 px-2 py-0.5 text-xs font-bold text-[#00a84c] dark:text-[#00dc64]">대여 중{owned.expiresAt ? ` · ${new Date(owned.expiresAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}까지` : ''}</span>;
+                              if (owned) return null;
+                              return <span className="rounded bg-yellow-400/15 px-2 py-0.5 text-xs font-bold text-yellow-700 dark:text-yellow-400">{episode.coinPrice || 3}코인</span>;
+                            })()}
                           </div>
                           <h3 className="text-gray-950 dark:text-white font-medium line-clamp-2">
                             {displayEpisodeTitle(episode)}
