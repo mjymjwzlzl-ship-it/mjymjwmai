@@ -10,6 +10,7 @@ const WEEKDAYS = [
   { id: 'thu', label: '목', fullLabel: '목요일' },
   { id: 'fri', label: '금', fullLabel: '금요일' },
   { id: 'sat', label: '토', fullLabel: '토요일' },
+  { id: 'sun', label: '일', fullLabel: '일요일' },
   { id: 'all', label: '전체', fullLabel: '전체' },
 ];
 

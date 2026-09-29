@@ -186,9 +186,33 @@ const normalizeComic = (comic: Comic, locale: Locale, defaultSynopsis: string) =
     posterImage: getComicImage(comic, comic.thumbnailUrl || comic.thumbnail || comic.image || '', 'poster'),
     views: Number(comic.views || comic.viewCount || 0),
     synopsis: localizeComicSynopsis(comic, locale, defaultSynopsis),
-    isNew: comic.isNew || comic.status === 'ONGOING',
+    // [UP] 오늘(한국 시간) 새 회차가 올라온 작품, [NEW] 런칭 7일 이내 신작
+    isUp: isTodayKst(comic.lastEpisodeAt),
+    isNew: isWithinDays(comic.createdAt, 7),
+    lastEpisodeAt: comic.lastEpisodeAt ? String(comic.lastEpisodeAt) : '',
   };
 };
+
+const KST_OFFSET = 9 * 60 * 60 * 1000;
+const kstDateKey = (value: string | number | Date) => new Date(new Date(value).getTime() + KST_OFFSET).toISOString().slice(0, 10);
+const isTodayKst = (value?: string) => Boolean(value) && !Number.isNaN(new Date(value as string).getTime()) && kstDateKey(value as string) === kstDateKey(Date.now());
+const isWithinDays = (value: string | undefined, days: number) => {
+  const time = value ? new Date(value).getTime() : NaN;
+  return !Number.isNaN(time) && Date.now() - time <= days * 24 * 60 * 60 * 1000;
+};
+
+const WEEKDAY_TABS = [
+  { key: 'all', label: '전체' },
+  { key: 'mon', label: '월' },
+  { key: 'tue', label: '화' },
+  { key: 'wed', label: '수' },
+  { key: 'thu', label: '목' },
+  { key: 'fri', label: '금' },
+  { key: 'sat', label: '토' },
+  { key: 'sun', label: '일' },
+] as const;
+type WeekdayKey = (typeof WEEKDAY_TABS)[number]['key'];
+const todayWeekdayKst = (): WeekdayKey => (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[new Date(Date.now() + KST_OFFSET).getUTCDay()];
 
 export default function HomePage() {
   const { locale, t } = useLanguage();
@@ -223,7 +247,9 @@ export default function HomePage() {
     };
   }, []);
 
-  const { banners, comics } = useMemo(() => {
+  const [weekday, setWeekday] = useState<WeekdayKey | null>(null);
+
+  const { banners, comics, weekdayIds } = useMemo(() => {
     const data = homeData?.data || {};
     const categories = data.categories || {};
     const allComics = removeHiddenComicDuplicates(
@@ -271,12 +297,29 @@ export default function HomePage() {
       return true;
     });
 
+    const weekdayIds: Record<string, string[]> = {};
+    for (const tab of WEEKDAY_TABS) {
+      if (tab.key === 'all') continue;
+      weekdayIds[tab.key] = ((categories[`week_${tab.key}`] || []) as Comic[]).map((comic: Comic) => String(comic.id));
+    }
+
     return {
+      weekdayIds,
       banners: mergedBanners,
       // 濡쒕뵫 以묒뿉??李멸퀬???붾? 肄섑뀗痢좊? ?몄텧?섏? ?딅뒗??(?ㅼ펷?덊넠 ?쒖떆)
       comics: latest,
     };
   }, [homeData, locale, t]);
+
+  // 기본 탭: 오늘 요일에 편성된 작품이 있으면 오늘, 없으면 전체
+  const activeWeekday: WeekdayKey = weekday ?? ((weekdayIds[todayWeekdayKst()] || []).length > 0 ? todayWeekdayKst() : 'all');
+  const updateComics = useMemo(() => {
+    const byUpdate = (a: { lastEpisodeAt: string }, b: { lastEpisodeAt: string }) =>
+      (new Date(b.lastEpisodeAt).getTime() || 0) - (new Date(a.lastEpisodeAt).getTime() || 0);
+    if (activeWeekday === 'all') return [...comics].sort(byUpdate);
+    const ids = new Set(weekdayIds[activeWeekday] || []);
+    return comics.filter((comic) => ids.has(String(comic.id))).sort(byUpdate);
+  }, [comics, weekdayIds, activeWeekday]);
 
   const recentComics = useMemo(() => {
     const comicMap = new Map(comics.map((comic) => [String(comic.id), comic]));
@@ -324,12 +367,45 @@ export default function HomePage() {
               <span className="h-7 w-1 rounded-full bg-[#00dc64]" />
               {t('home.latest')}
             </h1>
-            <Link href="/daily" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-medium text-gray-500 hover:text-[#00dc64]">
+            <Link href="/week" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-medium text-gray-500 hover:text-[#00dc64]">
               {t('common.more')}
             </Link>
           </div>
 
+          <div className="no-scrollbar -mt-2 mb-4 flex gap-1.5 overflow-x-auto" role="tablist" aria-label="연재 요일">
+            {WEEKDAY_TABS.map((tab) => {
+              const active = activeWeekday === tab.key;
+              const isToday = tab.key === todayWeekdayKst();
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setWeekday(tab.key)}
+                  className={`relative shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
+                    active
+                      ? 'bg-[#00dc64] text-black'
+                      : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:bg-[#181818] dark:text-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                  {isToday && <span className="ml-1 text-[10px] font-bold opacity-70">오늘</span>}
+                </button>
+              );
+            })}
+          </div>
+          <p className="-mt-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
+            {activeWeekday === 'all' ? '최근 회차가 올라온 순서입니다.' : `${WEEKDAY_TABS.find((tab) => tab.key === activeWeekday)?.label}요일 연재 작품 · 최근 업데이트 순`}
+            <span className="ml-2 font-bold"><span className="text-red-600">UP</span> 오늘 새 회차 · <span className="text-[#00a84c] dark:text-[#00dc64]">NEW</span> 런칭 7일 이내</span>
+          </p>
+
           <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {!isLoading && comics.length > 0 && updateComics.length === 0 && (
+              <div role="status" className="col-span-full py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                이 요일에 연재하는 작품이 없습니다.
+              </div>
+            )}
             {!isLoading && comics.length === 0 && (
               <div role={isError ? 'alert' : 'status'} className="col-span-full py-12 text-center text-sm text-gray-500 dark:text-gray-400">
                 <p>{isError ? membershipPromoCopy[locale].error : t('list.empty')}</p>
@@ -343,7 +419,7 @@ export default function HomePage() {
                   <Skeleton className="mt-3 h-5 w-2/3 dark:bg-gray-800" />
                 </div>
               ))}
-            {comics.slice(0, 8).map((comic) => (
+            {updateComics.slice(0, 8).map((comic) => (
               <Link
                 key={comic.id}
                 href={`/webtoons/${comic.id}`}
@@ -358,9 +434,10 @@ export default function HomePage() {
                       loading="lazy"
                     />
                   ) : null}
-                  {comic.isNew && (
-                    <span className="absolute left-2 top-2 rounded-sm bg-red-600 px-2 py-1 text-[10px] font-black text-white">
-                      UP
+                  {(comic.isUp || comic.isNew) && (
+                    <span className="absolute left-2 top-2 flex gap-1">
+                      {comic.isUp && <span className="rounded-sm bg-red-600 px-2 py-1 text-[10px] font-black text-white">UP</span>}
+                      {comic.isNew && <span className="rounded-sm bg-[#00dc64] px-2 py-1 text-[10px] font-black text-black">NEW</span>}
                     </span>
                   )}
                   <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white">

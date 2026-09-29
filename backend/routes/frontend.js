@@ -1,4 +1,5 @@
 const { guardEpisode } = require('../services/legacy-episode-access');
+const { episodePrices } = require('../services/purchase-access');
 const { optionalAuth } = require('../middleware/auth');
 const { guardComicParam, requireVerifiedAdultMode, generalComicWhere } = require('../services/adult-access');
 const { getJwtSecret } = require('../lib/jwt-secret');
@@ -43,6 +44,12 @@ router.get('/home', async (req, res) => {
 
     // 카테고리 설정 로드
     const categorySettings = await loadCategorySettings();
+
+    // 요일별 연재 편성 (관리자 > 카테고리 > 요일) — 홈·요일별 페이지 탭용
+    const WEEKDAY_KEYS = { monday: 'mon', tuesday: 'tue', wednesday: 'wed', thursday: 'thu', friday: 'fri', saturday: 'sat', sunday: 'sun' };
+    const weekSchedule = categorySettings.week && typeof categorySettings.week === 'object' && !Array.isArray(categorySettings.week)
+      ? categorySettings.week
+      : {};
 
     // week가 스케줄 객체인 경우 배열로 평탄화
     if (categorySettings.week && typeof categorySettings.week === 'object' && !Array.isArray(categorySettings.week)) {
@@ -185,6 +192,21 @@ router.get('/home', async (req, res) => {
       // take 제한 제거 - 모든 웹툰 가져오기
     });
 
+    // 작품별 최신 회차 등록 시각 (홈 UP 배지·최근 업데이트 순)
+    const latestEpisodeRows = await prisma.episode.groupBy({
+      by: ['comicId'],
+      where: { comicId: { in: allComics.map((comic) => comic.id) } },
+      _max: { createdAt: true },
+    });
+    const lastEpisodeAtById = new Map(latestEpisodeRows.map((row) => [row.comicId, row._max.createdAt]));
+    for (const comic of allComics) comic.lastEpisodeAt = lastEpisodeAtById.get(comic.id) || null;
+    const allComicById = new Map(allComics.map((comic) => [comic.id, comic]));
+    const weekdayCategories = {};
+    for (const [day, key] of Object.entries(WEEKDAY_KEYS)) {
+      const ids = Array.isArray(weekSchedule[day]) ? weekSchedule[day] : [];
+      weekdayCategories[`week_${key}`] = ids.map((id) => allComicById.get(id)).filter(Boolean);
+    }
+
     res.json({
       success: true,
       data: {
@@ -205,7 +227,8 @@ router.get('/home', async (req, res) => {
           complete: completeComics.length > 0 ? completeComics : allComics.filter(c => c.status === 'COMPLETED'),
           latest: latestComics.length > 0 ? latestComics : allComics.slice(0, 10),
           new: newComics.length > 0 ? newComics : allComics.filter(c => c.status === 'ONGOING').slice(0, 10),
-          completed: completeComics.length > 0 ? completeComics : allComics.filter(c => c.status === 'COMPLETED')
+          completed: completeComics.length > 0 ? completeComics : allComics.filter(c => c.status === 'COMPLETED'),
+          ...weekdayCategories
         },
         allComics
       }
@@ -996,9 +1019,13 @@ router.get('/comics/:id/episodes', async (req, res) => {
       where: { id },
       select: {
         paidStartEpisode: true,
-        episodeCoinPrice: true
+        episodeCoinPrice: true,
+        rentalCoinPrice: true,
+        rentalDays: true
       }
     });
+    // 회차 구매창과 같은 가격 규칙 (목록에 '대여 N코인 · 소장 N코인' 으로 표기)
+    const prices = episodePrices(comicSettings);
 
     // voice.mp4 URL 결정
     let voiceVideoUrl = null;
@@ -1023,7 +1050,7 @@ router.get('/comics/:id/episodes', async (req, res) => {
       // DB의 에피소드별 설정 사용
       // 열람 권한(episode-policy)과 같은 기준: 작품의 '몇 화부터 유료' 설정이 정답
       const isFree = comicSettings.paidStartEpisode === 0 || ep.episodeNumber < comicSettings.paidStartEpisode;
-      const coinPrice = isFree ? 0 : (comicSettings.episodeCoinPrice || 3);
+      const coinPrice = isFree ? 0 : prices.ownPrice;
 
       return {
         id: ep.id,
@@ -1035,6 +1062,9 @@ router.get('/comics/:id/episodes', async (req, res) => {
         createdAt: ep.createdAt,
         isFree: isFree,
         coinPrice: coinPrice,
+        ownPrice: isFree ? 0 : prices.ownPrice,
+        rentPrice: isFree || !prices.rentalEnabled ? null : prices.rentPrice,
+        rentalDays: prices.rentalDays,
         isLocked: false,
         voiceVideoUrl: voiceVideoUrl // voice.mp4 URL 추가
       };

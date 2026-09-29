@@ -628,7 +628,19 @@ export default function EpisodePage() {
       }
     } catch (error: any) {
       console.error(t('webtoon.purchaseFailed'), error);
-      alert(error.response?.data?.message || t('webtoon.episodePurchaseError'));
+      const data = error.response?.data || {};
+      if (data.code === 'INSUFFICIENT_COINS') {
+        // 다른 기기에서 코인을 써서 잔액이 바뀐 경우 등: 최신 잔액으로 맞추고 충전 안내
+        if (typeof data.current === 'number') setCoinBalance(data.current);
+        const go = window.confirm(`코인이 ${data.needed ?? ''}개 부족합니다.\n(필요 ${data.required ?? '-'}코인 · 보유 ${data.current ?? '-'}코인)\n\n코인 충전 페이지로 이동할까요?`);
+        if (go) router.push('/coin');
+        return;
+      }
+      if (!error.response) {
+        alert('네트워크 연결이 불안정해 결제를 완료하지 못했습니다. 코인은 차감되지 않았어요. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      alert(`${data.message || '결제를 완료하지 못했습니다.'}\n코인은 차감되지 않았어요. 문제가 계속되면 고객센터로 문의해 주세요.`);
     }
   };
 

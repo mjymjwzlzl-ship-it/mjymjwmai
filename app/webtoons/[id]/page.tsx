@@ -37,6 +37,9 @@ interface Episode {
   createdAt: string;
   isFree?: boolean;
   coinPrice?: number;
+  ownPrice?: number;
+  rentPrice?: number | null;
+  rentalDays?: number;
 }
 
 interface WebtoonDetail {
@@ -684,7 +687,13 @@ const WebtoonDetailPage = () => {
                               if (owned?.purchaseType === 'OWN') return <span className="rounded bg-[#00dc64]/15 px-2 py-0.5 text-xs font-bold text-[#00a84c] dark:text-[#00dc64]">소장</span>;
                               if (owned?.purchaseType === 'RENT') return <span className="rounded bg-[#00dc64]/15 px-2 py-0.5 text-xs font-bold text-[#00a84c] dark:text-[#00dc64]">대여 중{owned.expiresAt ? ` · ${new Date(owned.expiresAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}까지` : ''}</span>;
                               if (owned) return null;
-                              return <span className="rounded bg-yellow-400/15 px-2 py-0.5 text-xs font-bold text-yellow-700 dark:text-yellow-400">{episode.coinPrice || 3}코인</span>;
+                              const price = 'rounded bg-yellow-400/15 px-2 py-0.5 text-xs font-bold text-yellow-700 dark:text-yellow-400';
+                              return (
+                                <>
+                                  {episode.rentPrice ? <span className={price}>대여 {episode.rentPrice}코인</span> : null}
+                                  <span className={price}>소장 {episode.ownPrice || episode.coinPrice || 3}코인</span>
+                                </>
+                              );
                             })()}
                           </div>
                           <h3 className="text-gray-950 dark:text-white font-medium line-clamp-2">
