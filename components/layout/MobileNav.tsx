@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { Calendar, Home, Library, MessageCircle, Tag } from 'lucide-react';
+import { Calendar, Home, MessageCircle, Sparkles, Tag } from 'lucide-react';
 import { useAdultStore } from '@/store/adult';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
@@ -34,7 +34,7 @@ export default function MobileNav() {
     { href: isAdultMode ? '/adult/daily' : '/daily', label: isAdultMode ? t('nav.fullEdition') : t('nav.webtoons'), icon: Calendar },
     { href: isAdultMode ? '/adult/chat' : '/chat', label: t('nav.chat'), icon: MessageCircle },
     { href: '/attendance', label: t('nav.attendance'), icon: Tag },
-    { href: isAdultMode ? '/adult/new' : '/new', label: t('nav.new'), icon: Library },
+    { href: isAdultMode ? '/adult/new' : '/new', label: t('nav.new'), icon: Sparkles },
   ];
 
   const isActive = (href: string) => {

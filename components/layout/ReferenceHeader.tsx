@@ -10,6 +10,7 @@ import {
   Clock,
   ChevronDown,
   Gamepad2,
+  GalleryVertical,
   Globe2,
   Home,
   Image,
@@ -33,7 +34,8 @@ import { useDragScroll } from '@/lib/use-drag-scroll';
 
 const navItems = [
   { href: '/home', labelKey: 'nav.home', icon: Home, mobilePrimary: true },
-  { href: '/daily', labelKey: 'nav.webtoons', icon: Library, mobilePrimary: true },
+  // 웹툰 = 세로로 이어지는 컷 (내 서재의 책장 아이콘과 구분)
+  { href: '/daily', labelKey: 'nav.webtoons', icon: GalleryVertical, mobilePrimary: true },
   { href: '/books', labelKey: 'nav.books', icon: Book, mobilePrimary: true },
   { href: '/novel', labelKey: 'nav.novels', icon: BookOpen, mobilePrimary: true },
   { href: '/chat', labelKey: 'nav.chat', icon: MessageCircle },
