@@ -56,6 +56,36 @@ type NormalizedComic = {
   audience: 'male' | 'female';
   createdAtTimestamp: number;
   updatedAtTimestamp: number;
+  status: string;
+};
+
+// 상태·분류 필터와 정렬 기준 (장르와 분리)
+type StatusFilter = 'all' | 'new' | 'ongoing' | 'completed';
+const NEW_WINDOW_MS = 90 * 24 * 60 * 60 * 1000; // 신작 = 최근 90일 안에 등록
+const statusFilterLabels: Record<Locale, Record<StatusFilter, string>> = {
+  ko: { all: '전체', new: '신작', ongoing: '연재중', completed: '완결' },
+  en: { all: 'All', new: 'New', ongoing: 'Ongoing', completed: 'Completed' },
+  ja: { all: 'すべて', new: '新作', ongoing: '連載中', completed: '完結' },
+  fr: { all: 'Tous', new: 'Nouveautés', ongoing: 'En cours', completed: 'Terminé' },
+};
+const sortChipLabels: Record<Locale, { heading: [string, string]; updated: string; popular: string; created: string }> = {
+  ko: { heading: ['상태', '정렬'], updated: '실시간', popular: '인기순', created: '최신순' },
+  en: { heading: ['Status', 'Sort'], updated: 'Real-time', popular: 'Popular', created: 'Newest' },
+  ja: { heading: ['状態', '並び順'], updated: 'リアルタイム', popular: '人気順', created: '新着順' },
+  fr: { heading: ['Statut', 'Tri'], updated: 'Temps réel', popular: 'Popularité', created: 'Récents' },
+};
+
+const matchesStatus = (comic: NormalizedComic, filter: StatusFilter) => {
+  switch (filter) {
+    case 'new':
+      return comic.createdAtTimestamp > 0 && Date.now() - comic.createdAtTimestamp <= NEW_WINDOW_MS;
+    case 'ongoing':
+      return comic.status !== 'COMPLETED';
+    case 'completed':
+      return comic.status === 'COMPLETED';
+    default:
+      return true;
+  }
 };
 
 interface GeneralComicListPageProps {
@@ -218,6 +248,7 @@ const normalizeComic = (
     audience: resolveAudience(comic, searchableAudienceText),
     createdAtTimestamp: comicTimestamp(comic.createdAt),
     updatedAtTimestamp,
+    status: String(comic.status || '').toUpperCase(),
   };
 };
 
@@ -255,6 +286,7 @@ export default function GeneralComicListPage({
   const [activeOption, setActiveOption] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ComicViewMode>('list');
   const [sort, setSort] = useState<CatalogSort>('updated');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const labels = listLabels[locale];
   const [page, setPage] = useState(1);
   const adultEnabled = useAdultModeStore((state) => state.enabled);
@@ -281,8 +313,11 @@ export default function GeneralComicListPage({
 
   useEffect(() => {
     const applyCategory = (queryCategory: string) => {
-      setActiveCategory(categories.find((category) => category.query === queryCategory)?.value || '전체');
-      setSort(queryCategory === 'ranking' ? 'popular' : queryCategory === 'new' ? 'created' : 'updated');
+      // 예전 링크 호환: ?category=new/ranking/realtime 은 장르가 아니라 상태·정렬로 바꿔 적용
+      const legacy = ['new', 'ranking', 'realtime'].includes(queryCategory);
+      setActiveCategory(legacy ? '전체' : categories.find((category) => category.query === queryCategory)?.value || '전체');
+      setStatusFilter(queryCategory === 'new' ? 'new' : 'all');
+      setSort(queryCategory === 'ranking' ? 'popular' : 'updated');
     };
     const syncFromLocation = () => {
       applyCategory(new URLSearchParams(window.location.search).get('category') || 'all');
@@ -355,15 +390,15 @@ export default function GeneralComicListPage({
         comic.synopsis.toLowerCase().includes(query) ||
         comic.tags.some((tag) => tag.toLowerCase().includes(query));
 
-      return categoryOk && optionOk && searchOk;
+      return categoryOk && optionOk && searchOk && matchesStatus(comic, statusFilter);
     });
 
     return sortCatalog(filteredItems, sort);
-  }, [activeCategory, activeOption, baseItems, searchQuery, sort]);
+  }, [activeCategory, activeOption, baseItems, searchQuery, sort, statusFilter]);
 
   useEffect(() => {
     setPage(1);
-  }, [activeCategory, activeOption, searchQuery, sort]);
+  }, [activeCategory, activeOption, searchQuery, sort, statusFilter]);
 
   const itemsPerPage = viewMode === 'grid' ? GRID_ITEMS_PER_PAGE : ITEMS_PER_PAGE;
   const pageCount = Math.max(1, Math.ceil(items.length / itemsPerPage));
@@ -450,12 +485,53 @@ export default function GeneralComicListPage({
                     );
                   })}
                 </div>
-                <label className="inline-flex min-h-11 min-w-0 flex-1 items-center gap-1 rounded-lg pl-2 text-xs font-bold text-gray-600 sm:flex-none sm:gap-2 sm:px-3 dark:text-gray-300">
-                  <ArrowUpDown className="hidden h-4 w-4 shrink-0 text-gray-400 sm:block" />
-                  <select aria-label={labels.sort} value={sort} onChange={(event) => setSort(event.target.value as CatalogSort)} className="h-11 w-full min-w-0 cursor-pointer bg-white sm:h-auto sm:w-auto dark:bg-[#1b1b1b]">
-                    {(['updated', 'created', 'oldest', 'popular'] as const).map((value) => <option key={value} value={value}>{labels[value]}</option>)}
-                  </select>
-                </label>
+              </div>
+            </div>
+
+            {/* 상태·분류 필터 / 정렬·집계 기준 (장르와 다른 줄) */}
+            <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
+              <div className="no-scrollbar flex min-w-0 items-center gap-1.5 overflow-x-auto" role="group" aria-label={sortChipLabels[locale].heading[0]}>
+                <span className="mr-1 shrink-0 text-xs font-black text-gray-400">{sortChipLabels[locale].heading[0]}</span>
+                {(['all', 'new', 'ongoing', 'completed'] as StatusFilter[]).map((value) => {
+                  const active = statusFilter === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setStatusFilter(value)}
+                      className={`min-h-9 shrink-0 rounded-full px-3 text-xs font-black transition ${
+                        active
+                          ? 'bg-gray-900 text-white dark:bg-white dark:text-black'
+                          : 'bg-gray-100 text-gray-500 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:text-white'
+                      }`}
+                    >
+                      {statusFilterLabels[locale][value]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex shrink-0 items-center gap-1" role="group" aria-label={labels.sort}>
+                <ArrowUpDown className="mr-1 h-3.5 w-3.5 text-gray-400" />
+                <span className="mr-1 text-xs font-black text-gray-400">{sortChipLabels[locale].heading[1]}</span>
+                {(['updated', 'popular', 'created'] as const).map((value, index) => {
+                  const active = sort === value;
+                  return (
+                    <span key={value} className="flex items-center">
+                      {index > 0 && <span className="mx-1 text-gray-300 dark:text-gray-700">·</span>}
+                      <button
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setSort(value)}
+                        className={`min-h-9 px-1 text-xs font-black transition ${
+                          active ? 'text-[#00a84c] dark:text-[#00dc64]' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        {sortChipLabels[locale][value]}
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             </div>
 

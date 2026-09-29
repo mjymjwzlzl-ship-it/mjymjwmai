@@ -45,12 +45,9 @@ const navItems = [
 
 const comicSubnavItems = [
   { value: 'all', labelKey: 'category.all' },
-  { value: 'new', labelKey: 'category.new' },
-  { value: 'ranking', labelKey: 'category.ranking' },
   { value: 'action', labelKey: 'category.action' },
   { value: 'school', labelKey: 'category.school' },
   { value: 'comedy', labelKey: 'category.comedy' },
-  { value: 'realtime', labelKey: 'category.realtime' },
   { value: 'romance', labelKey: 'category.romance' },
   { value: 'fantasy', labelKey: 'category.fantasy' },
   { value: 'martial', labelKey: 'category.martial' },
