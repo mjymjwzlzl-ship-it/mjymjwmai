@@ -620,7 +620,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
       success: true,
       mode,
       message: mode === 'RENT'
-        ? `${price}코인으로 ${prices.rentalDays}일 동안 대여했습니다.`
+        ? `${price === 0 ? "무료로" : `${price}코인으로`} ${prices.rentalDays}일 동안 대여했습니다.`
         : `${price}코인으로 소장했습니다.`,
       episode: { ...episodePayload(result.purchase), coinPrice: price },
       coinBalance: result.newBalance,
