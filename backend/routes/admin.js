@@ -156,6 +156,8 @@ router.get('/comics', async (req, res) => {
       updatedAt: comic.updatedAt,
       paidStartEpisode: comic.paidStartEpisode || 1,
       episodeCoinPrice: comic.episodeCoinPrice || 3,
+      rentalCoinPrice: comic.rentalCoinPrice ?? null,
+      rentalDays: comic.rentalDays || 3,
       episodeCount: comic.episodes?.length || 0,
       purchaseCount: 0 // 추후 구매 통계 추가 시 업데이트
     }));
@@ -1451,6 +1453,16 @@ router.put('/comics/:comicId/payment-settings', async (req, res) => {
   try {
     const { comicId } = req.params;
     const { paidStartEpisode, episodeCoinPrice } = req.body;
+    // 대여: 가격을 비우면(null) 소장가-1 자동, 0 이면 대여 없음. 기간 1~30일
+    const rentalCoinPrice = req.body.rentalCoinPrice === null || req.body.rentalCoinPrice === '' || req.body.rentalCoinPrice === undefined
+      ? null : parseInt(req.body.rentalCoinPrice);
+    const rentalDays = req.body.rentalDays === undefined ? undefined : parseInt(req.body.rentalDays);
+    if (rentalCoinPrice !== null && (Number.isNaN(rentalCoinPrice) || rentalCoinPrice < 0 || rentalCoinPrice >= parseInt(episodeCoinPrice))) {
+      return res.status(400).json({ success: false, message: '대여 가격은 0 이상, 소장 가격보다 낮아야 합니다. (0 이면 대여 없음)' });
+    }
+    if (rentalDays !== undefined && (Number.isNaN(rentalDays) || rentalDays < 1 || rentalDays > 30)) {
+      return res.status(400).json({ success: false, message: '대여 기간은 1~30일입니다.' });
+    }
     
     // 입력값 검증
     if (paidStartEpisode < 0 || episodeCoinPrice < 0) {
@@ -1496,7 +1508,9 @@ router.put('/comics/:comicId/payment-settings', async (req, res) => {
       where: { id: comicId },
       data: {
         paidStartEpisode: parseInt(paidStartEpisode),
-        episodeCoinPrice: parseInt(episodeCoinPrice)
+        episodeCoinPrice: parseInt(episodeCoinPrice),
+        ...(req.body.rentalCoinPrice !== undefined ? { rentalCoinPrice } : {}),
+        ...(rentalDays !== undefined ? { rentalDays } : {})
       }
     });
     

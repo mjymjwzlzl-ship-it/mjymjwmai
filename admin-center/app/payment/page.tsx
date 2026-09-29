@@ -19,7 +19,15 @@ interface Comic {
   totalEpisodes: number;
   paidStartEpisode: number;
   episodeCoinPrice: number;
+  rentalCoinPrice?: number | null;
+  rentalDays?: number;
 }
+
+// 저장·조회는 로그인한 관리자 토큰으로 (예전 하드코딩 토큰은 서버가 거부해 저장이 안 됐다)
+const adminAuthHeader = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+  return token ? `Bearer ${token}` : '';
+};
 
 function PaymentManagementContent() {
   const router = useRouter();
@@ -71,7 +79,7 @@ function PaymentManagementContent() {
       const ratingParam = mode === 'adult' ? '19' : 'general';
       const response = await fetch(`${apiBaseUrl}/admin/comics?rating=${ratingParam}&limit=100`, {
         headers: {
-          'Authorization': 'Bearer admin-authenticated',
+          'Authorization': adminAuthHeader(),
           'Content-Type': 'application/json'
         }
       });
@@ -108,7 +116,7 @@ function PaymentManagementContent() {
     }
   };
 
-  const handlePaymentSettingsUpdate = async (comicId: string, paidStartEpisode: number, episodeCoinPrice: number) => {
+  const handlePaymentSettingsUpdate = async (comicId: string, paidStartEpisode: number, episodeCoinPrice: number, rentalCoinPrice: number | null, rentalDays: number) => {
     try {
       setSaving(comicId);
       
@@ -117,11 +125,13 @@ function PaymentManagementContent() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-authenticated'
+          'Authorization': adminAuthHeader()
         },
         body: JSON.stringify({
           paidStartEpisode,
-          episodeCoinPrice
+          episodeCoinPrice,
+          rentalCoinPrice,
+          rentalDays
         })
       });
 
@@ -133,7 +143,7 @@ function PaymentManagementContent() {
         setComics(prevComics =>
           prevComics.map(comic =>
             comic.id === comicId
-              ? { ...comic, paidStartEpisode, episodeCoinPrice }
+              ? { ...comic, paidStartEpisode, episodeCoinPrice, rentalCoinPrice, rentalDays }
               : comic
           )
         );
@@ -277,7 +287,10 @@ function PaymentManagementContent() {
                     유료 시작화
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    에피소드당 코인
+                    에피소드당 코인 (소장)
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    대여 (가격 · 기간)
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     조회수
@@ -317,23 +330,29 @@ function PaymentManagementContent() {
 
 interface ComicRowProps {
   comic: Comic;
-  onSave: (comicId: string, paidStartEpisode: number, episodeCoinPrice: number) => void;
+  onSave: (comicId: string, paidStartEpisode: number, episodeCoinPrice: number, rentalCoinPrice: number | null, rentalDays: number) => void;
   isSaving: boolean;
 }
 
 function ComicRow({ comic, onSave, isSaving }: ComicRowProps) {
   const [paidStartEpisode, setPaidStartEpisode] = useState(comic.paidStartEpisode);
   const [episodeCoinPrice, setEpisodeCoinPrice] = useState(comic.episodeCoinPrice);
+  // 대여가: 빈 값 = 자동(소장가-1), 0 = 대여 없음
+  const [rentalCoinPrice, setRentalCoinPrice] = useState<string>(comic.rentalCoinPrice === null || comic.rentalCoinPrice === undefined ? '' : String(comic.rentalCoinPrice));
+  const [rentalDays, setRentalDays] = useState<number>(comic.rentalDays || 3);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    const changed = paidStartEpisode !== comic.paidStartEpisode || 
-                   episodeCoinPrice !== comic.episodeCoinPrice;
+    const originalRental = comic.rentalCoinPrice === null || comic.rentalCoinPrice === undefined ? '' : String(comic.rentalCoinPrice);
+    const changed = paidStartEpisode !== comic.paidStartEpisode ||
+                   episodeCoinPrice !== comic.episodeCoinPrice ||
+                   rentalCoinPrice !== originalRental ||
+                   rentalDays !== (comic.rentalDays || 3);
     setHasChanges(changed);
-  }, [paidStartEpisode, episodeCoinPrice, comic.paidStartEpisode, comic.episodeCoinPrice]);
+  }, [paidStartEpisode, episodeCoinPrice, rentalCoinPrice, rentalDays, comic.paidStartEpisode, comic.episodeCoinPrice, comic.rentalCoinPrice, comic.rentalDays]);
 
   const handleSave = () => {
-    onSave(comic.id, paidStartEpisode, episodeCoinPrice);
+    onSave(comic.id, paidStartEpisode, episodeCoinPrice, rentalCoinPrice === '' ? null : parseInt(rentalCoinPrice), rentalDays);
     setHasChanges(false);
   };
 
@@ -405,6 +424,34 @@ function ComicRow({ comic, onSave, isSaving }: ComicRowProps) {
             </>
           )}
         </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        {paidStartEpisode === 0 ? (
+          <span className="text-sm text-gray-400">-</span>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              min="0"
+              max={Math.max(0, episodeCoinPrice - 1)}
+              value={rentalCoinPrice}
+              placeholder={`자동 ${Math.max(1, episodeCoinPrice - 1)}`}
+              onChange={(e) => setRentalCoinPrice(e.target.value)}
+              title="비우면 소장가-1 자동, 0이면 대여 없음"
+              className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <Coins className="w-4 h-4 text-yellow-500" />
+            <input
+              type="number"
+              min="1"
+              max="30"
+              value={rentalDays}
+              onChange={(e) => setRentalDays(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))}
+              className="w-14 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <span className="text-xs text-gray-500">일</span>
+          </div>
+        )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
         {comic.viewCount?.toLocaleString() || 0}

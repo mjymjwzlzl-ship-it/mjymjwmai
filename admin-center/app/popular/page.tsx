@@ -66,7 +66,7 @@ function PopularManageContent() {
       const ratingParam = mode === 'adult' ? '19' : 'general';
       const webtoonsResponse = await fetch(`${apiBaseUrl}/admin/comics?rating=${ratingParam}&limit=100`, {
         headers: {
-          'Authorization': 'Bearer admin-authenticated',
+          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('adminToken') || '' : ''}`,
           'Content-Type': 'application/json'
         }
       });
@@ -90,7 +90,7 @@ function PopularManageContent() {
           // 현재 설정된 인기작 가져오기 (백엔드에서)
           const categoryResponse = await fetch(`${apiBaseUrl}/admin/category-settings`, {
             headers: {
-              'Authorization': 'Bearer admin-authenticated'
+              'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('adminToken') || '' : ''}`
             }
           });
           
@@ -187,7 +187,7 @@ function PopularManageContent() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-authenticated'
+          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('adminToken') || '' : ''}`
         },
         body: JSON.stringify({
           category: 'popular',
