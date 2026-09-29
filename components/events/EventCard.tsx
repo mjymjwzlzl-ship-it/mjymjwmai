@@ -36,7 +36,7 @@ export default function EventCard({ event }: { event: SiteEvent }) {
           loading="lazy"
           className={`h-full w-full object-cover transition duration-500 ${ended ? 'grayscale' : 'group-hover:scale-105'}`}
         />
-        <span className={`absolute left-2 top-2 rounded px-2 py-1 text-[11px] font-black ${badgeClass[event.status]}`}>
+        <span className={`absolute right-2 top-2 rounded px-2 py-1 text-[11px] font-black ${badgeClass[event.status]}`}>
           {EVENT_STATUS_LABEL[event.status]}
         </span>
         {ended && <div className="absolute inset-0 bg-black/40" />}
