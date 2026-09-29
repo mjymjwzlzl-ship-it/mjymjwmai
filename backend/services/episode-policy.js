@@ -1,11 +1,13 @@
 const { isAdultComic } = require('./adult-access');
+const { isPromoFreeEpisode } = require('./promotions');
 
 // One interpretation for all episode delivery endpoints. Never make episode 1
 // free implicitly: the catalogue, not a client-side convention, owns pricing.
 function episodeContent(episode) {
   const explicitAccess = episode.accessType;
   const legacyFree = episode.comic?.paidStartEpisode === 0 ||
-    episode.episodeNumber < episode.comic?.paidStartEpisode;
+    episode.episodeNumber < episode.comic?.paidStartEpisode ||
+    isPromoFreeEpisode(episode.comicId || episode.comic?.id, episode.episodeNumber);
   return {
     ...episode,
     images: undefined,

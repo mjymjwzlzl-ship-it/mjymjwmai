@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, Gift, Heart, Sparkles, Trophy } from 'lucide-react';
+import { BadgePercent, Eye, Gift, Heart, Sparkles, Trophy } from 'lucide-react';
 import EventCard, { type SiteEvent } from '@/components/events/EventCard';
+import PromoCard, { PROMO_TABS, type PromoComic, type PromoTab } from '@/components/promotions/PromoCard';
 import { RANKING_KINDS, RankingCard, RankingEmpty, rankingCriteria, rankingLabel, type RankingKind, type RankingResponse } from '@/components/ranking/rankingShared';
 import MainBannerRail, { MainBannerItem } from '@/components/ui/MainBannerRail';
 import Skeleton from '@/components/ui/Skeleton';
@@ -265,6 +266,17 @@ export default function HomePage() {
   });
   const rankingList = rankingData?.rankings?.[rankingKind];
 
+  // 홈 [이벤트 작품]: 할인·무료 진행 중인 작품, 탭별 6개
+  const [promoTab, setPromoTab] = useState<PromoTab>('all');
+  const { data: promoData } = useQuery({
+    queryKey: ['promotions', 'home'],
+    queryFn: async () => (await api.get('/frontend/promotions', { params: { type: 'all' } })).data.items as PromoComic[],
+    retry: false,
+  });
+  const promoItems = (promoData || []).filter((item) =>
+    promoTab === 'all' || item.promotions.some((promo) => (promoTab === 'discount' ? promo.type === 'DISCOUNT' : promo.type !== 'DISCOUNT')),
+  );
+
   // 홈 이벤트 코너: 진행 중 이벤트 중 '홈 우선 노출' 먼저, 최대 4개
   const { data: homeEvents = [] } = useQuery({
     queryKey: ['events', 'home'],
@@ -494,6 +506,41 @@ export default function HomePage() {
             })}
           </div>
         </section>
+
+        {(promoData || []).length > 0 && (
+          <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+            <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
+              <h2 className="flex items-center gap-2 text-xl font-black">
+                <BadgePercent className="h-5 w-5 text-red-500" />
+                이벤트 작품
+              </h2>
+              <Link href={`/promotions?tab=${promoTab}`} className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">
+                전체보기 →
+              </Link>
+            </div>
+            <div className="mb-3 flex gap-1.5" role="tablist" aria-label="이벤트 종류">
+              {PROMO_TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={promoTab === key}
+                  onClick={() => setPromoTab(key)}
+                  className={`rounded-full px-3.5 py-1.5 text-sm font-black transition ${promoTab === key ? 'bg-[#00dc64] text-black' : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:bg-[#181818] dark:text-gray-300'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {promoItems.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-gray-200 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">해당 이벤트 작품이 없습니다.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+                {promoItems.slice(0, 6).map((item) => <PromoCard key={item.id} item={item} />)}
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
           <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">

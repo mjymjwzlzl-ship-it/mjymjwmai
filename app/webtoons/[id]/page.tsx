@@ -40,6 +40,9 @@ interface Episode {
   ownPrice?: number;
   rentPrice?: number | null;
   rentalDays?: number;
+  originalOwnPrice?: number;
+  originalRentPrice?: number;
+  promoFree?: boolean;
 }
 
 interface WebtoonDetail {
@@ -155,6 +158,8 @@ const WebtoonDetailPage = () => {
   const { locale, t } = useLanguage();
   const [webtoon, setWebtoon] = useState<WebtoonDetail | null>(null);
   const [allEpisodes, setAllEpisodes] = useState<Episode[]>([]);
+  // 진행 중인 할인·무료 이벤트 (회차 목록 위에 안내)
+  const [promotions, setPromotions] = useState<{ id: string; label: string; remaining: string; endAt: string }[]>([]);
   const [similarComics, setSimilarComics] = useState<SimilarComic[]>([]);
   const [purchaseMap, setPurchaseMap] = useState<Record<string, { purchaseType: string; expiresAt: string | null }>>({});
   const [episodesLoading, setEpisodesLoading] = useState(true);
@@ -259,6 +264,7 @@ const WebtoonDetailPage = () => {
       const response = await api.get(`/frontend/comics/${params.id}/episodes`);
       if (response.data) {
         setAllEpisodes(response.data.episodes || []);
+        setPromotions(response.data.promotions || []);
       }
       // 로그인 사용자: 회차별 소장/대여 상태
       if (localStorage.getItem('authToken')) {
@@ -640,6 +646,19 @@ const WebtoonDetailPage = () => {
                 <h2 className="text-xl font-bold text-gray-950 dark:text-white">{t('detail.allEpisodes')}</h2>
                 <span className="text-gray-500 dark:text-gray-400 text-sm">{t('detail.episodeCount', { count: allEpisodes.length })}</span>
               </div>
+              {promotions.length > 0 && (
+                <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm dark:border-red-500/30 dark:bg-red-500/10">
+                  <span className="font-black text-red-600 dark:text-red-400">이벤트 진행 중</span>
+                  {promotions.map((promo) => (
+                    <span key={promo.id} className="rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white">
+                      {promo.label} · {promo.remaining}
+                    </span>
+                  ))}
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {new Date(promotions[0].endAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' })}까지
+                  </span>
+                </div>
+              )}
 
               {episodesLoading ? (
                 <div className="space-y-3">
@@ -682,6 +701,9 @@ const WebtoonDetailPage = () => {
                             {userProgress.readEpisodes.includes(episode.episodeNumber) && (
                               <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-500 dark:bg-white/10 dark:text-gray-400">{t('detail.read')}</span>
                             )}
+                            {episode.isFree && episode.promoFree && (
+                              <span className="rounded bg-red-600 px-2 py-0.5 text-xs font-black text-white">이벤트 무료</span>
+                            )}
                             {!episode.isFree && (() => {
                               const owned = purchaseMap[episode.id];
                               if (owned?.purchaseType === 'OWN') return <span className="rounded bg-[#00dc64]/15 px-2 py-0.5 text-xs font-bold text-[#00a84c] dark:text-[#00dc64]">소장</span>;
@@ -690,8 +712,12 @@ const WebtoonDetailPage = () => {
                               const price = 'rounded bg-yellow-400/15 px-2 py-0.5 text-xs font-bold text-yellow-700 dark:text-yellow-400';
                               return (
                                 <>
-                                  {episode.rentPrice ? <span className={price}>대여 {episode.rentPrice}코인</span> : null}
-                                  <span className={price}>소장 {episode.ownPrice || episode.coinPrice || 3}코인</span>
+                                  {typeof episode.rentPrice === 'number' ? (
+                                    <span className={price}>
+                                      {episode.rentPrice === 0 ? '무료 대여' : <>대여 {episode.originalRentPrice ? <s className="mr-0.5 opacity-60">{episode.originalRentPrice}</s> : null}{episode.rentPrice}코인</>}
+                                    </span>
+                                  ) : null}
+                                  <span className={price}>소장 {episode.originalOwnPrice ? <s className="mr-0.5 opacity-60">{episode.originalOwnPrice}</s> : null}{episode.ownPrice || episode.coinPrice || 3}코인</span>
                                 </>
                               );
                             })()}

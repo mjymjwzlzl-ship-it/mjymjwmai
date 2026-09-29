@@ -1,5 +1,6 @@
 const { guardEpisode } = require('../services/legacy-episode-access');
 const { isActivePurchase, episodePrices } = require('../services/purchase-access');
+const { isPromoFreeEpisode } = require('../services/promotions');
 const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const router = express.Router();
@@ -105,7 +106,7 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
     const episodeCoinPrice = episode.comic.episodeCoinPrice !== undefined ? episode.comic.episodeCoinPrice : 3;
     
     // 에피소드가 무료인지 확인 (paidStartEpisode가 0이면 모든 에피소드 무료)
-    const isEpisodeFree = paidStartEpisode === 0 || episode.episodeNumber < paidStartEpisode;
+    const isEpisodeFree = paidStartEpisode === 0 || episode.episodeNumber < paidStartEpisode || isPromoFreeEpisode(episode.comicId, episode.episodeNumber);
     const actualCoinPrice = isEpisodeFree ? 0 : episodeCoinPrice;
     
     // 기본 에피소드 정보
@@ -116,7 +117,7 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
       isFree: isEpisodeFree,
       coinPrice: actualCoinPrice,
       // 대여/소장 가격 (유료 회차에서만 의미 있음)
-      ...(isEpisodeFree ? {} : episodePrices(episode.comic)),
+      ...(isEpisodeFree ? {} : episodePrices(episode.comic, episode.comicId)),
       purchaseType: null,
       expiresAt: null,
       canView: false,
@@ -511,7 +512,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
     // fallback: 필드가 없는 경우 기본값 사용 (프로덕션 호환성)
     const paidStartEpisode = episode.comic.paidStartEpisode !== undefined ? episode.comic.paidStartEpisode : 0;
     const episodeCoinPrice = episode.comic.episodeCoinPrice !== undefined ? episode.comic.episodeCoinPrice : 3;
-    const isFree = paidStartEpisode === 0 || episode.episodeNumber < paidStartEpisode;
+    const isFree = paidStartEpisode === 0 || episode.episodeNumber < paidStartEpisode || isPromoFreeEpisode(episode.comicId, episode.episodeNumber);
     const coinPrice = isFree ? 0 : episodeCoinPrice;
     
     // 무료 에피소드인 경우
@@ -544,7 +545,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
     }
 
     // 유료 회차: 소장(OWN) 또는 대여(RENT)
-    const prices = episodePrices(episode.comic);
+    const prices = episodePrices(episode.comic, episode.comicId);
     const mode = String(req.body?.mode || 'OWN').toUpperCase() === 'RENT' && prices.rentalEnabled ? 'RENT' : 'OWN';
     const price = mode === 'RENT' ? prices.rentPrice : prices.ownPrice;
     const parseEpisodeImages = () => {

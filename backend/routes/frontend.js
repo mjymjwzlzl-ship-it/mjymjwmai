@@ -1,5 +1,6 @@
 const { guardEpisode } = require('../services/legacy-episode-access');
 const { episodePrices } = require('../services/purchase-access');
+const { isPromoFreeEpisode, activePromotions, describePromotion } = require('../services/promotions');
 const { optionalAuth } = require('../middleware/auth');
 const { guardComicParam, requireVerifiedAdultMode, generalComicWhere } = require('../services/adult-access');
 const { getJwtSecret } = require('../lib/jwt-secret');
@@ -715,7 +716,7 @@ router.get('/comics/:id/recent-episodes', async (req, res) => {
     });
 
     const formattedEpisodes = episodes.map(ep => {
-      const isFree = comic.paidStartEpisode === 0 || ep.episodeNumber < comic.paidStartEpisode;
+      const isFree = comic.paidStartEpisode === 0 || ep.episodeNumber < comic.paidStartEpisode || isPromoFreeEpisode(id, ep.episodeNumber);
       const coinPrice = isFree ? 0 : (comic.episodeCoinPrice || 3);
       
       return {
@@ -903,7 +904,7 @@ router.get('/comics/:id', async (req, res) => {
       voiceVideoUrl: voiceVideoUrl, // voice.mp4 URL 추가
       episodes: comic.episodes.map(ep => {
         // 웹툰의 paidStartEpisode 설정에 따라 무료/유료 결정
-        const isFree = comic.paidStartEpisode === 0 || ep.episodeNumber < comic.paidStartEpisode;
+        const isFree = comic.paidStartEpisode === 0 || ep.episodeNumber < comic.paidStartEpisode || isPromoFreeEpisode(comic.id, ep.episodeNumber);
         const coinPrice = isFree ? 0 : (comic.episodeCoinPrice || 3);
         
         return {
@@ -974,7 +975,7 @@ router.get('/comics/:id/episodes', async (req, res) => {
       }
     });
     // 회차 구매창과 같은 가격 규칙 (목록에 '대여 N코인 · 소장 N코인' 으로 표기)
-    const prices = episodePrices(comicSettings);
+    const prices = episodePrices(comicSettings, id);
 
     // voice.mp4 URL 결정
     let voiceVideoUrl = null;
@@ -998,7 +999,7 @@ router.get('/comics/:id/episodes', async (req, res) => {
     const formattedEpisodes = episodes.map(ep => {
       // DB의 에피소드별 설정 사용
       // 열람 권한(episode-policy)과 같은 기준: 작품의 '몇 화부터 유료' 설정이 정답
-      const isFree = comicSettings.paidStartEpisode === 0 || ep.episodeNumber < comicSettings.paidStartEpisode;
+      const isFree = comicSettings.paidStartEpisode === 0 || ep.episodeNumber < comicSettings.paidStartEpisode || isPromoFreeEpisode(id, ep.episodeNumber);
       const coinPrice = isFree ? 0 : prices.ownPrice;
 
       return {
@@ -1014,6 +1015,10 @@ router.get('/comics/:id/episodes', async (req, res) => {
         ownPrice: isFree ? 0 : prices.ownPrice,
         rentPrice: isFree || !prices.rentalEnabled ? null : prices.rentPrice,
         rentalDays: prices.rentalDays,
+        // 프로모션: 원래 가격(할인 전)과 '이벤트로 무료' 여부
+        originalOwnPrice: isFree ? undefined : prices.originalOwnPrice,
+        originalRentPrice: isFree || !prices.rentalEnabled ? undefined : prices.originalRentPrice,
+        promoFree: isFree && !(comicSettings.paidStartEpisode === 0 || ep.episodeNumber < comicSettings.paidStartEpisode),
         isLocked: false,
         voiceVideoUrl: voiceVideoUrl // voice.mp4 URL 추가
       };
@@ -1021,7 +1026,8 @@ router.get('/comics/:id/episodes', async (req, res) => {
 
     res.json({
       episodes: formattedEpisodes,
-      total: formattedEpisodes.length
+      total: formattedEpisodes.length,
+      promotions: activePromotions(id).map((promo) => describePromotion(promo)),
     });
 
   } catch (error) {

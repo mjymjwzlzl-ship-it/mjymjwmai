@@ -732,3 +732,21 @@ model Event {
   @@index([isActive, startAt])
   @@map("events")
 }
+
+// 작품 프로모션 (할인·무료). 기간 안에서만 적용되고, 끝나면 목록·가격에서 자동으로 빠진다.
+// DISCOUNT: 유료 회차 대여·소장가 value% 할인 / FREE_EPISODES: 1~value화 무료 / FREE_RENTAL: 유료 회차 무료 대여
+model ComicPromotion {
+  id        String    @id @default(cuid())
+  comicId   String
+  type      String    // DISCOUNT | FREE_EPISODES | FREE_RENTAL
+  value     Int       @default(0)
+  title     String?   // 목록에 보일 짧은 문구 (비우면 자동)
+  startAt   DateTime
+  endAt     DateTime
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([comicId, isActive])
+  @@map("comic_promotions")
+}

@@ -321,6 +321,7 @@ app.use('/api/creator', creatorRouter);
 app.use('/api/comics', comicsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/frontend', require('./routes/rankings')); // 인기·실시간·유형별 TOP 랭킹
+app.use('/api', require('./routes/promotions')); // 할인·무료 이벤트 작품
 app.use('/api/frontend', frontendRouter);
 app.use('/api/episodes', episodesRouter);
 app.use('/api/payment', paymentRouter);
@@ -332,6 +333,7 @@ app.use('/api', commentsRouter); // 댓글 라우트 추가
 app.use('/api', ratingsRouter); // 평점 라우트 추가
 app.use('/api', require('./routes/photobooks')); // 화보(PHOTOBOOK) 목록·상세·코인 소장
 app.use('/api', require('./routes/events')); // 이벤트 목록 + 관리자 등록·수정
+require('./services/promotions').startPromotionCache();
 app.use('/api/novels', novelsRouter); // 소설 라우트 추가
 app.use('/api/community', communityRouter); // 커뮤니티 라우트 추가
 app.use('/api/games', gamesRouter); // 게임 라우트 추가

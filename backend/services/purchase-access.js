@@ -4,14 +4,18 @@ function isActivePurchase(purchase, now = new Date()) {
   return Boolean(purchase) && (!purchase.expiresAt || new Date(purchase.expiresAt) > now);
 }
 
-function episodePrices(comic) {
+const { applyPromotionPrices } = require('./promotions');
+
+// comicId 를 주면 진행 중인 할인·무료 대여 프로모션을 반영한다
+function episodePrices(comic, comicId = comic?.id) {
   const ownPrice = comic?.episodeCoinPrice !== undefined && comic?.episodeCoinPrice !== null ? comic.episodeCoinPrice : 3;
   const rentPrice = comic?.rentalCoinPrice !== undefined && comic?.rentalCoinPrice !== null
     ? comic.rentalCoinPrice
     : Math.max(1, ownPrice - 1);
   const rentalDays = comic?.rentalDays || 3;
   // 대여가가 소장가 이상이면 대여를 두는 의미가 없으므로 끈다
-  return { ownPrice, rentPrice, rentalDays, rentalEnabled: rentPrice > 0 && rentPrice < ownPrice };
+  const base = { ownPrice, rentPrice, rentalDays, rentalEnabled: rentPrice > 0 && rentPrice < ownPrice };
+  return comicId ? applyPromotionPrices(comicId, base) : base;
 }
 
 module.exports = { isActivePurchase, episodePrices };

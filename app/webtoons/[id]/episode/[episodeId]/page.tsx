@@ -44,6 +44,9 @@ interface Episode {
   coinPrice?: number;
   ownPrice?: number;
   rentPrice?: number;
+  originalOwnPrice?: number;
+  originalRentPrice?: number;
+  promotion?: { label: string; remaining: string } | null;
   rentalDays?: number;
   rentalEnabled?: boolean;
   purchaseType?: 'OWN' | 'RENT' | null;
@@ -124,7 +127,7 @@ export default function EpisodePage() {
   const [dislikeCount, setDislikeCount] = useState(0);
   const [showCoinPurchase, setShowCoinPurchase] = useState(false);
   // 구매창 대상: null 이면 지금 회차, 값이 있으면 [다음 화]로 가려던 회차
-  const [purchaseTarget, setPurchaseTarget] = useState<null | { id: string; episodeNumber: number; title: string; ownPrice: number; rentPrice?: number; rentalDays?: number; rentalEnabled?: boolean }>(null);
+  const [purchaseTarget, setPurchaseTarget] = useState<null | { id: string; episodeNumber: number; title: string; ownPrice: number; rentPrice?: number; rentalDays?: number; rentalEnabled?: boolean; originalOwnPrice?: number; originalRentPrice?: number; promotionLabel?: string }>(null);
   const [nextChecking, setNextChecking] = useState(false);
   // 회차를 못 불러온 이유 (성인인증 필요 등) — 일반 오류 화면 대신 안내
   const [accessError, setAccessError] = useState<string | null>(null);
@@ -247,6 +250,9 @@ export default function EpisodePage() {
           coinPrice: episodeData.coinPrice,
           ownPrice: episodeData.ownPrice,
           rentPrice: episodeData.rentPrice,
+          originalOwnPrice: episodeData.originalOwnPrice,
+          originalRentPrice: episodeData.originalRentPrice,
+          promotion: episodeData.promotion,
           rentalDays: episodeData.rentalDays,
           rentalEnabled: episodeData.rentalEnabled,
           purchaseType: episodeData.purchaseType,
@@ -337,6 +343,7 @@ export default function EpisodePage() {
         setPurchaseTarget({
           id: String(next.id), episodeNumber: next.episodeNumber, title: next.title,
           ownPrice: next.ownPrice || next.coinPrice || 3, rentPrice: next.rentPrice, rentalDays: next.rentalDays, rentalEnabled: next.rentalEnabled,
+          originalOwnPrice: next.originalOwnPrice, originalRentPrice: next.originalRentPrice, promotionLabel: next.promotion ? `${next.promotion.label} · ${next.promotion.remaining}` : undefined,
         });
         setShowCoinPurchase(true);
         return;
@@ -920,9 +927,10 @@ export default function EpisodePage() {
                 </span>
                 <h2 className="text-lg font-black text-gray-950 dark:text-white">유료 회차예요</h2>
                 <p className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-                  {episode.rentalEnabled && episode.rentPrice
-                    ? `대여 ${episode.rentPrice}코인(${episode.rentalDays || 3}일) · 소장 ${episode.ownPrice || episode.coinPrice}코인`
+                  {episode.rentalEnabled && typeof episode.rentPrice === 'number'
+                    ? `대여 ${episode.rentPrice === 0 ? '무료' : `${episode.rentPrice}코인`}(${episode.rentalDays || 3}일) · 소장 ${episode.ownPrice || episode.coinPrice}코인`
                     : `소장 ${episode.ownPrice || episode.coinPrice}코인`}
+                  {episode.promotion ? ` · ${episode.promotion.label}(${episode.promotion.remaining})` : ''}
                   {episode.rentalExpired ? ' · 대여 기간이 끝났어요' : ''}
                 </p>
                 <button
@@ -1133,6 +1141,9 @@ export default function EpisodePage() {
         rentPrice={purchaseTarget ? purchaseTarget.rentPrice : episode?.rentPrice}
         rentalDays={purchaseTarget ? purchaseTarget.rentalDays : episode?.rentalDays}
         rentalEnabled={purchaseTarget ? purchaseTarget.rentalEnabled : episode?.rentalEnabled}
+        originalOwnPrice={purchaseTarget ? purchaseTarget.originalOwnPrice : episode?.originalOwnPrice}
+        originalRentPrice={purchaseTarget ? purchaseTarget.originalRentPrice : episode?.originalRentPrice}
+        promotionLabel={purchaseTarget ? purchaseTarget.promotionLabel : (episode?.promotion ? `${episode.promotion.label} · ${episode.promotion.remaining}` : undefined)}
         currentlyRented={!purchaseTarget && episode?.purchaseType === 'RENT' && !!episode?.canView}
         userCoinBalance={coinBalance}
         webtoonTitle={episode?.webtoonTitle || ''}

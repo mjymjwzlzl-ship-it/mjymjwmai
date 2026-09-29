@@ -20,6 +20,10 @@ interface CoinPurchaseModalProps {
   rentalEnabled?: boolean;
   /** 이미 대여 중이면 소장 전환만 */
   currentlyRented?: boolean;
+  /** 할인 전 가격 (프로모션 중일 때만) */
+  originalOwnPrice?: number;
+  originalRentPrice?: number;
+  promotionLabel?: string;
 }
 
 export default function CoinPurchaseModal({
@@ -35,8 +39,12 @@ export default function CoinPurchaseModal({
   rentalDays = 3,
   rentalEnabled = false,
   currentlyRented = false,
+  originalOwnPrice,
+  originalRentPrice,
+  promotionLabel,
 }: CoinPurchaseModalProps) {
-  const canRent = rentalEnabled && typeof rentPrice === 'number' && rentPrice > 0 && !currentlyRented;
+  // 무료 대여 프로모션이면 대여가가 0
+  const canRent = rentalEnabled && typeof rentPrice === 'number' && rentPrice >= 0 && !currentlyRented;
   const [mode, setMode] = useState<PurchaseMode>(canRent ? 'RENT' : 'OWN');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -59,7 +67,7 @@ export default function CoinPurchaseModal({
     }
   };
 
-  const option = (value: PurchaseMode, title: string, sub: string, amount: number, Icon: typeof Clock) => {
+  const option = (value: PurchaseMode, title: string, sub: string, amount: number, Icon: typeof Clock, original?: number) => {
     const selected = mode === value;
     const affordable = userCoinBalance >= amount;
     return (
@@ -79,7 +87,8 @@ export default function CoinPurchaseModal({
           </span>
         </span>
         <span className={`flex items-center gap-1 font-black ${affordable ? 'text-yellow-400' : 'text-red-400'}`}>
-          <Coins className="h-4 w-4" />{amount}
+          {typeof original === 'number' && original > amount && <span className="text-xs font-bold text-gray-500 line-through">{original}</span>}
+          {amount === 0 ? '무료' : <><Coins className="h-4 w-4" />{amount}</>}
         </span>
       </button>
     );
@@ -99,11 +108,12 @@ export default function CoinPurchaseModal({
             {episodeNumber}화{episodeTitle ? ` · ${episodeTitle}` : ''}
           </h2>
           <p className="mt-1 text-sm text-gray-400">{currentlyRented ? '대여 중인 회차를 소장으로 바꿀 수 있어요' : '이 회차는 유료입니다'}</p>
+          {promotionLabel && <p className="mt-2 inline-block rounded bg-red-500/15 px-2 py-0.5 text-xs font-black text-red-400">{promotionLabel}</p>}
         </div>
 
         <div className="space-y-2">
-          {canRent && option('RENT', '대여', `${rentalDays}일 동안 볼 수 있어요`, rentPrice as number, Clock)}
-          {option('OWN', '소장', '기간 제한 없이 계속 볼 수 있어요', coinPrice, BookmarkCheck)}
+          {canRent && option('RENT', '대여', `${rentalDays}일 동안 볼 수 있어요`, rentPrice as number, Clock, originalRentPrice)}
+          {option('OWN', '소장', '기간 제한 없이 계속 볼 수 있어요', coinPrice, BookmarkCheck, originalOwnPrice)}
         </div>
 
         <div className="mt-4 space-y-1.5 rounded-lg bg-gray-800 p-3 text-sm">
@@ -136,7 +146,7 @@ export default function CoinPurchaseModal({
               disabled={isProcessing}
               className="flex-1 rounded-lg bg-[#00dc64] py-3 font-black text-black transition hover:brightness-95 disabled:opacity-60"
             >
-              {isProcessing ? '처리 중...' : `${price}코인으로 ${mode === 'RENT' ? '대여' : '소장'}`}
+              {isProcessing ? '처리 중...' : price === 0 ? `무료로 ${mode === 'RENT' ? '대여' : '소장'}` : `${price}코인으로 ${mode === 'RENT' ? '대여' : '소장'}`}
             </button>
           ) : (
             <button
