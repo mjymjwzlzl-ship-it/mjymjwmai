@@ -1,6 +1,7 @@
 // 작품 랭킹 (/api/frontend/rankings)
 // - popular  [인기 작품]  : 누적 지표 = 누적 조회수 + 찜 수 × 10 + 회차 평점 합계(평균 × 참여 수)
 // - realtime [실시간 랭킹]: 최근 24시간 회차 조회 수 (조회가 있었던 작품만)
+// - new      [신작]      : 런칭(등록)일 최신순, 7일 이내는 isNew
 // - webtoon / book / novel [TOP N]: 유형별 인기 점수 순. N 은 등록 작품 수에 맞춰 20·50·100 중 하나
 // 성인 작품은 제외한다 (홈·일반 목록용).
 const express = require('express');
@@ -9,7 +10,7 @@ const { generalComicWhere } = require('../services/adult-access');
 const { contentTypeOf } = require('../lib/content-format');
 
 const router = express.Router();
-const KINDS = ['popular', 'realtime', 'webtoon', 'book', 'novel'];
+const KINDS = ['popular', 'realtime', 'new', 'webtoon', 'book', 'novel'];
 const REALTIME_HOURS = 24;
 
 const topSize = (count) => (count > 50 ? 100 : count > 20 ? 50 : 20);
@@ -53,6 +54,8 @@ async function buildRankings() {
       ratingCount: rating.count,
       recentViews: recentById.get(comic.id) || 0,
       popularScore: comic.viewCount + likes * 10 + rating.sum,
+      launchedAt: comic.createdAt,
+      isNew: Date.now() - new Date(comic.createdAt).getTime() <= 7 * 24 * 60 * 60 * 1000,
     };
   });
 
@@ -60,7 +63,8 @@ async function buildRankings() {
   const popular = [...items].sort(byPopular);
   const realtime = items.filter((item) => item.recentViews > 0).sort((a, b) => b.recentViews - a.recentViews || byPopular(a, b));
   const ofType = (type) => popular.filter((item) => item.contentType === type);
-  return { popular, realtime, webtoon: ofType('webtoon'), book: ofType('book'), novel: [] };
+  const newest = [...items].sort((a, b) => new Date(b.launchedAt).getTime() - new Date(a.launchedAt).getTime() || byPopular(a, b));
+  return { popular, realtime, new: newest, webtoon: ofType('webtoon'), book: ofType('book'), novel: [] };
 }
 
 // 집계는 1분 캐시 (홈에서 자주 불린다)
@@ -81,7 +85,7 @@ router.get('/rankings', async (req, res) => {
     const result = {};
     for (const kind of kinds) {
       const list = data[kind];
-      const top = kind === 'popular' || kind === 'realtime' ? Math.min(list.length, 100) : Math.min(list.length, topSize(list.length));
+      const top = kind === 'new' ? Math.min(list.length, 20) : kind === 'popular' || kind === 'realtime' ? Math.min(list.length, 100) : Math.min(list.length, topSize(list.length));
       result[kind] = { total: list.length, top, items: withRank(list, Math.min(limit, top)) };
     }
     res.set('Cache-Control', 'public, max-age=60');
