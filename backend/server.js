@@ -320,6 +320,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/creator', creatorRouter);
 app.use('/api/comics', comicsRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/frontend', require('./routes/rankings')); // 인기·실시간·유형별 TOP 랭킹
 app.use('/api/frontend', frontendRouter);
 app.use('/api/episodes', episodesRouter);
 app.use('/api/payment', paymentRouter);

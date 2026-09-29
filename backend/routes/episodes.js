@@ -233,13 +233,14 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
       }
 
       // 조회 기록 저장 (비동기)
-      if (userId) {
+      // 비로그인 조회도 시각을 남긴다 (실시간 랭킹 = 최근 24시간 조회 수)
+      {
         setImmediate(async () => {
           try {
             await prisma.view.create({
               data: {
                 episodeId: episodeId,
-                userId: userId,
+                userId: userId || null,
                 comicId: episode.comicId
               }
             });

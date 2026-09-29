@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, Gift, Heart, Sparkles } from 'lucide-react';
+import { Eye, Gift, Heart, Sparkles, Trophy } from 'lucide-react';
 import EventCard, { type SiteEvent } from '@/components/events/EventCard';
+import { RANKING_KINDS, RankingCard, RankingEmpty, rankingCriteria, rankingLabel, type RankingKind, type RankingResponse } from '@/components/ranking/rankingShared';
 import MainBannerRail, { MainBannerItem } from '@/components/ui/MainBannerRail';
 import Skeleton from '@/components/ui/Skeleton';
 import { api } from '@/lib/api';
@@ -250,6 +251,15 @@ export default function HomePage() {
 
   const [weekday, setWeekday] = useState<WeekdayKey | null>(null);
 
+  // 홈 랭킹 코너: 탭마다 5개만, 나머지는 [전체 랭킹 보기]
+  const [rankingKind, setRankingKind] = useState<RankingKind>('popular');
+  const { data: rankingData } = useQuery({
+    queryKey: ['rankings', 'home'],
+    queryFn: async () => (await api.get('/frontend/rankings', { params: { limit: 6 } })).data as RankingResponse,
+    retry: false,
+  });
+  const rankingList = rankingData?.rankings?.[rankingKind];
+
   // 홈 이벤트 코너: 진행 중 이벤트 중 '홈 우선 노출' 먼저, 최대 4개
   const { data: homeEvents = [] } = useQuery({
     queryKey: ['events', 'home'],
@@ -476,6 +486,44 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
+        </section>
+
+        <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+          <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
+            <h2 className="flex items-center gap-2 text-xl font-black">
+              <Trophy className="h-5 w-5 text-[#00dc64]" />
+              작품 랭킹
+            </h2>
+            <Link href={`/ranking?tab=${rankingKind}`} className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">
+              전체 랭킹 보기 →
+            </Link>
+          </div>
+          <div className="no-scrollbar mb-2 flex gap-1.5 overflow-x-auto" role="tablist" aria-label="랭킹 종류">
+            {RANKING_KINDS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={rankingKind === key}
+                onClick={() => setRankingKind(key)}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
+                  rankingKind === key
+                    ? 'bg-[#00dc64] text-black'
+                    : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:bg-[#181818] dark:text-gray-300'
+                }`}
+              >
+                {rankingLabel(key, rankingData?.rankings?.[key])}
+              </button>
+            ))}
+          </div>
+          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{rankingCriteria(rankingKind, rankingData?.realtimeHours)}</p>
+          {!rankingList || rankingList.items.length === 0 ? (
+            rankingData ? <RankingEmpty kind={rankingKind} /> : <div className="h-40 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
+          ) : (
+            <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+              {rankingList.items.map((item) => <RankingCard key={item.id} item={item} kind={rankingKind} />)}
+            </div>
+          )}
         </section>
 
         <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
