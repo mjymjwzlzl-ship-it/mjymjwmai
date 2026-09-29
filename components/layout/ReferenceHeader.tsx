@@ -38,7 +38,7 @@ const navItems = [
   { href: '/novel', labelKey: 'nav.novels', icon: BookOpen, mobilePrimary: true },
   { href: '/chat', labelKey: 'nav.chat', icon: MessageCircle },
   { href: '#shortform', labelKey: 'nav.shortAnime', icon: PlaySquare, comingSoon: true },
-  { href: '/library', labelKey: 'nav.gallery', icon: Image },
+  { href: '/gallery', labelKey: 'nav.gallery', icon: Image },
   { href: '/community', labelKey: 'nav.community', icon: ClipboardList },
   { href: '/games', labelKey: 'nav.games', icon: Gamepad2 },
 ];

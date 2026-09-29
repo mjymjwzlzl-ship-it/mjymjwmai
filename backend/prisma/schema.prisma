@@ -65,6 +65,7 @@ model User {
   purchases       Purchase[]
   ratings         Rating[]
   comicRatings    ComicRating[]
+  contentPurchases UserContentPurchase[]
   
   // 작가센터 관계
   author      Author?
@@ -660,4 +661,51 @@ model ChatMessage {
 // ComicStatus: ONGOING, COMPLETED, HIATUS
 // ReportStatus: PENDING, RESOLVED, REJECTED
 // TransactionType: CHARGE, PURCHASE, REWARD, REFUND
-// PaymentStatus: PENDING, PAID, FAILED, CANCELLED, REFUNDED 
+// PaymentStatus: PENDING, PAID, FAILED, CANCELLED, REFUNDED
+
+
+// 화보(PHOTOBOOK) 등 작품 부가 콘텐츠와 코인 구매 기록 — 제용 개발분 중 화보에 필요한 부분만 (2026-09-29)
+model UserContentPurchase {
+  id          String   @id @default(cuid())
+  userId      String
+  contentId   String
+  contentType String // EXTRA, PHOTOBOOK
+  coinAmount  Int
+  purchasedAt DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentId, contentType])
+  @@index([userId, purchasedAt])
+  @@map("user_content_purchases")
+}
+
+model ContentItem {
+  id                    String    @id @default(cuid())
+  workId                String?
+  characterId           String?
+  photobookId           String?   @unique
+  name                  String
+  thumbnail             String?
+  assetCount            Int       @default(0)
+  previewCount          Int       @default(0)
+  contentType           String // PHOTOBOOK, CHATBOT
+  contentRating         String    @default("GENERAL")
+  accessType            String    @default("COIN")
+  requiredPlan          String?
+  coinPrice             Int       @default(0)
+  isFree                Boolean   @default(false)
+  isActive              Boolean   @default(true)
+  releaseAt             DateTime?
+  assets                String? // JSON string
+  isSponsored           Boolean   @default(false)
+  sponsorName           String?
+  sponsorshipDisclosure String?
+  campaignId            String?
+  productTags           String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([workId, contentType, isActive])
+  @@index([characterId, contentType, isActive])
+  @@map("content_items")
+}
