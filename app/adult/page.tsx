@@ -59,6 +59,8 @@ export default function AdultPage() {
       });
       return response.data;
     },
+    // 성인인증된 회원만 요청 (비회원·미인증은 서버가 403 — 요청하지 않고 안내만)
+    enabled: isVerified === true,
   });
 
   const comics = comicsData?.comics || [];

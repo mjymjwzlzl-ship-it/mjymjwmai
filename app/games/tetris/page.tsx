@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Trophy, Clock, TrendingUp, Users } from 'lucide-react';
-import TetrisGame from '@/components/games/TetrisGame';
+import dynamic from 'next/dynamic';
+// 게임판은 무작위로 시작해 서버/브라우저 첫 화면이 달라진다(React #418) → 브라우저에서만 그린다
+const TetrisGame = dynamic(() => import('@/components/games/TetrisGame'), { ssr: false });
 import { api } from '@/lib/api';
 
 interface RankingEntry {

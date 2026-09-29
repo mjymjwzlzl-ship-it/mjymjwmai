@@ -186,6 +186,8 @@ app.use('/uploads', async (req, res, next) => {
       contentType = 'image/png';
     } else if (actualPath.endsWith('.webp')) {
       contentType = 'image/webp';
+    } else if (actualPath.endsWith('.svg')) {
+      contentType = 'image/svg+xml';
     } else if (actualPath.endsWith('.gif')) {
       contentType = 'image/gif';
     } else if (actualPath.endsWith('.mp4')) {
@@ -270,6 +272,7 @@ app.use('/uploads', async (req, res, next) => {
     else if (r2Key.endsWith('.jpg') || r2Key.endsWith('.jpeg')) contentType = 'image/jpeg';
     else if (r2Key.endsWith('.png')) contentType = 'image/png';
     else if (r2Key.endsWith('.gif')) contentType = 'image/gif';
+    else if (r2Key.endsWith('.svg')) contentType = 'image/svg+xml';
 
     res.set({
       'Content-Type': contentType,

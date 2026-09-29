@@ -46,8 +46,11 @@ export const getImageUrl = (imagePath: string, options?: { width?: number, noRes
     cdnPath = imagePath.startsWith('uploads/') ? `/${imagePath}` : `/uploads/${imagePath}`;
   }
 
-  // 한글 경로 URL 인코딩 (각 세그먼트별로)
-  const encodedPath = cdnPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+  // 한글 경로 URL 인코딩 (각 세그먼트별로). ?v=... 같은 쿼리는 인코딩하지 않고 그대로 둔다
+  const queryStart = cdnPath.search(/[?#]/);
+  const pathOnly = queryStart >= 0 ? cdnPath.slice(0, queryStart) : cdnPath;
+  const querySuffix = queryStart >= 0 ? cdnPath.slice(queryStart) : '';
+  const encodedPath = pathOnly.split('/').map(segment => encodeURIComponent(segment)).join('/') + querySuffix;
 
   // Cloudflare Image Resizing 적용
   if (options?.noResize) {
