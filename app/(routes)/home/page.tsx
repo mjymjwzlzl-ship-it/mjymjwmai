@@ -250,6 +250,11 @@ export default function HomePage() {
   }, []);
 
   const [weekday, setWeekday] = useState<WeekdayKey | null>(null);
+  // 검수용: /home?badgeTest=1 이면 앞의 세 작품에 UP / NEW / UP+NEW 배지를 강제로 붙여 디자인을 확인한다 (실제 조건과 무관)
+  const [badgeTest, setBadgeTest] = useState(false);
+  useEffect(() => {
+    try { setBadgeTest(new URLSearchParams(window.location.search).get('badgeTest') === '1'); } catch {}
+  }, []);
 
   // 홈 랭킹 코너: 탭마다 5개만, 나머지는 [전체 랭킹 보기]
   const [rankingKind, setRankingKind] = useState<RankingKind>('popular');
@@ -418,7 +423,6 @@ export default function HomePage() {
           </div>
           <p className="-mt-2 mb-3 text-xs text-gray-500 dark:text-gray-400">
             {activeWeekday === 'all' ? '최근 회차가 올라온 순서입니다.' : `${WEEKDAY_TABS.find((tab) => tab.key === activeWeekday)?.label}요일 연재 작품 · 최근 업데이트 순`}
-            <span className="ml-2 font-bold"><span className="text-red-600">UP</span> 오늘 새 회차 · <span className="text-[#00a84c] dark:text-[#00dc64]">NEW</span> 런칭 7일 이내</span>
           </p>
 
           <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -440,7 +444,9 @@ export default function HomePage() {
                   <Skeleton className="mt-3 h-5 w-2/3 dark:bg-gray-800" />
                 </div>
               ))}
-            {updateComics.slice(0, 8).map((comic) => (
+            {updateComics.slice(0, 8).map((listed, index) => {
+              const comic = badgeTest && index < 3 ? { ...listed, isUp: index !== 1, isNew: index !== 0 } : listed;
+              return (
               <Link
                 key={comic.id}
                 href={`/webtoons/${comic.id}`}
@@ -484,7 +490,8 @@ export default function HomePage() {
                   </div>
                 </div>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </section>
 
