@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, Share2, Settings, Eye, EyeOff, Coins, Lock, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, Share2, Settings, Eye, EyeOff, Coins, Lock, X, AlertTriangle, RotateCcw } from 'lucide-react';
 import FastImage from '@/components/ui/FastImage';
 import CommentSection from '@/components/ui/CommentSection';
 import RatingSection from '@/components/ui/RatingSection';
@@ -61,6 +61,32 @@ interface Episode {
     genre?: string;
     ageRating?: string;
   };
+}
+
+const READ_POSITION_KEY = 'arata_read_position_v1';
+type ReadPosition = { index: number; ratio: number; completed: boolean; at?: number };
+
+function readReadPosition(episodeId: string): ReadPosition | null {
+  try {
+    const all = JSON.parse(localStorage.getItem(READ_POSITION_KEY) || '{}');
+    const value = all?.[episodeId];
+    return value && typeof value.index === 'number' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeReadPosition(episodeId: string, position: ReadPosition) {
+  try {
+    const all = JSON.parse(localStorage.getItem(READ_POSITION_KEY) || '{}') || {};
+    all[episodeId] = { ...position, ratio: Math.round(position.ratio * 1000) / 1000, at: Date.now() };
+    // 오래된 기록부터 지워 300회차까지만 보관
+    const entries = Object.entries(all) as [string, ReadPosition][];
+    const trimmed = entries.length > 300
+      ? Object.fromEntries(entries.sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).slice(0, 300))
+      : all;
+    localStorage.setItem(READ_POSITION_KEY, JSON.stringify(trimmed));
+  } catch {}
 }
 
 export default function EpisodePage() {
@@ -366,22 +392,118 @@ export default function EpisodePage() {
     }
   }, [params.id, params.episodeId, fetchEpisodeData]);
 
-  // 스크롤 진행률 추적
+  // 회차별 읽던 위치: 이미지 번호 + 그 이미지 안에서의 비율로 저장 (이미지가 늦게 떠도 같은 자리로 돌아간다)
+  // 끝까지 본 회차(완독)는 다시 들어오면 회차 하단(평점·댓글·다음 화)부터 보여 준다.
+  const [restoreTarget, setRestoreTarget] = useState<null | { index: number; ratio: number; completed: boolean }>(null);
+  const [restoreNotice, setRestoreNotice] = useState<null | 'resumed' | 'completed'>(null);
+  const restoringRef = useRef(false);
+  const completedRef = useRef(false);
+  const endSectionRef = useRef<HTMLDivElement>(null);
+  const episodeKey = String(params.episodeId || '');
+  // 이미지가 다 뜨기 전에는 하단 영역이 위에 붙어 있어 완독으로 잘못 잡히므로, 다 뜬 뒤에만 완독 판정
+  const allImagesLoadedRef = useRef(false);
+  allImagesLoadedRef.current = Boolean(episode?.images?.length) && loadedImages.size >= (episode?.images?.length || 0);
+
+  // 회차가 준비되면 저장된 위치를 확인한다
   useEffect(() => {
-    const handleScroll = () => {
-      if (scrollRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        const progress = (scrollTop / (scrollHeight - clientHeight)) * 100;
-        setScrollProgress(Math.min(progress, 100));
+    if (!episode?.canView || !episode.images?.length || !episodeKey) return;
+    const saved = readReadPosition(episodeKey);
+    completedRef.current = Boolean(saved?.completed);
+    if (!saved) return;
+    if (saved.completed) {
+      restoringRef.current = true;
+      setRestoreTarget({ index: episode.images.length - 1, ratio: 1, completed: true });
+    } else if (saved.index > 0 || saved.ratio > 0.02) {
+      restoringRef.current = true;
+      setRestoreTarget({ index: Math.min(saved.index, episode.images.length - 1), ratio: saved.ratio, completed: false });
+    }
+  }, [episode?.canView, episode?.images?.length, episodeKey]);
+
+  // 목표 이미지까지 다 뜨면(또는 8초가 지나면) 그 자리로 이동
+  useEffect(() => {
+    if (!restoreTarget || !restoringRef.current) return;
+    const container = scrollRef.current;
+    if (!container) return;
+    const jump = () => {
+      if (!restoringRef.current) return;
+      restoringRef.current = false;
+      if (restoreTarget.completed && endSectionRef.current) {
+        container.scrollTo({ top: Math.max(0, endSectionRef.current.offsetTop - 16) });
+        setRestoreNotice('completed');
+      } else {
+        const el = container.querySelector<HTMLElement>(`[data-img-index="${restoreTarget.index}"]`);
+        if (el) container.scrollTo({ top: el.offsetTop + el.offsetHeight * restoreTarget.ratio });
+        setRestoreNotice('resumed');
       }
+      setRestoreTarget(null);
+    };
+    let ready = true;
+    for (let i = 0; i <= restoreTarget.index; i += 1) if (!loadedImages.has(i)) { ready = false; break; }
+    if (ready) {
+      requestAnimationFrame(jump);
+      return;
+    }
+    const timer = setTimeout(jump, 8000);
+    return () => clearTimeout(timer);
+  }, [restoreTarget, loadedImages]);
+
+  useEffect(() => {
+    if (!restoreNotice) return;
+    const timer = setTimeout(() => setRestoreNotice(null), 7000);
+    return () => clearTimeout(timer);
+  }, [restoreNotice]);
+
+  useEffect(() => {
+    setLoadedImages(new Set());
+  }, [episodeKey]);
+
+  const readFromStart = () => {
+    restoringRef.current = false;
+    setRestoreTarget(null);
+    setRestoreNotice(null);
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 스크롤 진행률 추적 + 읽던 위치 저장 (스크롤 영역은 로딩이 끝난 뒤에 생기므로 episode 기준으로 붙인다)
+  useEffect(() => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement || !episode?.canView || !episodeKey) return;
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const savePosition = () => {
+      if (restoringRef.current) return;
+      const top = scrollElement.scrollTop;
+      const images = scrollElement.querySelectorAll<HTMLElement>('[data-img-index]');
+      let index = 0;
+      let ratio = 0;
+      for (const el of Array.from(images)) {
+        if (el.offsetTop + el.offsetHeight > top) {
+          index = Number(el.dataset.imgIndex) || 0;
+          ratio = el.offsetHeight > 0 ? Math.max(0, Math.min(1, (top - el.offsetTop) / el.offsetHeight)) : 0;
+          break;
+        }
+      }
+      const end = endSectionRef.current;
+      if (end && allImagesLoadedRef.current && top + scrollElement.clientHeight >= end.offsetTop + 40) completedRef.current = true;
+      writeReadPosition(episodeKey, { index, ratio, completed: completedRef.current });
     };
 
-    const scrollElement = scrollRef.current;
-    if (scrollElement) {
-      scrollElement.addEventListener('scroll', handleScroll);
-      return () => scrollElement.removeEventListener('scroll', handleScroll);
-    }
-  }, []);
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      const progress = scrollHeight > clientHeight ? (scrollTop / (scrollHeight - clientHeight)) * 100 : 0;
+      setScrollProgress(Math.min(progress, 100));
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(savePosition, 400);
+    };
+
+    scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('pagehide', savePosition);
+    return () => {
+      if (saveTimer) clearTimeout(saveTimer);
+      scrollElement.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('pagehide', savePosition);
+    };
+  }, [episode?.canView, episodeKey, loading]);
 
   // 자동 컨트롤 숨기기
   useEffect(() => {
@@ -689,6 +811,22 @@ export default function EpisodePage() {
         </div>
       </div>
 
+      {/* 이어보기 안내: 복원 중 / 복원 후 [처음부터 보기] */}
+      {(restoreTarget || restoreNotice) && (
+        <div className="fixed inset-x-0 bottom-24 z-[70] flex justify-center px-4" role="status">
+          <div className="flex items-center gap-3 rounded-full bg-black/85 px-4 py-2.5 text-sm font-bold text-white shadow-lg">
+            <span>
+              {restoreTarget
+                ? (restoreTarget.completed ? '완독한 회차예요. 하단으로 이동 중…' : '마지막으로 본 위치로 이동 중…')
+                : restoreNotice === 'completed' ? '완독한 회차예요' : '마지막으로 본 위치부터 이어서 봅니다'}
+            </span>
+            <button type="button" onClick={readFromStart} className="rounded-full bg-[#00dc64] px-3 py-1 text-xs font-black text-black">
+              처음부터 보기
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 메인 스크롤 영역 - 안드로이드 WebView 호환성 개선 */}
       <div
         ref={scrollRef}
@@ -707,7 +845,8 @@ export default function EpisodePage() {
             // 구매했거나 무료 에피소드인 경우 이미지 표시
             episode.images.map((imageUrl, index) => (
               <FastImage
-                key={index}
+                key={`${episodeKey}-${index}`}
+                eager={restoreTarget ? index <= restoreTarget.index : false}
                 src={imageUrl}
                 alt={`${episode.title} - ${index + 1}`}
                 index={index}
@@ -807,7 +946,7 @@ export default function EpisodePage() {
           
           {/* 웹툰 이미지가 끝난 후 댓글 섹션 (네이버 웹툰 스타일) */}
           {episode?.canView && episode?.images && episode.images.length > 0 && (
-            <div className="w-full bg-gray-50 mt-8 border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800">
+            <div ref={endSectionRef} className="w-full bg-gray-50 mt-8 border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800">
               <EpisodeEndMembershipBanner />
               {/* 다음화/이전화 네비게이션 */}
               <div className="max-w-2xl mx-auto px-4 py-6">
@@ -844,6 +983,15 @@ export default function EpisodePage() {
                   </button>
                 </div>
                 
+                <button
+                  type="button"
+                  onClick={readFromStart}
+                  className="mb-6 flex w-full items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  처음부터 보기
+                </button>
+
                 {/* 작품 정보 */}
                 <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 flex items-center justify-between dark:bg-gray-800 dark:border-gray-700">
                   <div>

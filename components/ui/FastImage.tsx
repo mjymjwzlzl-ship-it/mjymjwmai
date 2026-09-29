@@ -10,6 +10,7 @@ interface FastImageProps {
   viewMode: 'fit' | 'full';
   onLoad?: () => void;
   previousLoaded?: boolean; // 이전 이미지가 로드되었는지
+  eager?: boolean; // 이어보기 위치까지는 화면 밖이어도 바로 받는다
 }
 
 const FastImage: React.FC<FastImageProps> = ({ 
@@ -18,7 +19,8 @@ const FastImage: React.FC<FastImageProps> = ({
   index, 
   viewMode, 
   onLoad,
-  previousLoaded = true // 첫 번째 이미지는 항상 로드
+  previousLoaded = true, // 첫 번째 이미지는 항상 로드
+  eager = false,
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -66,7 +68,7 @@ const FastImage: React.FC<FastImageProps> = ({
   const imageUrl = getImageUrl(src, { noResize: true });
 
   return (
-    <div className="w-full flex justify-center relative">
+    <div className="w-full flex justify-center relative" data-img-index={index}>
       {/* 에러 상태만 표시 */}
       {error && (
         <div className="flex justify-center items-center p-8">
@@ -93,7 +95,7 @@ const FastImage: React.FC<FastImageProps> = ({
           ref={imgRef}
           src={imageUrl}
           alt={alt}
-          loading={index === 0 ? 'eager' : (index < 15 ? 'eager' : 'lazy')}
+          loading={eager || index < 15 ? 'eager' : 'lazy'}
           className={`${
             viewMode === 'fit'
               ? 'w-full max-w-4xl h-auto'
