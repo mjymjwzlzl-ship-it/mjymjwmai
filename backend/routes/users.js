@@ -472,236 +472,192 @@ router.get('/comics/:comicId/read-episodes', authenticateToken, async (req, res)
   }
 });
 
-// GET: /api/users/library/reading - 최근 본 웹툰 목록 (Purchase + View 병합)
+// 내 서재 공통: 작품 카드 정보 + 마지막 업데이트(최신 회차 등록 시각)
+const LIBRARY_COMIC_SELECT = {
+  id: true,
+  title: true,
+  authorName: true,
+  thumbnail: true,
+  genre: true,
+  rating: true,
+  status: true,
+  updatedAt: true,
+  _count: { select: { episodes: true } },
+};
+
+async function latestEpisodeDates(comicIds) {
+  if (comicIds.length === 0) return new Map();
+  const rows = await prisma.episode.groupBy({
+    by: ['comicId'],
+    where: { comicId: { in: comicIds } },
+    _max: { createdAt: true },
+  });
+  return new Map(rows.map((row) => [row.comicId, row._max.createdAt]));
+}
+
+// GET: /api/users/library/reading - 열람한 작품 (열람 기록 전체, 작품별 1개)
 router.get('/library/reading', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // Purchase 기록 조회
-    const purchaseHistory = await prisma.purchase.findMany({
-      where: {
-        userId,
-        episode: {
-          comic: {
-            id: { not: undefined }
-          }
-        }
-      },
-      select: {
-        episodeId: true,
-        episode: {
-          select: {
-            episodeNumber: true,
-            comic: {
-              select: {
-                id: true,
-                title: true,
-                authorName: true,
-                thumbnail: true,
-                genre: true,
-                rating: true,
-                _count: {
-                  select: {
-                    episodes: true
-                  }
-                }
-              }
-            }
-          }
-        },
-        createdAt: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    // View 기록 조회
-    const viewHistory = await prisma.view.findMany({
-      where: {
-        userId,
-        episode: {
-          comic: {
-            id: { not: undefined }
-          }
-        }
-      },
-      select: {
-        episodeId: true,
-        episode: {
-          select: {
-            episodeNumber: true,
-            comic: {
-              select: {
-                id: true,
-                title: true,
-                authorName: true,
-                thumbnail: true,
-                genre: true,
-                rating: true,
-                _count: {
-                  select: {
-                    episodes: true
-                  }
-                }
-              }
-            }
-          }
-        },
-        createdAt: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    console.log(`[Library Reading] ${userId} - Purchase: ${purchaseHistory.length}, View: ${viewHistory.length}`);
-
-    // Purchase와 View 병합하여 웹툰별로 그룹화
-    const comicMap = new Map();
-
-    // Purchase 처리
-    purchaseHistory.forEach(record => {
-      if (!record.episode?.comic) return;
-
-      const comicId = record.episode.comic.id;
-      if (!comicMap.has(comicId)) {
-        comicMap.set(comicId, {
-          id: `read_${comicId}_${Date.now()}`,
-          comicId: comicId,
-          comic: record.episode.comic,
-          lastReadEpisodeId: record.episodeId,
-          lastReadEpisodeNumber: record.episode.episodeNumber,
-          totalEpisodes: record.episode.comic._count.episodes,
-          lastReadAt: record.createdAt
-        });
-      } else {
-        const existing = comicMap.get(comicId);
-        if (new Date(record.createdAt) > new Date(existing.lastReadAt)) {
-          existing.lastReadAt = record.createdAt;
-        }
-        if (record.episode.episodeNumber > existing.lastReadEpisodeNumber) {
-          existing.lastReadEpisodeNumber = record.episode.episodeNumber;
-          existing.lastReadEpisodeId = record.episodeId;
-        }
-      }
-    });
-
-    // View 처리
-    viewHistory.forEach(record => {
-      if (!record.episode?.comic) return;
-
-      const comicId = record.episode.comic.id;
-      if (!comicMap.has(comicId)) {
-        comicMap.set(comicId, {
-          id: `read_${comicId}_${Date.now()}`,
-          comicId: comicId,
-          comic: record.episode.comic,
-          lastReadEpisodeId: record.episodeId,
-          lastReadEpisodeNumber: record.episode.episodeNumber,
-          totalEpisodes: record.episode.comic._count.episodes,
-          lastReadAt: record.createdAt
-        });
-      } else {
-        const existing = comicMap.get(comicId);
-        if (new Date(record.createdAt) > new Date(existing.lastReadAt)) {
-          existing.lastReadAt = record.createdAt;
-        }
-        if (record.episode.episodeNumber > existing.lastReadEpisodeNumber) {
-          existing.lastReadEpisodeNumber = record.episode.episodeNumber;
-          existing.lastReadEpisodeId = record.episodeId;
-        }
-      }
-    });
-
-    // 각 웹툰의 진행률 계산 (최적화: 한 번에 모든 view 가져오기)
-    const comicIds = Array.from(comicMap.keys());
-
-    // 모든 웹툰의 view를 한 번에 가져오기
-    const allViews = await prisma.view.findMany({
-      where: {
-        userId: userId,
-        comicId: { in: comicIds },
-        episodeId: { not: null }
-      },
+    const views = await prisma.view.findMany({
+      where: { userId, episodeId: { not: null } },
       select: {
         comicId: true,
-        episodeId: true
+        episodeId: true,
+        createdAt: true,
+        episode: { select: { episodeNumber: true } },
       },
-      distinct: ['comicId', 'episodeId']
+      orderBy: { createdAt: 'desc' },
     });
 
-    // comicId별로 본 에피소드 수 계산
-    const viewCountMap = new Map();
-    allViews.forEach(view => {
-      const count = viewCountMap.get(view.comicId) || 0;
-      viewCountMap.set(view.comicId, count + 1);
-    });
+    // 작품별: 마지막 열람 시각, 가장 뒤 회차, 본 회차 수
+    const comicMap = new Map();
+    for (const view of views) {
+      if (!view.episode) continue;
+      let entry = comicMap.get(view.comicId);
+      if (!entry) {
+        entry = {
+          comicId: view.comicId,
+          lastReadEpisodeId: view.episodeId,
+          lastReadEpisodeNumber: view.episode.episodeNumber,
+          lastReadAt: view.createdAt,
+          episodes: new Set(),
+        };
+        comicMap.set(view.comicId, entry);
+      }
+      entry.episodes.add(view.episodeId);
+      if (view.episode.episodeNumber > entry.lastReadEpisodeNumber) {
+        entry.lastReadEpisodeNumber = view.episode.episodeNumber;
+        entry.lastReadEpisodeId = view.episodeId;
+      }
+    }
 
-    // 각 웹툰에 진행률 추가
-    const webtoonsWithProgress = Array.from(comicMap.values()).map(webtoon => {
-      const viewedCount = viewCountMap.get(webtoon.comicId) || 0;
-      const progress = webtoon.totalEpisodes > 0 ? Math.round((viewedCount / webtoon.totalEpisodes) * 100) : 0;
+    const comicIds = Array.from(comicMap.keys());
+    const [comics, latest] = await Promise.all([
+      prisma.comic.findMany({ where: { id: { in: comicIds } }, select: LIBRARY_COMIC_SELECT }),
+      latestEpisodeDates(comicIds),
+    ]);
+    const comicById = new Map(comics.map((comic) => [comic.id, comic]));
 
-      return {
-        ...webtoon,
-        viewedEpisodes: viewedCount,
-        progress: progress
-      };
-    });
-
-    const webtoons = webtoonsWithProgress
-      .sort((a, b) => new Date(b.lastReadAt).getTime() - new Date(a.lastReadAt).getTime())
-      .slice(0, 50); // 최대 50개까지만
-
-    console.log(`[Library Reading] ${userId} - Total webtoons: ${webtoons.length}`);
+    const webtoons = Array.from(comicMap.values())
+      .filter((entry) => comicById.has(entry.comicId))
+      .map((entry) => {
+        const comic = comicById.get(entry.comicId);
+        const totalEpisodes = comic._count.episodes;
+        const viewedEpisodes = entry.episodes.size;
+        return {
+          id: `read_${entry.comicId}`,
+          comicId: entry.comicId,
+          comic,
+          lastReadEpisodeId: entry.lastReadEpisodeId,
+          lastReadEpisodeNumber: entry.lastReadEpisodeNumber,
+          lastReadAt: entry.lastReadAt,
+          lastUpdatedAt: latest.get(entry.comicId) || comic.updatedAt,
+          totalEpisodes,
+          viewedEpisodes,
+          progress: totalEpisodes > 0 ? Math.min(100, Math.round((viewedEpisodes / totalEpisodes) * 100)) : 0,
+        };
+      })
+      .sort((a, b) => new Date(b.lastReadAt).getTime() - new Date(a.lastReadAt).getTime());
 
     res.json({ webtoons });
   } catch (error) {
-    console.error('읽은 웹툰 목록 조회 오류:', error);
-    res.status(500).json({ message: '읽은 웹툰 목록 조회 중 오류가 발생했습니다.' });
+    console.error('열람한 작품 목록 조회 오류:', error);
+    res.status(500).json({ message: '열람한 작품 목록 조회 중 오류가 발생했습니다.' });
   }
 });
 
-// GET: /api/users/library/liked - 좋아요한 웹툰 목록
+// GET: /api/users/library/liked - 찜한 작품 (전체)
 router.get('/library/liked', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
 
     const likedComics = await prisma.like.findMany({
       where: { userId },
-      select: {
-        id: true,
-        comicId: true,
-        comic: {
-          select: {
-            id: true,
-            title: true,
-            authorName: true,
-            thumbnail: true,
-            genre: true,
-            rating: true
-          }
-        },
-        createdAt: true
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: 50 // 최대 50개까지
+      select: { id: true, comicId: true, createdAt: true, comic: { select: LIBRARY_COMIC_SELECT } },
+      orderBy: { createdAt: 'desc' },
     });
+    const latest = await latestEpisodeDates(likedComics.map((like) => like.comicId));
 
-    const webtoons = likedComics.map(like => ({
-      id: like.id,
-      comicId: like.comicId,
-      comic: like.comic,
-      createdAt: like.createdAt
-    }));
+    const webtoons = likedComics
+      .filter((like) => like.comic)
+      .map((like) => ({
+        id: like.id,
+        comicId: like.comicId,
+        comic: like.comic,
+        totalEpisodes: like.comic._count.episodes,
+        lastUpdatedAt: latest.get(like.comicId) || like.comic.updatedAt,
+        createdAt: like.createdAt,
+      }));
 
     res.json({ webtoons });
   } catch (error) {
     console.error('좋아요한 웹툰 목록 조회 오류:', error);
     res.status(500).json({ message: '좋아요한 웹툰 목록 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// GET: /api/users/library/purchased - 구매 작품 (소장한 회차가 있는 작품, 대여만 한 작품 제외)
+router.get('/library/purchased', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const purchases = await prisma.purchase.findMany({
+      where: { userId, type: 'OWN' },
+      select: {
+        episodeId: true,
+        createdAt: true,
+        episode: { select: { episodeNumber: true, comicId: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const comicMap = new Map();
+    for (const purchase of purchases) {
+      if (!purchase.episode) continue;
+      const comicId = purchase.episode.comicId;
+      const entry = comicMap.get(comicId);
+      if (!entry) {
+        comicMap.set(comicId, {
+          comicId,
+          ownedEpisodes: 1,
+          lastPurchasedAt: purchase.createdAt,
+          lastOwnedEpisodeId: purchase.episodeId,
+          lastOwnedEpisodeNumber: purchase.episode.episodeNumber,
+        });
+      } else {
+        entry.ownedEpisodes += 1;
+        if (purchase.episode.episodeNumber > entry.lastOwnedEpisodeNumber) {
+          entry.lastOwnedEpisodeNumber = purchase.episode.episodeNumber;
+          entry.lastOwnedEpisodeId = purchase.episodeId;
+        }
+      }
+    }
+
+    const comicIds = Array.from(comicMap.keys());
+    const [comics, latest] = await Promise.all([
+      prisma.comic.findMany({ where: { id: { in: comicIds } }, select: LIBRARY_COMIC_SELECT }),
+      latestEpisodeDates(comicIds),
+    ]);
+    const comicById = new Map(comics.map((comic) => [comic.id, comic]));
+
+    const webtoons = Array.from(comicMap.values())
+      .filter((entry) => comicById.has(entry.comicId))
+      .map((entry) => {
+        const comic = comicById.get(entry.comicId);
+        return {
+          ...entry,
+          comic,
+          totalEpisodes: comic._count.episodes,
+          lastUpdatedAt: latest.get(entry.comicId) || comic.updatedAt,
+        };
+      });
+
+    res.json({ webtoons });
+  } catch (error) {
+    console.error('구매 작품 목록 조회 오류:', error);
+    res.status(500).json({ message: '구매 작품 목록 조회 중 오류가 발생했습니다.' });
   }
 });
 

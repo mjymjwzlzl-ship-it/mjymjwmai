@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Clock, Coins, Heart, Library, LogOut, Settings, ShieldCheck, User } from 'lucide-react';
+import { BookmarkCheck, ChevronRight, Clock, Coins, Heart, Library, LogOut, Settings, ShieldCheck, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAdultModeStore } from '@/store/adultMode';
 
@@ -28,7 +28,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const setAdultEnabled = useAdultModeStore((state) => state.setEnabled);
   const [me, setMe] = useState<Me | null>(null);
-  const [counts, setCounts] = useState({ reading: 0, liked: 0 });
+  const [counts, setCounts] = useState({ reading: 0, liked: 0, purchased: 0 });
 
   useEffect(() => {
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
@@ -49,10 +49,12 @@ export default function ProfilePage() {
     Promise.allSettled([
       api.get('/users/library/reading', { headers }),
       api.get('/users/library/liked', { headers }),
-    ]).then(([reading, liked]) => {
+      api.get('/users/library/purchased', { headers }),
+    ]).then(([reading, liked, purchased]) => {
       setCounts({
         reading: reading.status === 'fulfilled' ? reading.value.data?.webtoons?.length || 0 : 0,
         liked: liked.status === 'fulfilled' ? liked.value.data?.webtoons?.length || 0 : 0,
+        purchased: purchased.status === 'fulfilled' ? purchased.value.data?.webtoons?.length || 0 : 0,
       });
     });
   }, [router]);
@@ -130,16 +132,21 @@ export default function ProfilePage() {
         </section>
 
         {/* 내 작품 */}
-        <section className="mb-4 grid grid-cols-2 gap-3">
-          <Link href="/my/library?tab=recent" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#00dc64] dark:border-gray-800 dark:bg-[#1b1b1b]">
+        <section className="mb-4 grid grid-cols-3 gap-3">
+          <Link href="/my/library?tab=viewed" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#00dc64] dark:border-gray-800 dark:bg-[#1b1b1b]">
             <Clock className="mb-2 h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />
             <p className="text-2xl font-black">{counts.reading}</p>
-            <p className="text-xs font-bold text-gray-500 dark:text-gray-400">최근 본 작품</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400">열람한 작품</p>
           </Link>
           <Link href="/my/library?tab=liked" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#00dc64] dark:border-gray-800 dark:bg-[#1b1b1b]">
             <Heart className="mb-2 h-5 w-5 text-red-500" />
             <p className="text-2xl font-black">{counts.liked}</p>
             <p className="text-xs font-bold text-gray-500 dark:text-gray-400">찜한 작품</p>
+          </Link>
+          <Link href="/my/library?tab=purchased" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#00dc64] dark:border-gray-800 dark:bg-[#1b1b1b]">
+            <BookmarkCheck className="mb-2 h-5 w-5 text-yellow-500" />
+            <p className="text-2xl font-black">{counts.purchased}</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400">구매 작품</p>
           </Link>
         </section>
 

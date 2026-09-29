@@ -329,7 +329,7 @@ export default function ReferenceHeader() {
             <Search className="h-5 w-5" />
           </Link>
           <Link
-            href="/my/library?tab=recent"
+            href="/my/library?tab=viewed"
             className={`hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex ${
               pathname?.startsWith('/my/library') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
             }`}
