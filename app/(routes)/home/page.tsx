@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BadgePercent, Eye, Gift, Heart, Sparkles, Trophy } from 'lucide-react';
 import EventCard, { type SiteEvent } from '@/components/events/EventCard';
 import PromoCard, { PROMO_TABS, type PromoComic, type PromoTab } from '@/components/promotions/PromoCard';
-import { RANKING_KINDS, RankingCard, RankingEmpty, rankingCriteria, rankingLabel, type RankingKind, type RankingResponse } from '@/components/ranking/rankingShared';
+import { RankingSection, type RankingResponse } from '@/components/ranking/rankingShared';
 import MainBannerRail, { MainBannerItem } from '@/components/ui/MainBannerRail';
 import Skeleton from '@/components/ui/Skeleton';
 import { api } from '@/lib/api';
@@ -258,13 +258,11 @@ export default function HomePage() {
   }, []);
 
   // 홈 랭킹 코너: 탭마다 5개만, 나머지는 [전체 랭킹 보기]
-  const [rankingKind, setRankingKind] = useState<RankingKind>('popular');
   const { data: rankingData } = useQuery({
     queryKey: ['rankings', 'home'],
     queryFn: async () => (await api.get('/frontend/rankings', { params: { limit: 6 } })).data as RankingResponse,
     retry: false,
   });
-  const rankingList = rankingData?.rankings?.[rankingKind];
 
   // 홈 [이벤트 작품]: 할인·무료 진행 중인 작품, 탭별 6개
   const [promoTab, setPromoTab] = useState<PromoTab>('all');
@@ -399,7 +397,57 @@ export default function HomePage() {
       <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-6">
         <MainBannerRail items={banners} />
 
-        <section className="rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+        <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-black">
+                <Eye className="h-5 w-5" />
+                {t('home.recentWebtoons')}
+              </h2>
+            </div>
+
+            {recentComics.length > 0 ? (
+              <div className="no-scrollbar flex gap-2 overflow-x-auto pb-2">
+                {recentComics.map((comic) => (
+                  <Link
+                    key={comic.id}
+                    href={`/webtoons/${comic.id}`}
+                    className="group w-[150px] shrink-0 rounded-lg border border-gray-200 bg-white p-2 shadow-sm transition hover:border-gray-300 hover:shadow-md md:w-[168px] dark:border-gray-700 dark:bg-[#181818] dark:shadow-none"
+                  >
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-gray-200 shadow-sm transition duration-300 group-hover:-translate-y-0.5 dark:bg-gray-800">
+                      {comic.image ? (
+                        <img
+                          src={getImageUrl(comic.image, { width: 360 })}
+                          alt={comic.title}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : null}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent p-2 text-white">
+                        <p className="break-words text-sm font-black leading-snug">{comic.title}</p>
+                        {comic.lastEpisode ? (
+                          <p className="mt-0.5 text-[11px] font-bold text-white/80">
+                            {t('recent.episode', { episode: comic.lastEpisode })}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="mt-2 min-w-0">
+                      <p className="break-words text-sm font-black leading-snug group-hover:text-[#00dc64]">{comic.title}</p>
+                      {comic.author ? (
+                        <p className="mt-0.5 break-words text-xs text-gray-500 dark:text-gray-400">{comic.author}</p>
+                      ) : null}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-md border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                {t('home.noRecentWebtoons')}
+              </div>
+            )}
+          </section>
+
+        <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
           <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
             <h1 className="flex items-center gap-2 text-xl font-black">
               <span className="h-7 w-1 rounded-full bg-[#00dc64]" />
@@ -507,129 +555,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {(promoData || []).length > 0 && (
-          <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
-            <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
-              <h2 className="flex items-center gap-2 text-xl font-black">
-                <BadgePercent className="h-5 w-5 text-red-500" />
-                이벤트 작품
-              </h2>
-              <Link href={`/promotions?tab=${promoTab}`} className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">
-                전체보기 →
-              </Link>
-            </div>
-            <div className="mb-3 flex gap-1.5" role="tablist" aria-label="이벤트 종류">
-              {PROMO_TABS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={promoTab === key}
-                  onClick={() => setPromoTab(key)}
-                  className={`rounded-full px-3.5 py-1.5 text-sm font-black transition ${promoTab === key ? 'bg-[#00dc64] text-black' : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:bg-[#181818] dark:text-gray-300'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {promoItems.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-gray-200 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">해당 이벤트 작품이 없습니다.</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
-                {promoItems.slice(0, 6).map((item) => <PromoCard key={item.id} item={item} />)}
-              </div>
-            )}
-          </section>
-        )}
-
-        <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
-          <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
-            <h2 className="flex items-center gap-2 text-xl font-black">
-              <Trophy className="h-5 w-5 text-[#00dc64]" />
-              작품 랭킹
-            </h2>
-            <Link href={`/ranking?tab=${rankingKind}`} className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">
-              전체 랭킹 보기 →
-            </Link>
-          </div>
-          <div className="no-scrollbar mb-2 flex gap-1.5 overflow-x-auto" role="tablist" aria-label="랭킹 종류">
-            {RANKING_KINDS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={rankingKind === key}
-                onClick={() => setRankingKind(key)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
-                  rankingKind === key
-                    ? 'bg-[#00dc64] text-black'
-                    : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:bg-[#181818] dark:text-gray-300'
-                }`}
-              >
-                {rankingLabel(key, rankingData?.rankings?.[key])}
-              </button>
-            ))}
-          </div>
-          <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{rankingCriteria(rankingKind, rankingData?.realtimeHours)}</p>
-          {!rankingList || rankingList.items.length === 0 ? (
-            rankingData ? <RankingEmpty kind={rankingKind} /> : <div className="h-40 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
-          ) : (
-            <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-              {rankingList.items.map((item) => <RankingCard key={item.id} item={item} kind={rankingKind} />)}
-            </div>
-          )}
-        </section>
-
-        <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-base font-black">
-                <Eye className="h-5 w-5" />
-                {t('home.recentWebtoons')}
-              </h2>
-            </div>
-
-            {recentComics.length > 0 ? (
-              <div className="no-scrollbar flex gap-2 overflow-x-auto pb-2">
-                {recentComics.map((comic) => (
-                  <Link
-                    key={comic.id}
-                    href={`/webtoons/${comic.id}`}
-                    className="group w-[150px] shrink-0 rounded-lg border border-gray-200 bg-white p-2 shadow-sm transition hover:border-gray-300 hover:shadow-md md:w-[168px] dark:border-gray-700 dark:bg-[#181818] dark:shadow-none"
-                  >
-                    <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-gray-200 shadow-sm transition duration-300 group-hover:-translate-y-0.5 dark:bg-gray-800">
-                      {comic.image ? (
-                        <img
-                          src={getImageUrl(comic.image, { width: 360 })}
-                          alt={comic.title}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                          loading="lazy"
-                        />
-                      ) : null}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent p-2 text-white">
-                        <p className="break-words text-sm font-black leading-snug">{comic.title}</p>
-                        {comic.lastEpisode ? (
-                          <p className="mt-0.5 text-[11px] font-bold text-white/80">
-                            {t('recent.episode', { episode: comic.lastEpisode })}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="mt-2 min-w-0">
-                      <p className="break-words text-sm font-black leading-snug group-hover:text-[#00dc64]">{comic.title}</p>
-                      {comic.author ? (
-                        <p className="mt-0.5 break-words text-xs text-gray-500 dark:text-gray-400">{comic.author}</p>
-                      ) : null}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-md border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                {t('home.noRecentWebtoons')}
-              </div>
-            )}
-          </section>
-
         <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
           <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
             <div>
@@ -675,6 +600,46 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+
+        <RankingSection title="인기 작품" icon={<Trophy className="h-5 w-5 text-[#00dc64]" />} kinds={['popular']} data={rankingData} />
+        <RankingSection title="실시간 랭킹" icon={<Trophy className="h-5 w-5 text-red-500" />} kinds={['realtime']} data={rankingData} />
+        <RankingSection title="추천 신작" icon={<Sparkles className="h-5 w-5 text-[#00dc64]" />} kinds={['new']} data={rankingData} />
+        <RankingSection title={`TOP ${(rankingData?.rankings?.webtoon?.top || 0) > 20 ? rankingData?.rankings?.webtoon?.top : 20}`} icon={<Trophy className="h-5 w-5 text-yellow-500" />} kinds={['webtoon', 'book', 'novel']} data={rankingData} />
+
+        {(promoData || []).length > 0 && (
+          <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+            <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
+              <h2 className="flex items-center gap-2 text-xl font-black">
+                <BadgePercent className="h-5 w-5 text-red-500" />
+                이벤트 작품
+              </h2>
+              <Link href={`/promotions?tab=${promoTab}`} className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">
+                전체보기 →
+              </Link>
+            </div>
+            <div className="mb-3 flex gap-1.5" role="tablist" aria-label="이벤트 종류">
+              {PROMO_TABS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={promoTab === key}
+                  onClick={() => setPromoTab(key)}
+                  className={`rounded-full px-3.5 py-1.5 text-sm font-black transition ${promoTab === key ? 'bg-[#00dc64] text-black' : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:bg-[#181818] dark:text-gray-300'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {promoItems.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-gray-200 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">해당 이벤트 작품이 없습니다.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+                {promoItems.slice(0, 6).map((item) => <PromoCard key={item.id} item={item} />)}
+              </div>
+            )}
+          </section>
+        )}
 
         {homeEvents.length > 0 && (
           <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">

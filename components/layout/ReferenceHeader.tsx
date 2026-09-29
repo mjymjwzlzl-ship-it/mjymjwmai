@@ -94,6 +94,12 @@ export default function ReferenceHeader() {
   // 알림함: 로그인 상태면 안 읽은 알림 수를 1분마다·페이지 이동 때 확인
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [readyGifts, setReadyGifts] = useState(0);
+  // 메뉴 보유 코인: 메뉴를 열 때마다 새로 읽는다
+  const [menuWallet, setMenuWallet] = useState<{ total: number; paid: number; event: number } | null>(null);
+  useEffect(() => {
+    if (!menuOpen || !sessionUser) return;
+    api.get('/wallet').then(({ data }) => setMenuWallet({ total: data.total, paid: data.paid, event: data.event })).catch(() => {});
+  }, [menuOpen, sessionUser]);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [activeSubnav, setActiveSubnav] = useState('all');
@@ -649,6 +655,16 @@ export default function ReferenceHeader() {
                       {t('common.loggedInAs', { name: sessionUser.name })}
                     </p>
                   )}
+                  <div className="flex items-center gap-2 rounded-lg border border-[#00dc64]/30 bg-[#00dc64]/5 p-2.5">
+                    <Link href="/coin/event-coins" onClick={() => setMenuOpen(false)} className="min-w-0 flex-1" aria-label="보유 코인 상세">
+                      <span className="block text-[11px] font-bold text-gray-500 dark:text-gray-400">보유 코인</span>
+                      <span className="block text-lg font-black leading-tight text-gray-950 dark:text-white">{menuWallet ? menuWallet.total.toLocaleString() : '…'}</span>
+                      {menuWallet && menuWallet.event > 0 && (
+                        <span className="block text-[10px] text-gray-500 dark:text-gray-400">유료 {menuWallet.paid.toLocaleString()} · 이벤트 {menuWallet.event.toLocaleString()}</span>
+                      )}
+                    </Link>
+                    <Link href="/coin" onClick={() => setMenuOpen(false)} className="shrink-0 rounded-lg bg-[#00dc64] px-3 py-2 text-xs font-black text-black hover:bg-[#00c85a]">+ 충전</Link>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Link
                       href="/my/library"

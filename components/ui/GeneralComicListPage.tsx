@@ -40,6 +40,8 @@ type Comic = any;
 
 type NormalizedComic = {
   id: string;
+  isUp: boolean;
+  isNew: boolean;
   title: string;
   author: string;
   image: string;
@@ -214,6 +216,21 @@ const resolveAudience = (comic: Comic, searchableText: string): 'male' | 'female
     : 'male';
 };
 
+// 홈 [요일별 연재]와 같은 기준: [UP] 오늘(KST) 새 회차, [NEW] 런칭 7일 이내
+const KST_OFFSET = 9 * 60 * 60 * 1000;
+const kstDay = (value: string | number) => new Date(new Date(value).getTime() + KST_OFFSET).toISOString().slice(0, 10);
+const isTodayKst = (value?: string) => Boolean(value) && !Number.isNaN(new Date(value as string).getTime()) && kstDay(value as string) === kstDay(Date.now());
+const isWithin7Days = (value?: string) => {
+  const time = value ? new Date(value).getTime() : NaN;
+  return !Number.isNaN(time) && Date.now() - time <= 7 * 24 * 60 * 60 * 1000;
+};
+const WEEKDAY_TABS = [
+  { key: 'all', label: '전체' }, { key: 'mon', label: '월' }, { key: 'tue', label: '화' }, { key: 'wed', label: '수' },
+  { key: 'thu', label: '목' }, { key: 'fri', label: '금' }, { key: 'sat', label: '토' }, { key: 'sun', label: '일' },
+] as const;
+type WeekdayKey = (typeof WEEKDAY_TABS)[number]['key'];
+const todayWeekdayKst = (): WeekdayKey => (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[new Date(Date.now() + KST_OFFSET).getUTCDay()];
+
 const normalizeComic = (
   comic: Comic,
   index: number,
@@ -234,6 +251,8 @@ const normalizeComic = (
 
   return {
     id: String(comic.id),
+    isUp: isTodayKst(comic.lastEpisodeAt),
+    isNew: isWithin7Days(comic.createdAt),
     title: localizedTitle,
     author: localizeComicAuthor(comic, locale, 'ARATA'),
     image: getSpecialComicThumbnail(comic, comic.thumbnailUrl || comic.thumbnail || comic.image || ''),
@@ -291,6 +310,12 @@ export default function GeneralComicListPage({
   const [viewMode, setViewMode] = useState<ComicViewMode>('list');
   const [sort, setSort] = useState<CatalogSort>('updated');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [weekday, setWeekday] = useState<WeekdayKey>('all');
+  // 검수용: ?badgeTest=1 이면 앞의 세 작품에 UP / NEW / UP+NEW 를 강제로 표시 (홈과 동일)
+  const [badgeTest, setBadgeTest] = useState(false);
+  useEffect(() => {
+    try { setBadgeTest(new URLSearchParams(window.location.search).get('badgeTest') === '1'); } catch {}
+  }, []);
   const labels = listLabels[locale];
   const [page, setPage] = useState(1);
   const adultEnabled = useAdultModeStore((state) => state.enabled);
@@ -394,6 +419,12 @@ export default function GeneralComicListPage({
     return [];
   }, [homeData, adultHomeData, includeAdult, selectItems, adultEnabled, isLoading, locale, t]);
 
+  // 요일 편성 (관리자 > 카테고리 요일, /frontend/home 의 categories.week_mon…)
+  const weekdayIds = useMemo(() => {
+    if (weekday === 'all') return new Set<string>();
+    return new Set<string>(((homeData?.data?.categories?.[`week_${weekday}`] || []) as Comic[]).map((comic: Comic) => String(comic.id)));
+  }, [homeData, weekday]);
+
   const items = useMemo<NormalizedComic[]>(() => {
     const query = searchQuery.trim().toLowerCase();
 
@@ -415,11 +446,13 @@ export default function GeneralComicListPage({
         comic.synopsis.toLowerCase().includes(query) ||
         comic.tags.some((tag) => tag.toLowerCase().includes(query));
 
-      return categoryOk && optionOk && searchOk && matchesStatus(comic, statusFilter);
+      const weekdayOk = weekday === 'all' || weekdayIds.has(comic.id);
+      return categoryOk && optionOk && searchOk && weekdayOk && matchesStatus(comic, statusFilter);
     });
 
-    return sortCatalog(filteredItems, sort);
-  }, [activeCategory, activeOption, baseItems, searchQuery, sort, statusFilter]);
+    const sorted = sortCatalog(filteredItems, sort);
+    return badgeTest ? sorted.map((comic, index) => (index < 3 ? { ...comic, isUp: index !== 1, isNew: index !== 0 } : comic)) : sorted;
+  }, [activeCategory, activeOption, baseItems, searchQuery, sort, statusFilter, weekday, weekdayIds, badgeTest]);
 
   useEffect(() => {
     setPage(1);
@@ -513,6 +546,26 @@ export default function GeneralComicListPage({
               </div>
             </div>
 
+            {/* 요일별 연재 (홈과 같은 탭) */}
+            <div className="no-scrollbar mt-3 flex items-center gap-1.5 overflow-x-auto border-t border-gray-100 pt-3 dark:border-gray-800" role="tablist" aria-label="연재 요일">
+              <span className="mr-1 shrink-0 text-xs font-black text-gray-400">요일</span>
+              {WEEKDAY_TABS.map((tab) => {
+                const active = weekday === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => { setWeekday(tab.key); setPage(1); }}
+                    className={`min-h-9 shrink-0 rounded-full px-3 text-xs font-black transition ${active ? 'bg-[#00dc64] text-black' : 'bg-gray-100 text-gray-500 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:text-white'}`}
+                  >
+                    {tab.label}{tab.key === todayWeekdayKst() && <span className="ml-0.5 text-[10px] opacity-70">오늘</span>}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* 상태·분류 필터 / 정렬·집계 기준 (장르와 다른 줄) */}
             <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
               <div className="no-scrollbar flex min-w-0 items-center gap-1.5 overflow-x-auto" role="group" aria-label={sortChipLabels[locale].heading[0]}>
@@ -601,9 +654,11 @@ export default function GeneralComicListPage({
                         loading="lazy"
                       />
                     ) : null}
-                    {comic.isAdult && (
-                      <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-[11px] font-black text-white">
-                        19
+                    {(comic.isAdult || comic.isUp || comic.isNew) && (
+                      <span className="absolute left-2 top-2 flex items-center gap-1">
+                        {comic.isAdult && <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-[11px] font-black text-white">19</span>}
+                        {comic.isUp && <span className="rounded-sm bg-red-600 px-1.5 py-0.5 text-[10px] font-black text-white">UP</span>}
+                        {comic.isNew && <span className="rounded-sm bg-[#00dc64] px-1.5 py-0.5 text-[10px] font-black text-black">NEW</span>}
                       </span>
                     )}
                     <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white">

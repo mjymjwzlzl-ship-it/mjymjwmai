@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 import { Eye, Heart, Star } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
@@ -85,5 +86,43 @@ export function RankingEmpty({ kind }: { kind: RankingKind }) {
     <p className="rounded-lg border border-dashed border-gray-200 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
       {kind === 'novel' ? '웹소설은 준비 중이에요.' : kind === 'realtime' ? '최근 조회된 작품이 아직 없어요.' : '표시할 작품이 없어요.'}
     </p>
+  );
+}
+
+// 홈 랭킹 섹션 하나: kinds 가 여럿이면 탭(TOP 20 웹툰/단행본/웹소설), 하나면 탭 없이
+export function RankingSection({ title, icon, kinds, data, limit = 6 }: { title: string; icon: React.ReactNode; kinds: RankingKind[]; data?: RankingResponse; limit?: number }) {
+  const [kind, setKind] = React.useState<RankingKind>(kinds[0]);
+  const list = data?.rankings?.[kind];
+  return (
+    <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+      <div className="mb-3 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
+        <h2 className="flex items-center gap-2 text-xl font-black">{icon}{title}</h2>
+        <Link href={`/ranking?tab=${kind}`} className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">전체보기 →</Link>
+      </div>
+      {kinds.length > 1 && (
+        <div className="no-scrollbar mb-2 flex gap-1.5 overflow-x-auto" role="tablist" aria-label={title}>
+          {kinds.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={kind === key}
+              onClick={() => setKind(key)}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${kind === key ? 'bg-[#00dc64] text-black' : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:bg-[#181818] dark:text-gray-300'}`}
+            >
+              {key === 'webtoon' ? '웹툰' : key === 'book' ? '단행본' : key === 'novel' ? '웹소설' : rankingLabel(key, data?.rankings?.[key])}
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{rankingCriteria(kind, data?.realtimeHours)}</p>
+      {!list || list.items.length === 0 ? (
+        data ? <RankingEmpty kind={kind} /> : <div className="h-40 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
+      ) : (
+        <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+          {list.items.slice(0, limit).map((item) => <RankingCard key={item.id} item={item} kind={kind} />)}
+        </div>
+      )}
+    </section>
   );
 }
