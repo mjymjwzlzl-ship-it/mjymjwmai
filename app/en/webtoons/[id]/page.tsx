@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { goBackOr } from '@/lib/nav-history';
 import { Heart, Share2, MessageCircle, Star, Calendar, User, Play, List, ArrowLeft } from 'lucide-react';
 import { getImageUrl } from '@/lib/config';
 import { api } from '@/lib/api';
@@ -351,7 +352,7 @@ const WebtoonDetailPage = () => {
             onClick={() => {
               const isAdultContent = webtoon?.genre === 'adult' ||
                                     (webtoon?.ageRating && (webtoon.ageRating === '19' || parseInt(webtoon.ageRating) >= 19));
-              router.push(isAdultContent ? '/adult' : '/en');
+              goBackOr(router, isAdultContent ? '/adult' : '/en');
             }}
             className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
           >

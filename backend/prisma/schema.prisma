@@ -64,6 +64,7 @@ model User {
   payments        Payment[]
   purchases       Purchase[]
   ratings         Rating[]
+  comicRatings    ComicRating[]
   
   // 작가센터 관계
   author      Author?
@@ -126,6 +127,7 @@ model Comic {
   views       View[]
   reports     Report[]
   banners     Banner[]
+  comicRatings ComicRating[]
 
   @@map("comics")
 }
@@ -436,6 +438,23 @@ model Rating {
   // 유저별 에피소드당 하나의 평점만 가능
   @@unique([userId, episodeId])
   @@map("ratings")
+}
+
+// 작품 평점 (유저별 작품당 1개, 0.5 ~ 10)
+model ComicRating {
+  id        String   @id @default(cuid())
+  score     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comicId   String
+  comic     Comic    @relation(fields: [comicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, comicId])
+  @@index([comicId])
+  @@map("comic_ratings")
 }
 
 // 작가 정보 (작가센터 가입자)

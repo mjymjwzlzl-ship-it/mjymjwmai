@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { markNavigation } from '@/lib/nav-history';
 import dynamic from 'next/dynamic';
 import MobileNav from '@/components/layout/MobileNav';
 import { useInteractionStore } from '@/store/interaction';
@@ -38,6 +39,11 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const setHasInteracted = useInteractionStore((state) => state.setHasInteracted);
+
+  // 뒤로가기 버튼이 이전 목록으로 돌아갈 수 있도록 사이트 내 이동 횟수를 기록
+  useEffect(() => {
+    markNavigation();
+  }, [pathname]);
 
   useEffect(() => {
     const handleInteraction = () => {

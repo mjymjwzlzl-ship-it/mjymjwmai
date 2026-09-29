@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { goBackOr } from '@/lib/nav-history';
 import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy } from 'lucide-react';
 import CheerModal from '@/components/ui/CheerModal';
+import RatingSection from '@/components/ui/RatingSection';
 import { getImageUrl } from '@/lib/config';
 import { api } from '@/lib/api';
 import dynamic from 'next/dynamic';
@@ -431,7 +433,7 @@ const WebtoonDetailPage = () => {
                 (webtoon?.ageRating && parseInt(webtoon.ageRating) >= 19) ||
                 webtoon?.genre === 'adult';
 
-              router.push(isAdultContent ? '/adult' : '/');
+              goBackOr(router, isAdultContent ? '/adult' : '/');
             }}
             className="flex items-center space-x-2 text-gray-500 hover:text-[#00a84c] transition-colors dark:text-gray-400 dark:hover:text-white"
           >
@@ -599,6 +601,14 @@ const WebtoonDetailPage = () => {
                     {t('detail.cheerHint')}
                   </p>
                 </div>
+
+                {/* 작품 평점 (작품 단위, 회차 끝 별점 대체) */}
+                <RatingSection
+                  comicId={params.id}
+                  onRated={({ averageRating }) =>
+                    setWebtoon((prev) => (prev ? { ...prev, rating: Math.round(averageRating * 10) / 10 } : prev))
+                  }
+                />
 
                 {/* ?묓뭹 ?뚭컻 */}
                 {displayDescription && (

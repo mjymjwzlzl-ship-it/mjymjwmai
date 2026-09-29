@@ -5,10 +5,13 @@ import { Star } from 'lucide-react'
 import { api } from '@/lib/api'
 
 interface RatingSectionProps {
-  episodeId: string | string[] | number | undefined
+  episodeId?: string | string[] | number | undefined
+  // 작품 평점 모드: comicId 를 주면 작품 단위로 평가한다
+  comicId?: string | string[] | number | undefined
+  onRated?: (summary: { averageRating: number; totalRatings: number }) => void
 }
 
-const RatingSection: React.FC<RatingSectionProps> = ({ episodeId }) => {
+const RatingSection: React.FC<RatingSectionProps> = ({ episodeId, comicId, onRated }) => {
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [averageRating, setAverageRating] = useState(0)
@@ -17,33 +20,40 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Convert episodeId to string for API calls
+  // Convert ids to string for API calls
   const episodeIdStr = Array.isArray(episodeId) ? episodeId[0] : String(episodeId || '')
+  const comicIdStr = Array.isArray(comicId) ? comicId[0] : String(comicId || '')
+  const isComic = !!comicIdStr
+  const targetId = isComic ? comicIdStr : episodeIdStr
+  const summaryPath = isComic ? `/comic-ratings/${comicIdStr}` : `/episodes/${episodeIdStr}/rating`
+  const myRatingPath = isComic ? `/comic-ratings/${comicIdStr}/me` : `/episodes/${episodeIdStr}/user-rating`
 
   useEffect(() => {
     const token = localStorage.getItem('authToken')
     setIsLoggedIn(!!token)
-    if (episodeIdStr) {
+    if (targetId) {
       fetchRatingData()
     }
-  }, [episodeIdStr])
+  }, [targetId])
 
   const fetchRatingData = async () => {
+    let summary: { averageRating: number; totalRatings: number } | null = null
     try {
       // 평균 평점 가져오기
-      const response = await api.get(`/episodes/${episodeIdStr}/rating`)
+      const response = await api.get(summaryPath)
       if (response.data) {
         // Convert from 0-10 scale to 0-5 scale for display
         const avgRating = (response.data.averageRating || 0) / 2
         setAverageRating(avgRating)
         setTotalRatings(response.data.totalRatings || 0)
+        summary = { averageRating: avgRating, totalRatings: response.data.totalRatings || 0 }
       }
 
       // 사용자의 평점 확인
       const token = localStorage.getItem('authToken')
       if (token) {
         try {
-          const userRatingResponse = await api.get(`/episodes/${episodeIdStr}/user-rating`, {
+          const userRatingResponse = await api.get(myRatingPath, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
           if (userRatingResponse.data?.rating) {
@@ -59,6 +69,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId }) => {
     } catch (error) {
       console.error('평점 데이터 로드 실패:', error)
     }
+    return summary
   }
 
   const submitRating = async (stars: number) => {
@@ -76,7 +87,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId }) => {
       // Convert 1-5 stars to 2-10 score (each star = 2 points)
       const score = stars * 2
       const response = await api.post(
-        `/episodes/${episodeIdStr}/rating`,
+        summaryPath,
         { score },
         { headers: { 'Authorization': `Bearer ${token}` } }
       )
@@ -85,7 +96,8 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId }) => {
         setRating(stars)
         setHasRated(true)
         // 평점 데이터 새로고침
-        await fetchRatingData()
+        const summary = await fetchRatingData()
+        if (summary) onRated?.(summary)
       }
     } catch (error) {
       console.error('평점 저장 실패:', error)
@@ -152,14 +164,14 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId }) => {
       <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-700 dark:text-gray-300">
-            {hasRated ? '내 평점' : '이 에피소드를 평가해주세요'}
+            {hasRated ? '내 평점' : isComic ? '이 작품을 평가해주세요' : '이 에피소드를 평가해주세요'}
           </span>
           <div className="flex items-center gap-1">
             {/* 점수를 별 바로 왼쪽에 고정 */}
             <span className="text-lg font-bold text-yellow-400 w-8 text-right">
               {(hoverRating || rating) > 0 ? `${hoverRating || rating}.0` : ''}
             </span>
-            {renderStars(rating, !hasRated && isLoggedIn)}
+            {renderStars(rating, isLoggedIn && (isComic || !hasRated))}
           </div>
         </div>
         
@@ -176,7 +188,7 @@ const RatingSection: React.FC<RatingSectionProps> = ({ episodeId }) => {
         
         {hasRated && (
           <div className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
-            평점을 남겨주셔서 감사합니다!
+            {isComic ? '평점을 남겨주셔서 감사합니다! 별을 다시 누르면 바꿀 수 있어요.' : '평점을 남겨주셔서 감사합니다!'}
           </div>
         )}
         

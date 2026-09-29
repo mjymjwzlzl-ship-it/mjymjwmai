@@ -4,10 +4,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, ThumbsDown, Share2, Settings, Eye, EyeOff, Coins, Lock, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, Share2, Settings, Eye, EyeOff, Coins, Lock, X, AlertTriangle } from 'lucide-react';
 import FastImage from '@/components/ui/FastImage';
 import CommentSection from '@/components/ui/CommentSection';
-import RatingSection from '@/components/ui/RatingSection';
 import EpisodeEndMembershipBanner from '@/components/ui/EpisodeEndMembershipBanner';
 import { useAdultStore } from '@/store/adult';
 
@@ -477,31 +476,6 @@ export default function EpisodePage() {
     }
   };
 
-  // 싫어요 토글
-  const handleDislikeToggle = async () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      alert(t('webtoon.loginRequiredGeneral'));
-      router.push('/login');
-      return;
-    }
-    
-    try {
-      const response = await api.post(`/episodes/${params.episodeId}/dislike`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (response.data) {
-        setIsLiked(response.data.isLiked || false);
-        setIsDisliked(response.data.isDisliked);
-        setLikeCount(response.data.likeCount || likeCount);
-        setDislikeCount(response.data.dislikeCount || dislikeCount);
-      }
-    } catch (error) {
-      console.error('싫어요 처리 실패:', error);
-      alert('싫어요 처리 중 오류가 발생했습니다.');
-    }
-  };
 
   // 공유하기
   const handleShare = async () => {
@@ -755,15 +729,6 @@ export default function EpisodePage() {
                         <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
                         <span className="text-sm">{likeCount || 0}</span>
                       </button>
-                      <button 
-                        onClick={handleDislikeToggle}
-                        className={`flex items-center gap-1 px-3 py-2 rounded-full transition-colors ${
-                          isDisliked ? 'text-blue-500 bg-blue-500/10' : 'text-gray-500 hover:text-blue-400 bg-gray-100 dark:text-gray-400 dark:bg-gray-700'
-                        }`}
-                      >
-                        <ThumbsDown className={`w-5 h-5 ${isDisliked ? 'fill-current' : ''}`} />
-                        <span className="text-sm">{dislikeCount || 0}</span>
-                      </button>
                     </div>
                     <button 
                       onClick={handleShare}
@@ -784,7 +749,6 @@ export default function EpisodePage() {
               
               {/* 평점 및 댓글 섹션 */}
               <div className="max-w-2xl mx-auto px-4 pb-20">
-                <RatingSection episodeId={params.episodeId} />
                 <CommentSection
                   episodeId={params.episodeId}
                 />

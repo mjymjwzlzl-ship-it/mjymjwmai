@@ -138,29 +138,6 @@ router.post('/episodes/:episodeId/rating', authenticateToken, async (req, res) =
       data: { rating: parseFloat(averageRating.toFixed(1)) }
     });
 
-    // Comic 전체 평점도 업데이트 (모든 에피소드의 평균)
-    const comicId = episode.comicId;
-    if (comicId) {
-      // 해당 웹툰의 모든 에피소드 가져오기
-      const allEpisodes = await prisma.episode.findMany({
-        where: { comicId },
-        select: { rating: true }
-      });
-
-      // 에피소드들의 평균 평점 계산
-      const episodesWithRating = allEpisodes.filter(ep => ep.rating > 0);
-      if (episodesWithRating.length > 0) {
-        const totalEpisodeRating = episodesWithRating.reduce((sum, ep) => sum + ep.rating, 0);
-        const comicAverageRating = totalEpisodeRating / episodesWithRating.length;
-
-        // Comic 모델의 rating 필드 업데이트
-        await prisma.comic.update({
-          where: { id: comicId },
-          data: { rating: parseFloat(comicAverageRating.toFixed(1)) }
-        });
-      }
-    }
-
     res.json({
       message: '평점이 등록되었습니다.',
       rating: rating.score,
@@ -279,6 +256,72 @@ router.get('/episodes/:episodeId/best-comments', async (req, res) => {
   } catch (error) {
     console.error('베스트 댓글 조회 오류:', error);
     res.status(500).json({ message: '베스트 댓글 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// ── 작품 평점 (작품당 1회, 0.5 ~ 10 저장 / 화면은 5점 만점) ──
+async function comicRatingSummary(comicId) {
+  const agg = await prisma.comicRating.aggregate({
+    where: { comicId },
+    _avg: { score: true },
+    _count: { _all: true }
+  });
+  return {
+    averageRating: parseFloat((agg._avg.score || 0).toFixed(1)),
+    totalRatings: agg._count._all
+  };
+}
+
+// GET: 작품 평균 평점
+router.get('/comic-ratings/:comicId', async (req, res) => {
+  try {
+    res.json(await comicRatingSummary(req.params.comicId));
+  } catch (error) {
+    console.error('작품 평점 조회 오류:', error);
+    res.status(500).json({ message: '평점 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// GET: 내 작품 평점
+router.get('/comic-ratings/:comicId/me', authenticateToken, async (req, res) => {
+  try {
+    const rating = await prisma.comicRating.findUnique({
+      where: { userId_comicId: { userId: req.user.userId, comicId: req.params.comicId } },
+      select: { score: true }
+    });
+    res.json({ rating: rating ? rating.score : null });
+  } catch (error) {
+    console.error('작품 사용자 평점 조회 오류:', error);
+    res.status(500).json({ message: '사용자 평점 조회 중 오류가 발생했습니다.' });
+  }
+});
+
+// POST: 작품 평점 등록/수정
+router.post('/comic-ratings/:comicId', authenticateToken, async (req, res) => {
+  try {
+    const { comicId } = req.params;
+    const score = Number(req.body?.score);
+    const userId = req.user.userId;
+
+    if (!Number.isFinite(score) || score < 0.5 || score > 10) {
+      return res.status(400).json({ message: '올바른 평점을 입력해주세요. (0.5 ~ 10)' });
+    }
+
+    const comic = await prisma.comic.findUnique({ where: { id: comicId }, select: { id: true } });
+    if (!comic) {
+      return res.status(404).json({ message: '작품을 찾을 수 없습니다.' });
+    }
+
+    const rating = await prisma.comicRating.upsert({
+      where: { userId_comicId: { userId, comicId } },
+      update: { score },
+      create: { userId, comicId, score }
+    });
+
+    res.json({ message: '평점이 등록되었습니다.', rating: rating.score, ...(await comicRatingSummary(comicId)) });
+  } catch (error) {
+    console.error('작품 평점 등록 오류:', error);
+    res.status(500).json({ message: '평점 등록 중 오류가 발생했습니다.' });
   }
 });
 

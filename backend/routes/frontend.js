@@ -827,9 +827,18 @@ router.get('/comics/:id', async (req, res) => {
     // 에피소드들의 평균 별점 계산 (Episode.rating)
     // DB에 10점 만점으로 저장되어 있으므로 2로 나누어 5점 만점으로 변환
     const episodesWithRating = comic.episodes?.filter(ep => ep.rating && ep.rating > 0) || [];
-    const averageRating = episodesWithRating.length > 0
+    const episodeAverageRating = episodesWithRating.length > 0
       ? episodesWithRating.reduce((sum, ep) => sum + ep.rating, 0) / episodesWithRating.length / 2
       : 0;
+    // 작품 평점이 있으면 우선 사용, 없으면 기존 회차 평균으로 대체
+    const comicRatingAgg = await prisma.comicRating.aggregate({
+      where: { comicId: comic.id },
+      _avg: { score: true },
+      _count: { _all: true }
+    });
+    const averageRating = comicRatingAgg._count._all > 0
+      ? (comicRatingAgg._avg.score || 0) / 2
+      : episodeAverageRating;
 
     // voice.mp4 URL 결정 (메인 썸네일용)
     let voiceVideoUrl = null;
@@ -860,7 +869,8 @@ router.get('/comics/:id', async (req, res) => {
       thumbnailUrl: comic.thumbnail ? comic.thumbnail.replace(/\.(jpg|jpeg|png)$/i, '.webp') : "/api/placeholder/300/400",
       viewCount: comic.viewCount || 0,
       commentCount: comic._count?.comments || 0,
-      rating: parseFloat(averageRating.toFixed(1)), // 에피소드 평균 별점 (0~5.0)
+      rating: parseFloat(averageRating.toFixed(1)), // 작품 평점 (0~5.0)
+      ratingCount: comicRatingAgg._count._all,
       totalEpisodes: comic.episodes?.length || 0, // 실제 에피소드 수
       updatedAt: comic.updatedAt ? new Date(comic.updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       isOfficial: comic.isOfficial || false,

@@ -1,56 +1,71 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, Clock, Heart, LogOut, Settings, User } from 'lucide-react';
+import { BookOpen, ChevronRight, Clock, Coins, Heart, LogOut, Settings, ShieldCheck, User } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useAdultModeStore } from '@/store/adultMode';
+
+interface Me {
+  email?: string;
+  username?: string;
+  nickname?: string;
+  provider?: string;
+  createdAt?: string;
+  coins?: number;
+  adultVerified?: boolean;
+}
+
+const PROVIDER_LABEL: Record<string, string> = {
+  google: 'Google',
+  kakao: '카카오',
+  naver: '네이버',
+  email: '이메일',
+};
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({
-    readWebtoons: 0,
-    likedWebtoons: 0,
-    recentlyViewed: [],
-  });
+  const setAdultEnabled = useAdultModeStore((state) => state.setEnabled);
+  const [me, setMe] = useState<Me | null>(null);
+  const [counts, setCounts] = useState({ reading: 0, liked: 0 });
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-
-    if (userData && token) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      loadUserStats();
-    } else {
+    if (!token) {
       router.push('/login');
+      return;
     }
-  }, [router]);
-
-  const loadUserStats = async () => {
     try {
-      const readingResponse = await api.get('/users/library/reading');
-      const likedResponse = await api.get('/users/library/liked');
-
-      setStats({
-        readWebtoons: readingResponse.data?.webtoons?.length || 0,
-        likedWebtoons: likedResponse.data?.webtoons?.length || 0,
-        recentlyViewed: readingResponse.data?.webtoons?.slice(0, 5) || [],
-      });
-    } catch (error) {
-      console.error('사용자 통계 로드 실패:', error);
-      setStats({ readWebtoons: 0, likedWebtoons: 0, recentlyViewed: [] });
+      setMe(JSON.parse(localStorage.getItem('user') || '{}'));
+    } catch {
+      setMe({});
     }
-  };
+
+    const headers = { Authorization: `Bearer ${token}` };
+    api.get('/users/me', { headers })
+      .then(({ data }) => setMe((prev) => ({ ...prev, ...data })))
+      .catch(() => {});
+    Promise.allSettled([
+      api.get('/users/library/reading', { headers }),
+      api.get('/users/library/liked', { headers }),
+    ]).then(([reading, liked]) => {
+      setCounts({
+        reading: reading.status === 'fulfilled' ? reading.value.data?.webtoons?.length || 0 : 0,
+        liked: liked.status === 'fulfilled' ? liked.value.data?.webtoons?.length || 0 : 0,
+      });
+    });
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.push('/');
+    setAdultEnabled(false);
+    window.location.href = '/home';
   };
 
-  if (!user) {
+  if (!me) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-[#141414]">
         <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[#00dc64]" />
@@ -58,91 +73,103 @@ export default function ProfilePage() {
     );
   }
 
+  const displayName = me.nickname || me.username || (me.email ? me.email.split('@')[0] : '사용자');
+  const joined = me.createdAt ? new Date(me.createdAt).toLocaleDateString('ko-KR') : '';
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm dark:border-gray-800 dark:bg-[#141414]/95">
-        <div className="mx-auto max-w-4xl px-4">
-          <div className="flex h-16 items-center">
-            <button
-              onClick={() => router.back()}
-              className="mr-6 flex items-center gap-2 text-sm font-bold text-gray-500 transition hover:text-[#00a84c] dark:text-gray-400 dark:hover:text-[#00dc64]"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              뒤로
-            </button>
-            <h1 className="text-xl font-black">프로필</h1>
-          </div>
-        </div>
-      </header>
+      <div className="mx-auto max-w-3xl px-4 py-6">
+        <h1 className="mb-5 text-2xl font-black">마이페이지</h1>
 
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <section className="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#1b1b1b]">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#00dc64]">
-                <User className="h-10 w-10 text-black" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black">{user.nickname || user.name || user.username || '사용자'}</h2>
-                <p className="text-gray-500 dark:text-gray-400">{user.email}</p>
-                <div className="mt-2 flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-                  <span>가입일: {new Date(user.createdAt || Date.now()).toLocaleDateString('ko-KR')}</span>
-                  {user.provider && user.provider !== 'email' && (
-                    <span className="rounded bg-gray-100 px-2 py-1 text-xs dark:bg-white/10">
-                      {user.provider === 'google' ? 'Google' : 'Kakao'} 로그인
-                    </span>
-                  )}
-                </div>
+        {/* 계정 */}
+        <section className="mb-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-[#1b1b1b]">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#00dc64]">
+              <User className="h-8 w-8 text-black" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-xl font-black">{displayName}</h2>
+              {me.email && <p className="truncate text-sm text-gray-500 dark:text-gray-400">{me.email}</p>}
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                {me.provider && (
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">
+                    {PROVIDER_LABEL[me.provider] || me.provider} 로그인
+                  </span>
+                )}
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold ${
+                    me.adultVerified
+                      ? 'bg-[#00dc64]/15 text-[#00a84c] dark:text-[#00dc64]'
+                      : 'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400'
+                  }`}
+                >
+                  <ShieldCheck className="h-3 w-3" />
+                  {me.adultVerified ? '성인인증 완료' : '성인인증 전'}
+                </span>
+                {joined && <span className="text-gray-400">가입 {joined}</span>}
               </div>
             </div>
-            <button
-              onClick={() => router.push('/settings')}
-              className="rounded-lg p-2 transition hover:bg-gray-100 dark:hover:bg-white/10"
-              aria-label="설정"
-            >
-              <Settings className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <Stat icon={<BookOpen className="h-5 w-5 text-blue-500" />} value={stats.readWebtoons} label="읽은 작품" />
-            <Stat icon={<Heart className="h-5 w-5 text-red-500" />} value={stats.likedWebtoons} label="찜한 작품" />
-            <Stat icon={<Clock className="h-5 w-5 text-[#00a84c]" />} value="2h" label="오늘 이용" />
           </div>
         </section>
 
-        <section className="space-y-2">
-          <MenuButton icon={<BookOpen className="h-5 w-5 text-blue-500" />} label="내 서재" onClick={() => router.push('/library')} />
-          <MenuButton icon={<Heart className="h-5 w-5 text-red-500" />} label="찜한 작품" onClick={() => router.push('/favorites')} />
-          <MenuButton icon={<Settings className="h-5 w-5 text-[#00a84c]" />} label="설정" onClick={() => router.push('/settings')} />
-          <MenuButton icon={<LogOut className="h-5 w-5 text-gray-400" />} label="로그아웃" onClick={handleLogout} />
+        {/* 코인 */}
+        <section className="mb-4 flex items-center justify-between rounded-xl border border-[#00dc64]/30 bg-[#00dc64]/5 p-5">
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-bold text-gray-500 dark:text-gray-400">
+              <Coins className="h-4 w-4 text-yellow-500" />
+              보유 코인
+            </p>
+            <p className="mt-1 text-3xl font-black">{(me.coins ?? 0).toLocaleString()}</p>
+          </div>
+          <Link
+            href="/coin"
+            className="rounded-lg bg-[#00dc64] px-5 py-2.5 text-sm font-black text-black transition hover:bg-[#00c85a]"
+          >
+            코인 충전
+          </Link>
+        </section>
+
+        {/* 내 작품 */}
+        <section className="mb-4 grid grid-cols-2 gap-3">
+          <Link href="/my/library?tab=recent" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#00dc64] dark:border-gray-800 dark:bg-[#1b1b1b]">
+            <Clock className="mb-2 h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />
+            <p className="text-2xl font-black">{counts.reading}</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400">최근 본 작품</p>
+          </Link>
+          <Link href="/my/library?tab=liked" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#00dc64] dark:border-gray-800 dark:bg-[#1b1b1b]">
+            <Heart className="mb-2 h-5 w-5 text-red-500" />
+            <p className="text-2xl font-black">{counts.liked}</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400">찜한 작품</p>
+          </Link>
+        </section>
+
+        <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#1b1b1b]">
+          <MenuRow href="/my/library" icon={<BookOpen className="h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />} label="내 서재" />
+          <MenuRow href="/coin" icon={<Coins className="h-5 w-5 text-yellow-500" />} label="코인 충전" />
+          <MenuRow href="/settings" icon={<Settings className="h-5 w-5 text-gray-500" />} label="계정 설정" />
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 px-5 py-4 text-left text-sm font-bold text-gray-600 transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
+          >
+            <LogOut className="h-5 w-5 text-gray-400" />
+            로그아웃
+          </button>
         </section>
       </div>
     </div>
   );
 }
 
-function Stat({ icon, value, label }: { icon: React.ReactNode; value: React.ReactNode; label: string }) {
+function MenuRow({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
-    <div className="text-center">
-      <div className="mb-2 flex items-center justify-center">{icon}</div>
-      <div className="text-2xl font-black">{value}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
-    </div>
-  );
-}
-
-function MenuButton({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white p-4 text-left font-bold transition hover:bg-gray-50 dark:border-gray-800 dark:bg-[#1b1b1b] dark:hover:bg-white/5"
+    <Link
+      href={href}
+      className="flex items-center gap-3 border-b border-gray-100 px-5 py-4 text-sm font-bold transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/5"
     >
-      <span className="flex items-center gap-3">
-        {icon}
-        {label}
-      </span>
-      <span className="text-gray-400">›</span>
-    </button>
+      {icon}
+      <span className="flex-1">{label}</span>
+      <ChevronRight className="h-4 w-4 text-gray-400" />
+    </Link>
   );
 }

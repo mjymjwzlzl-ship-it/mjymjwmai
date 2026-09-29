@@ -21,6 +21,7 @@ import {
   Search,
   ClipboardList,
   Sun,
+  User,
   X,
 } from 'lucide-react';
 import { useThemeStore } from '@/store/theme';
@@ -28,7 +29,6 @@ import { useAdultModeStore } from '@/store/adultMode';
 import { useLoginModalStore } from '@/store/loginModal';
 import AgeGateModal from '@/components/ui/AgeGateModal';
 import { LANGUAGES, Locale, useLanguage } from '@/components/providers/LanguageProvider';
-import { getImageUrl } from '@/lib/utils';
 import { useDragScroll } from '@/lib/use-drag-scroll';
 
 const navItems = [
@@ -73,14 +73,6 @@ const novelSubnavItems = [
   { value: 'gl', labelKey: 'GL' },
 ];
 
-interface ViewedWebtoon {
-  webtoonId: string;
-  webtoonTitle: string;
-  lastEpisode?: number;
-  viewedAt?: string;
-  thumbnailUrl?: string;
-}
-
 export default function ReferenceHeader() {
   const pathname = usePathname();
   const { locale, setLanguage, t } = useLanguage();
@@ -94,11 +86,9 @@ export default function ReferenceHeader() {
   const [ageGateOpen, setAgeGateOpen] = useState(false);
   const setLoginModalOpen = useLoginModalStore((state) => state.setOpen);
 
-  const [recentOpen, setRecentOpen] = useState(false);
-  const [recentItems, setRecentItems] = useState<ViewedWebtoon[]>([]);
-  const recentRef = useRef<HTMLDivElement | null>(null);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sessionUser, setSessionUser] = useState<{ name: string } | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [activeSubnav, setActiveSubnav] = useState('all');
@@ -177,22 +167,9 @@ export default function ReferenceHeader() {
     hydrateAdultMode();
   }, [setStoreTheme, hydrateAdultMode]);
 
-  // 理쒓렐 蹂??묓뭹 ?쒕∼?ㅼ슫 諛붽묑 ?대┃ ???リ린
-  useEffect(() => {
-    if (!recentOpen) return;
-    const handlePointerDown = (event: PointerEvent) => {
-      if (recentRef.current && !recentRef.current.contains(event.target as Node)) {
-        setRecentOpen(false);
-      }
-    };
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [recentOpen]);
-
   // ?섏씠吏 ?대룞 ???대젮 ?덈뒗 ?⑤꼸 ?リ린
   useEffect(() => {
     setMenuOpen(false);
-    setRecentOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -255,16 +232,37 @@ export default function ReferenceHeader() {
     void verifyAdultMode();
   };
 
-  const handleRecentToggle = () => {
-    if (!recentOpen) {
-      try {
-        const history = JSON.parse(localStorage.getItem('viewedWebtoons') || '[]');
-        setRecentItems(Array.isArray(history) ? history.slice(0, 6) : []);
-      } catch {
-        setRecentItems([]);
-      }
+  // 로그인 상태: 토큰이 있으면 로그인으로 본다 (메뉴 하단 로그인/로그아웃 버튼)
+  const readSession = () => {
+    try {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+      if (!token) { setSessionUser(null); return; }
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      setSessionUser({ name: user?.nickname || user?.username || user?.name || (user?.email ? String(user.email).split('@')[0] : '') });
+    } catch {
+      setSessionUser({ name: '' });
     }
-    setRecentOpen((open) => !open);
+  };
+
+  useEffect(() => {
+    readSession();
+    const onStorage = () => readSession();
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onStorage);
+    };
+  }, [pathname, menuOpen]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setAdultEnabled(false);
+    setSessionUser(null);
+    setMenuOpen(false);
+    window.location.href = '/home';
   };
 
   const handleComingSoon = () => {
@@ -331,64 +329,38 @@ export default function ReferenceHeader() {
           >
             <Search className="h-5 w-5" />
           </Link>
-          <div className="relative hidden md:block" ref={recentRef}>
+          <Link
+            href="/my/library?tab=recent"
+            className={`hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex ${
+              pathname?.startsWith('/my/library') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
+            }`}
+            aria-label={t('recent.title')}
+            title={t('recent.title')}
+          >
+            <Clock className="h-5 w-5" />
+          </Link>
+          {sessionUser ? (
+            <Link
+              href="/profile"
+              className={`hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex ${
+                pathname?.startsWith('/profile') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
+              }`}
+              aria-label={t('common.myPage')}
+              title={t('common.myPage')}
+            >
+              <User className="h-5 w-5" />
+            </Link>
+          ) : (
             <button
               type="button"
-              onClick={handleRecentToggle}
-              className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white ${
-                recentOpen ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
-              }`}
-              aria-label={t('recent.title')}
-              aria-expanded={recentOpen}
+              onClick={() => setLoginModalOpen(true)}
+              className="hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex"
+              aria-label={t('common.loginJoin')}
+              title={t('common.loginJoin')}
             >
-              <Clock className="h-5 w-5" />
+              <User className="h-5 w-5" />
             </button>
-            {recentOpen && (
-              <div className="absolute right-0 top-11 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-[#1b1b1b]">
-                <div className="border-b border-gray-100 px-4 py-3 text-sm font-black text-gray-900 dark:border-gray-800 dark:text-white">
-                  {t('recent.title')}
-                </div>
-                {recentItems.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    {t('recent.empty')}
-                  </div>
-                ) : (
-                  <ul className="max-h-80 overflow-y-auto py-1">
-                    {recentItems.map((item) => (
-                      <li key={item.webtoonId}>
-                        <Link
-                          href={`/webtoons/${item.webtoonId}`}
-                          onClick={() => setRecentOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 transition hover:bg-gray-50 dark:hover:bg-white/5"
-                        >
-                          <span className="h-12 w-9 shrink-0 overflow-hidden rounded bg-gray-200 dark:bg-gray-800">
-                            {item.thumbnailUrl ? (
-                              <img
-                                src={getImageUrl(item.thumbnailUrl, { width: 120 })}
-                                alt=""
-                                className="h-full w-full object-cover"
-                                loading="lazy"
-                              />
-                            ) : null}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-bold text-gray-900 dark:text-white">
-                              {item.webtoonTitle}
-                            </span>
-                            {item.lastEpisode ? (
-                              <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
-                                {t('recent.episode', { episode: item.lastEpisode })}
-                              </span>
-                            ) : null}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
+          )}
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -603,16 +575,51 @@ export default function ReferenceHeader() {
               </button>
             </nav>
             <div className="shrink-0 border-t border-gray-200 p-4 dark:border-gray-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setLoginModalOpen(true);
-                }}
-                className="flex h-11 w-full items-center justify-center rounded-lg bg-[#00dc64] text-sm font-black text-black transition hover:bg-[#00c85a]"
-              >
-                {t('common.loginJoin')}
-              </button>
+              {sessionUser ? (
+                <div className="space-y-2">
+                  {sessionUser.name && (
+                    <p className="truncate text-center text-xs font-bold text-gray-500 dark:text-gray-400">
+                      {t('common.loggedInAs', { name: sessionUser.name })}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      href="/my/library"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-300 text-sm font-black text-gray-700 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:text-gray-200"
+                    >
+                      <Clock className="h-4 w-4" />
+                      {t('common.myLibrary')}
+                    </Link>
+                    <Link
+                      href="/profile"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-300 text-sm font-black text-gray-700 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:text-gray-200"
+                    >
+                      <User className="h-4 w-4" />
+                      {t('common.myPage')}
+                    </Link>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex h-11 w-full items-center justify-center rounded-lg bg-gray-900 text-sm font-black text-white transition hover:bg-black dark:bg-white/10 dark:hover:bg-white/20"
+                  >
+                    {t('common.logout')}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setLoginModalOpen(true);
+                  }}
+                  className="flex h-11 w-full items-center justify-center rounded-lg bg-[#00dc64] text-sm font-black text-black transition hover:bg-[#00c85a]"
+                >
+                  {t('common.loginJoin')}
+                </button>
+              )}
             </div>
           </div>
         </div>
