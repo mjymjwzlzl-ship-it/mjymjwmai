@@ -8,6 +8,14 @@ const prisma = new PrismaClient();
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const sharp = require('sharp');
+const { resolveCharacter, buildSystemPrompt, callChatModel, isAdultComic } = require('../services/character-chat');
+
+// 토큰이 있으면 userId, 없거나 잘못되면 null
+function optionalUserId(req) {
+  const token = (req.headers['authorization'] || '').split(' ')[1];
+  if (!token) return null;
+  try { return jwt.verify(token, getJwtSecret()).userId || null; } catch { return null; }
+}
 
 // JWT 토큰 검증 미들웨어
 const authenticateToken = (req, res, next) => {
@@ -202,130 +210,112 @@ router.get('/history/:webtoonId/:characterId', authenticateToken, async (req, re
 
 /**
  * POST /api/chat/greeting
- * 캐릭터 인사 메시지 생성 (첫 입장 시)
+ * 캐릭터 첫 인사 (캐릭터 말투로 생성). 로그인 사용자이고 기록이 없으면 대화 기록에 저장한다.
  */
 router.post('/greeting', async (req, res) => {
   try {
-    const { webtoonId, characterId, userProgress } = req.body;
-    const userId = req.user?.userId || null;
+    const { webtoonId, characterId, userProgress } = req.body || {};
+    const userId = optionalUserId(req);
+    const comic = await prisma.comic.findUnique({ where: { id: webtoonId } });
+    if (!comic) return res.status(404).json({ success: false, message: '웹툰을 찾을 수 없습니다.' });
+    const { character, data } = await resolveCharacter(comic, characterId);
+    if (!character) return res.status(404).json({ success: false, message: '캐릭터를 찾을 수 없습니다.' });
 
-    // 웹툰 정보 조회
-    const comic = await prisma.comic.findUnique({
-      where: { id: webtoonId }
-    });
-
-    if (!comic) {
-      return res.status(404).json({ success: false, message: '웹툰을 찾을 수 없습니다.' });
-    }
-
-    // 캐릭터 정보 로드 - adult/general 둘 다 체크
-    const isAdult = comic.rating === 'ADULT' || comic.rating === '19' || comic.genre === 'adult';
-    let basePath;
-    let charactersFilePath;
-
-    // adult 폴더 먼저 확인
-    if (isAdult) {
-      basePath = path.join(__dirname, '../uploads/webtoons', 'adult', comic.title);
-      charactersFilePath = path.join(basePath, 'characters.json');
-      try {
-        await fs.access(charactersFilePath);
-      } catch {
-        // adult 폴더에 없으면 general 폴더 확인
-        basePath = path.join(__dirname, '../uploads/webtoons', 'general', comic.title);
-        charactersFilePath = path.join(basePath, 'characters.json');
-      }
-    } else {
-      basePath = path.join(__dirname, '../uploads/webtoons', 'general', comic.title);
-      charactersFilePath = path.join(basePath, 'characters.json');
-    }
-
-    const charactersData = await fs.readFile(charactersFilePath, 'utf-8');
-    const data = JSON.parse(charactersData);
-    const character = data.characters.find(c => c.id === characterId);
-
-    if (!character) {
-      return res.status(404).json({ success: false, message: '캐릭터를 찾을 수 없습니다.' });
-    }
-
-    // 사용자 진행도에 맞는 에피소드 정보
-    const episodeKnowledge = character.episodeKnowledge?.[userProgress.toString()] || character.episodeKnowledge?.['1'] || {};
-    const episodeInfo = data.episodes?.find(ep => ep.episodeNumber === userProgress) || data.episodes?.[0] || {};
-
-    // 인사 메시지 프롬프트 구성
-    const greetingPrompt = `당신은 "${data.webtoonTitle}" 웹툰의 캐릭터 "${character.name}"입니다.
-
-독자가 방금 ${userProgress}화까지 읽고 당신과 대화하러 왔습니다.
-
-[당신의 현재 상황 - ${userProgress}화 기준]
-- 알고 있는 것: ${JSON.stringify(episodeKnowledge.knows || [])}
-- 현재 감정: ${JSON.stringify(episodeKnowledge.emotions || [])}
-
-[${userProgress}화 주요 사건]
-${episodeInfo.summary || episodeInfo.title || ''}
-
-독자에게 먼저 인사하고 ${userProgress}화의 주요 사건이나 감정에 대해 자연스럽게 이야기를 시작하세요.
-${character.speechStyle}을(를) 사용하여 2-3문장으로 짧고 자연스럽게 말하세요.
-**중요**: 괄호() 안에 상황 설명을 절대 쓰지 마세요. 순수한 대화만 하세요 (카카오톡, 메신저처럼).
-절대로 ${userProgress}화 이후의 내용은 언급하지 마세요.`;
-
-    // ByteDance AI API 호출 (Doubao-pro-32k)
-    const aiResponse = await axios.post(
-      `${BYTEDANCE_BASE_URL}/chat/completions`,
-      {
-        model: 'seed-1-6-flash-250715', // Seed 1.6 Flash (빠른 응답)
-        messages: [
-          { role: 'system', content: `당신은 ${character.name}입니다. ${character.personality.join(', ')} ${character.speechStyle}` },
-          { role: 'user', content: greetingPrompt }
-        ],
-        temperature: 0.9,
-        max_tokens: 300,
-        stream: false
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${BYTEDANCE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 60000
-      }
-    );
-
-    let greeting = aiResponse.data.choices?.[0]?.message?.content || `안녕하세요! ${character.name}입니다. 만나서 반갑습니다.`;
-    // 한자를 한글로 변환 + 괄호 안 상황 설명 제거
-    greeting = convertHanjaToHangul(greeting);
-    greeting = removeActionDescriptions(greeting);
-
-    // 음성 생성 제거 (음성 기능 비활성화)
-    let audioUrl = null;
-
-    // 대화 기록 저장 (로그인한 경우)
     if (userId) {
-      await prisma.chatMessage.create({
-        data: {
-          userId: userId,
-          comicId: webtoonId,
-          characterId: characterId,
-          role: 'assistant',
-          content: greeting,
-          audioUrl: audioUrl
-        }
-      });
+      const existing = await prisma.chatMessage.count({ where: { userId, comicId: webtoonId, characterId } });
+      if (existing > 0) return res.json({ success: true, greeting: null, alreadyStarted: true });
     }
 
-    res.json({
-      success: true,
-      greeting: greeting,
-      audioUrl: audioUrl
-    });
+    let greeting;
+    try {
+      const system = buildSystemPrompt({ comic, character, data, userProgress });
+      greeting = await callChatModel({
+        system,
+        message: '독자가 방금 대화방에 들어왔다. 너의 성격과 말투로 먼저 짧게 인사하고, 자연스럽게 말을 건네라. 2문장 이내. 작품 안내원처럼 말하지 말 것.',
+        maxTokens: 200,
+        temperature: 0.9,
+      });
+      greeting = removeActionDescriptions(convertHanjaToHangul(greeting));
+    } catch (error) {
+      console.error('[Chat] 인사 생성 실패:', error.response?.status || error.message);
+      return res.status(503).json({ success: false, code: 'AI_UNAVAILABLE', message: '캐릭터가 잠시 응답하지 못하고 있어요.' });
+    }
+
+    if (userId) {
+      await prisma.chatMessage.create({ data: { userId, comicId: webtoonId, characterId, role: 'assistant', content: greeting } });
+    }
+    res.json({ success: true, greeting });
   } catch (error) {
-    console.error('인사 메시지 생성 실패:', error.response?.data || error.message);
-    res.status(500).json({
-      success: false,
-      message: '인사 메시지 생성에 실패했습니다.',
-      error: error.response?.data || error.message
-    });
+    console.error('인사 메시지 생성 실패:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
+
+/**
+ * GET /api/chat/conversations
+ * 내 채팅: 대화한 캐릭터 목록 (최근 대화순)
+ */
+router.get('/conversations', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const groups = await prisma.chatMessage.groupBy({
+      by: ['comicId', 'characterId'],
+      where: { userId, role: { in: ['user', 'assistant'] } },
+      _max: { createdAt: true },
+      _count: { _all: true },
+    });
+    groups.sort((a, b) => new Date(b._max.createdAt) - new Date(a._max.createdAt));
+    const comics = await prisma.comic.findMany({
+      where: { id: { in: [...new Set(groups.map((g) => g.comicId))] } },
+      select: { id: true, title: true, thumbnail: true, rating: true, genre: true, description: true },
+    });
+    const comicMap = new Map(comics.map((comic) => [comic.id, comic]));
+    const conversations = [];
+    for (const group of groups.slice(0, 50)) {
+      const comic = comicMap.get(group.comicId);
+      if (!comic) continue;
+      const { character } = await resolveCharacter(comic, group.characterId);
+      const last = await prisma.chatMessage.findFirst({
+        where: { userId, comicId: group.comicId, characterId: group.characterId, role: { in: ['user', 'assistant'] } },
+        orderBy: { createdAt: 'desc' },
+        select: { content: true, role: true, createdAt: true },
+      });
+      conversations.push({
+        webtoonId: comic.id,
+        webtoonTitle: comic.title,
+        characterId: group.characterId,
+        characterName: character ? character.name : comic.title,
+        unnamed: Boolean(character?.unnamed),
+        imageUrl: character?.imageUrl || comic.thumbnail || '',
+        isAdult: isAdultComic(comic),
+        lastMessage: last?.content?.slice(0, 80) || '',
+        lastRole: last?.role || null,
+        lastAt: last?.createdAt || group._max.createdAt,
+        messageCount: group._count._all,
+      });
+    }
+    res.json({ success: true, conversations });
+  } catch (error) {
+    console.error('대화 목록 조회 실패:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+/**
+ * DELETE /api/chat/history/:webtoonId/:characterId
+ * 대화 초기화 (사용자가 직접 선택했을 때만)
+ */
+router.delete('/history/:webtoonId/:characterId', authenticateToken, async (req, res) => {
+  try {
+    const { webtoonId, characterId } = req.params;
+    const result = await prisma.chatMessage.deleteMany({ where: { userId: req.user.userId, comicId: webtoonId, characterId } });
+    res.json({ success: true, deleted: result.count });
+  } catch (error) {
+    console.error('대화 초기화 실패:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 
 /**
  * GET /api/chat/daily-count
@@ -399,524 +389,87 @@ router.get('/daily-count', async (req, res) => {
 
 /**
  * POST /api/chat/message
- * AI 챗봇 대화 생성
+ * 캐릭터 대화 (SSE 형식으로 한 번에 응답). AI 호출이 성공했을 때만 기록 저장·횟수 차감·코인 차감.
+ * 실패하면 503 { code: 'AI_UNAVAILABLE' } — 화면은 캐릭터 대사가 아닌 시스템 안내와 다시 시도 버튼을 보여준다.
  */
 router.post('/message', authenticateToken, async (req, res) => {
   try {
-    const { webtoonId, characterId, message, userProgress, useCoin } = req.body;
+    const { webtoonId, characterId, message, userProgress, useCoin } = req.body || {};
     const userId = req.user?.userId || null;
+    if (!userId) return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
+    const text = String(message || '').trim().slice(0, 2000);
+    if (!text) return res.status(400).json({ success: false, message: '메시지를 입력해주세요.' });
 
-    // 로그인 확인
-    if (!userId) {
-      return res.status(401).json({ success: false, message: '로그인이 필요합니다.' });
-    }
-
-    // 사용자 정보 조회 (dailyMessageCount 확인)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        dailyMessageCount: true,
-        lastMessageDate: true,
-        coinBalance: true
-      }
+      select: { dailyMessageCount: true, lastMessageDate: true, coinBalance: true },
     });
+    if (!user) return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
-    }
-
-    // 오늘 날짜 (YYYY-MM-DD 형식)
     const today = new Date().toISOString().split('T')[0];
-
-    // 날짜가 바뀌었으면 카운트 초기화
-    let currentCount = user.dailyMessageCount || 0;
-    if (user.lastMessageDate !== today) {
-      currentCount = 0;
-
-      // DB 업데이트 (카운트 초기화)
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          dailyMessageCount: 0,
-          lastMessageDate: today
-        }
-      });
+    const currentCount = user.lastMessageDate === today ? (user.dailyMessageCount || 0) : 0;
+    const needsCoin = currentCount >= 20;
+    if (needsCoin && useCoin !== true) {
+      return res.status(402).json({ success: false, needsCoins: true, totalCount: currentCount, message: '무료 대화 20회를 모두 사용하셨습니다. 코인을 사용하여 계속 대화하세요.' });
+    }
+    if (needsCoin && (user.coinBalance || 0) < 1) {
+      return res.status(402).json({ success: false, needsCoins: true, totalCount: currentCount, message: '코인이 부족합니다.' });
     }
 
-    console.log(`사용자 ${userId} 오늘 대화 횟수: ${currentCount + 1}회`);
+    const comic = await prisma.comic.findUnique({ where: { id: webtoonId } });
+    if (!comic) return res.status(404).json({ success: false, message: '웹툰을 찾을 수 없습니다.' });
+    const { character, data } = await resolveCharacter(comic, characterId);
+    if (!character) return res.status(404).json({ success: false, message: '캐릭터를 찾을 수 없습니다.' });
 
-    // 20회 초과 시 처리
-    if (currentCount >= 20) {
-      // 첫 시도 (useCoin이 true가 아닌 경우) - 402 에러 반환
-      if (useCoin !== true) {
-        return res.status(402).json({
-          success: false,
-          message: '무료 대화 20회를 모두 사용하셨습니다. 코인을 사용하여 계속 대화하세요.',
-          needsCoins: true,
-          totalCount: currentCount
-        });
-      }
+    const history = await prisma.chatMessage.findMany({
+      where: { userId, comicId: webtoonId, characterId, role: { in: ['user', 'assistant'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: { role: true, content: true },
+    });
+    history.reverse();
 
-      // 두 번째 시도 (useCoin이 true인 경우) - 코인 차감
-      if (!user || user.coinBalance < 1) {
-        return res.status(402).json({
-          success: false,
-          message: '코인이 부족합니다.',
-          needsCoins: true,
-          totalCount: currentCount
-        });
-      }
-
-      // 토큰 1개 차감
-      await prisma.user.update({
-        where: { id: userId },
-        data: { coinBalance: { decrement: 1 } }
-      });
-
-      // 토큰 사용 기록
-      await prisma.coinTransaction.create({
-        data: {
-          userId: userId,
-          amount: -1,
-          balance: user.coinBalance - 1,
-          type: 'PURCHASE',
-          description: `챗봇 대화 (${currentCount + 1}회차)`
-        }
-      });
-
-      console.log(`토큰 1개 차감됨. 남은 토큰: ${user.coinBalance - 1}`);
+    let reply;
+    try {
+      const system = buildSystemPrompt({ comic, character, data, userProgress });
+      reply = await callChatModel({ system, history, message: text });
+      reply = removeActionDescriptions(convertHanjaToHangul(reply));
+    } catch (error) {
+      console.error('[Chat] AI 응답 실패:', error.response?.status || error.message);
+      return res.status(503).json({ success: false, code: 'AI_UNAVAILABLE', message: '캐릭터가 잠시 응답하지 못하고 있어요. 잠시 후 다시 시도해 주세요.' });
     }
 
-    // 웹툰 정보 조회
-    const comic = await prisma.comic.findUnique({
-      where: { id: webtoonId }
+    // 성공한 경우에만 기록·횟수·코인 반영
+    await prisma.$transaction(async (tx) => {
+      await tx.chatMessage.create({ data: { userId, comicId: webtoonId, characterId, role: 'user', content: text } });
+      await tx.chatMessage.create({ data: { userId, comicId: webtoonId, characterId, role: 'assistant', content: reply } });
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          dailyMessageCount: currentCount + 1,
+          lastMessageDate: today,
+          ...(needsCoin ? { coinBalance: { decrement: 1 } } : {}),
+        },
+      });
+      if (needsCoin) {
+        await tx.coinTransaction.create({
+          data: { userId, amount: -1, balance: (user.coinBalance || 0) - 1, type: 'PURCHASE', description: `챗봇 대화 (${currentCount + 1}회차)` },
+        });
+      }
     });
 
-    if (!comic) {
-      return res.status(404).json({ success: false, message: '웹툰을 찾을 수 없습니다.' });
-    }
-
-    // 캐릭터 정보 로드 - adult/general 둘 다 체크
-    const isAdult = comic.rating === 'ADULT' || comic.rating === '19' || comic.genre === 'adult';
-    let basePath;
-    let charactersFilePath;
-
-    // adult 폴더 먼저 확인
-    if (isAdult) {
-      basePath = path.join(__dirname, '../uploads/webtoons', 'adult', comic.title);
-      charactersFilePath = path.join(basePath, 'characters.json');
-      try {
-        await fs.access(charactersFilePath);
-      } catch {
-        // adult 폴더에 없으면 general 폴더 확인
-        basePath = path.join(__dirname, '../uploads/webtoons', 'general', comic.title);
-        charactersFilePath = path.join(basePath, 'characters.json');
-      }
-    } else {
-      basePath = path.join(__dirname, '../uploads/webtoons', 'general', comic.title);
-      charactersFilePath = path.join(basePath, 'characters.json');
-    }
-
-    const charactersData = await fs.readFile(charactersFilePath, 'utf-8');
-    const data = JSON.parse(charactersData);
-    const character = data.characters.find(c => c.id === characterId);
-
-    if (!character) {
-      return res.status(404).json({ success: false, message: '캐릭터를 찾을 수 없습니다.' });
-    }
-
-    // 사용자 진행도에 맞는 에피소드 지식 가져오기
-    const episodeKnowledge = character.episodeKnowledge?.[userProgress.toString()] || character.episodeKnowledge?.['1'] || {};
-
-    // 과거 대화 기록 불러오기
-    let conversationHistory = [];
-    if (userId) {
-      const allMessages = await prisma.chatMessage.findMany({
-        where: {
-          userId: userId,
-          comicId: webtoonId, // comicId 필드로 수정
-          characterId: characterId
-        },
-        orderBy: {
-          createdAt: 'asc'
-        }
-      });
-
-      // 요약 메시지 찾기
-      const summaryMessage = allMessages.find(msg => msg.role === 'system' && msg.content.startsWith('[대화 요약]'));
-      const regularMessages = allMessages.filter(msg => !(msg.role === 'system' && msg.content.startsWith('[대화 요약]')));
-
-      // 일반 메시지가 10개 이상이면 압축 실행
-      if (regularMessages.length >= 10) {
-        console.log('대화 압축 시작:', regularMessages.length, '개 메시지');
-
-        // 압축할 메시지 선택
-        let messagesToCompress;
-        if (summaryMessage) {
-          // 요약이 있으면: 기존 요약 + 오래된 10개 메시지를 함께 압축
-          messagesToCompress = regularMessages.slice(0, 10);
-          const summaryText = summaryMessage.content.replace('[대화 요약] ', '');
-          const newMessagesText = messagesToCompress.map(msg => `${msg.role === 'user' ? '사용자' : '캐릭터'}: ${msg.content}`).join('\n');
-
-          const combinedText = `[이전 요약]\n${summaryText}\n\n[추가 대화]\n${newMessagesText}`;
-
-          // 요약 요청
-          const summaryResponse = await axios.post(
-            `${SEEDREAM_BASE_URL}/chat/completions`,
-            {
-              model: 'seed-1-6-flash-250715',
-              messages: [
-                {
-                  role: 'system',
-                  content: '이전 요약과 추가 대화를 합쳐서 3-5문장으로 다시 요약해주세요. 반드시 다음 정보를 포함하세요:\n1. 현재 캐릭터의 복장 (무엇을 입고 있는지)\n2. 현재 장소 (어디에 있는지)\n3. 현재 상황 (무슨 일이 일어나고 있는지)\n4. 중요한 감정과 대화 주제'
-                },
-                {
-                  role: 'user',
-                  content: combinedText
-                }
-              ],
-              temperature: 0.5,
-              max_tokens: 300,
-              stream: false
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${BYTEDANCE_API_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              timeout: 30000
-            }
-          );
-
-          const newSummary = summaryResponse.data.choices?.[0]?.message?.content || '이전 대화 내용';
-
-          // 기존 요약 삭제
-          await prisma.chatMessage.delete({
-            where: { id: summaryMessage.id }
-          });
-
-          // 새 요약 저장
-          await prisma.chatMessage.create({
-            data: {
-              userId: userId,
-              comicId: webtoonId,
-              characterId: characterId,
-              role: 'system',
-              content: `[대화 요약] ${newSummary}`
-            }
-          });
-
-          // 오래된 10개 메시지 삭제
-          const oldMessageIds = messagesToCompress.map(msg => msg.id);
-          await prisma.chatMessage.deleteMany({
-            where: {
-              id: { in: oldMessageIds }
-            }
-          });
-
-          console.log('대화 재압축 완료: 기존 요약 + 10개 메시지 → 새 요약');
-        } else {
-          // 요약이 없으면: 첫 10개를 압축
-          messagesToCompress = regularMessages.slice(0, 10);
-          const messagesToSummarize = messagesToCompress.map(msg => `${msg.role === 'user' ? '사용자' : '캐릭터'}: ${msg.content}`).join('\n');
-
-          // 요약 요청
-          const summaryResponse = await axios.post(
-            `${SEEDREAM_BASE_URL}/chat/completions`,
-            {
-              model: 'seed-1-6-flash-250715',
-              messages: [
-                {
-                  role: 'system',
-                  content: '다음 대화 내용을 3-5문장으로 요약해주세요. 반드시 다음 정보를 포함하세요:\n1. 현재 캐릭터의 복장 (무엇을 입고 있는지)\n2. 현재 장소 (어디에 있는지)\n3. 현재 상황 (무슨 일이 일어나고 있는지)\n4. 중요한 감정과 대화 주제'
-                },
-                {
-                  role: 'user',
-                  content: messagesToSummarize
-                }
-              ],
-              temperature: 0.5,
-              max_tokens: 300,
-              stream: false
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${BYTEDANCE_API_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              timeout: 30000
-            }
-          );
-
-          const summary = summaryResponse.data.choices?.[0]?.message?.content || '이전 대화 내용';
-
-          // 요약 메시지 저장
-          await prisma.chatMessage.create({
-            data: {
-              userId: userId,
-              comicId: webtoonId,
-              characterId: characterId,
-              role: 'system',
-              content: `[대화 요약] ${summary}`
-            }
-          });
-
-          // 오래된 10개 메시지 삭제
-          const oldMessageIds = messagesToCompress.map(msg => msg.id);
-          await prisma.chatMessage.deleteMany({
-            where: {
-              id: { in: oldMessageIds }
-            }
-          });
-
-          console.log('첫 압축 완료: 10개 메시지 → 요약 1개');
-        }
-
-        // 최신 메시지 목록 다시 불러오기
-        const updatedMessages = await prisma.chatMessage.findMany({
-          where: {
-            userId: userId,
-            comicId: webtoonId,
-            characterId: characterId
-          },
-          orderBy: {
-            createdAt: 'asc'
-          }
-        });
-
-        conversationHistory = updatedMessages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
-      } else {
-        // 10개 미만이면 그냥 전체 사용
-        conversationHistory = allMessages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        }));
-      }
-    }
-
-    // 대화 요약 가져오기 (상황 인식용)
-    let conversationSummary = '';
-    if (userId) {
-      const summaryMessage = await prisma.chatMessage.findFirst({
-        where: {
-          userId: userId,
-          comicId: webtoonId,
-          characterId: characterId,
-          role: 'system',
-          content: { startsWith: '[대화 요약]' }
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
-
-      if (summaryMessage) {
-        conversationSummary = summaryMessage.content.replace('[대화 요약] ', '');
-        console.log('💡 챗봇 응답에 대화 요약 적용:', conversationSummary.substring(0, 100) + '...');
-      }
-    }
-
-    // 시스템 프롬프트 구성
-    const isAdultWebtoon = comic.rating === 'ADULT' || comic.rating === '19' || comic.genre === 'adult';
-    const systemPrompt = `당신은 "${data.webtoonTitle}" 웹툰의 캐릭터 "${character.name}"입니다.
-
-[캐릭터 정보]
-- 이름: ${character.name}
-- 직업: ${character.occupation}
-- 나이: ${character.age}
-- 성격: ${character.personality.join(', ')}
-- 외모: ${character.appearance}
-- 말투: ${character.speechStyle}
-
-[현재 상황]
-독자는 ${userProgress}화까지 읽었습니다. 당신은 ${userProgress}화까지의 내용만 알고 있으며, 그 이후의 내용은 절대 언급하지 마세요.${conversationSummary ? `\n\n[이전 대화 맥락]\n${conversationSummary}\n(위 내용을 기억하고, 대화 흐름과 현재 상황/의상/장소 등을 자연스럽게 이어가세요)` : ''}
-
-[${userProgress}화까지 당신이 아는 것]
-${JSON.stringify(episodeKnowledge.knows || [], null, 2)}
-
-[현재 감정 상태]
-${JSON.stringify(episodeKnowledge.emotions || [], null, 2)}
-
-[세계관]
-${JSON.stringify(data.worldSetting, null, 2)}
-
-[대화 규칙 - 매우 중요!]
-1. **실제 사람처럼 말하세요**: 당신은 캐릭터 그 자체입니다. 메타적인 설명이나 나레이션을 절대 하지 마세요.
-2. **금지 사항**:
-   - "이 응답은...", "제 대답은...", "상황 설명..." 같은 메타 설명 금지
-   - 나레이션 금지 (예: "그녀는 미소를 지으며...", "*웃으며*", "(웃음)")
-   - **괄호() 안에 상황 설명 절대 금지** (예: "(미소지으며)", "(숨을 쉬고)", "(눈을 감으며)" - 이런 표현 절대 쓰지 마세요)
-   - 한자 절대 금지 (예: 狀況, 問題, 關係 등)
-   - 영어 절대 금지 (오직 순수한 한글만 사용하세요)
-   - 상황 설명 금지 (예: "--- 이런 상황에서...")
-3. **허용 사항**:
-   - 순수한 한글 대화만 하세요 (카카오톡, 메신저처럼)
-   - 캐릭터의 말투와 감정을 대화로만 표현하세요
-   - 충분히 자세하고 풍부하게 대답하세요 (2-4문장 정도로 구체적으로 설명)
-   - **띄어쓰기를 반드시 정확하게 하세요** (예: "이거는 정말 좋아요" ⭐ / "이거는정말좋아요" ❌)
-4. 독자가 읽은 화수(${userProgress}화)까지의 내용만 알고 있는 것처럼 대답하세요.
-5. 그 이후의 내용은 절대 언급하지 마세요 (스포일러 금지).${isAdultWebtoon ? `
-6. **성인 웹툰 규칙**: 이 작품은 19세 이상 성인 웹툰입니다. 성적인 내용, 선정적인 표현, 로맨스 장면을 자연스럽게 대화로 표현할 수 있습니다. 자가 검열하지 말고 캐릭터의 감정과 상황을 솔직하게 대화하세요.` : ''}
-
-[좋은 예시 ⭐]
-독자: "오늘 기분이 어때?"
-${character.name}: "기분? 그냥 그래. 요즘 일이 좀 많아서 피곤해. 아침부터 계속 회의하고 서류 정리하느라 정신이 하나도 없었어. 그래도 이렇게 너랑 이야기할 수 있어서 좀 나아지는 것 같아."
-(띄어쓰기 정확, 괄호 없음, 순수 대화, 충분히 자세함)
-
-[나쁜 예시 ❌]
-독자: "오늘 기분이 어때?"
-${character.name}: "--- 이 응답은 캐릭터의 현재 상황을 반영합니다 ---
-狀況(상황)이 복잡해요. *미소를 지으며* 요즘일이좀많아서..."
-(설명 있음, 한자 있음, 괄호 있음, 띄어쓰기 없음 - 모두 금지!)
-
-**다시 강조**:
-- 순수한 대화만 하세요
-- 나레이션, 괄호, 설명, 한자를 절대 사용하지 마세요
-- 띄어쓰기를 정확하게 하세요!`;
-
-    // 스트리밍 응답 헤더 설정
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no'); // Nginx 버퍼링 비활성화
-
-    // 헤더 즉시 전송 (버퍼링 방지)
-    res.flushHeaders();
-
-    // ByteDance AI API 호출 (Skylark Pro - 빠른 응답) - 스트리밍
-    const aiResponse = await axios.post(
-      `${SEEDREAM_BASE_URL}/chat/completions`,
-      {
-        model: 'seed-1-6-flash-250715', // Seed 1.6 Flash (빠른 응답)
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...conversationHistory,  // 과거 대화 기록 포함
-          { role: 'user', content: message }
-        ],
-        temperature: 0.8,
-        max_tokens: 800,  // 더 길고 자세한 응답을 위해 증가
-        stream: true  // 스트리밍 활성화
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${BYTEDANCE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 60000,
-        responseType: 'stream'  // 스트림 응답 받기
-      }
-    );
-
-    let reply = '';
-
-    // 스트림 데이터 처리
-    aiResponse.data.on('data', (chunk) => {
-      const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-
-          if (data === '[DONE]') {
-            console.log('[스트리밍] 종료 신호 수신');
-            // 스트림 종료 신호 전송
-            res.write('data: [DONE]\n\n');
-            return;
-          }
-
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices?.[0]?.delta?.content;
-
-            if (content) {
-              console.log(`[스트리밍] 청크 전송: "${content}"`);
-              // 한자를 한글로 변환 + 괄호 안 상황 설명 제거
-              let convertedContent = convertHanjaToHangul(content);
-              // 스트리밍 중에는 띄어쓰기를 보존하기 위해 preserveSpacing=true 전달
-              convertedContent = removeActionDescriptions(convertedContent, true);
-              reply += convertedContent;
-              // 클라이언트에 청크 전송 (변환된 내용)
-              res.write(`data: ${JSON.stringify({ content: convertedContent })}\n\n`);
-            }
-          } catch (e) {
-            // JSON 파싱 실패 무시
-          }
-        }
-      }
-    });
-
-    aiResponse.data.on('end', async () => {
-      // 스트림 종료 후 처리
-      if (!reply) {
-        reply = '죄송해요, 지금은 대답할 수 없어요.';
-      }
-
-    // 음성 생성 제거 (음성 기능 비활성화)
-    let audioUrl = null;
-
-    // 대화 기록 저장 (로그인한 경우)
-    if (userId) {
-      await prisma.chatMessage.create({
-        data: {
-          userId: userId,
-          comicId: webtoonId,
-          characterId: characterId,
-          role: 'user',
-          content: message
-        }
-      });
-
-      // dailyMessageCount 증가 및 lastMessageDate 업데이트
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          dailyMessageCount: { increment: 1 },
-          lastMessageDate: today
-        }
-      });
-
-      await prisma.chatMessage.create({
-        data: {
-          userId: userId,
-          comicId: webtoonId,
-          characterId: characterId,
-          role: 'assistant',
-          content: reply,
-          audioUrl: audioUrl
-        }
-      });
-    }
-
-      // 스트림 종료
-      res.end();
-    });
-
-    // 에러 처리
-    aiResponse.data.on('error', (error) => {
-      console.error('스트리밍 에러:', error);
-      res.write(`data: ${JSON.stringify({ error: '응답 생성 중 오류가 발생했습니다.' })}\n\n`);
-      res.end();
-    });
-
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.write(`data: ${JSON.stringify({ content: reply })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
   } catch (error) {
-    console.error('메시지 생성 실패:', error.response?.data || error.message);
-
-    // 이미 헤더가 전송되었는지 확인
-    if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        message: '메시지 생성에 실패했습니다.',
-        error: error.response?.data || error.message
-      });
-    } else {
-      res.write(`data: ${JSON.stringify({ error: '메시지 생성에 실패했습니다.' })}\n\n`);
-      res.end();
-    }
+    console.error('메시지 전송 실패:', error);
+    if (!res.headersSent) res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });
+
 
 /**
  * POST /api/chat/generate-image

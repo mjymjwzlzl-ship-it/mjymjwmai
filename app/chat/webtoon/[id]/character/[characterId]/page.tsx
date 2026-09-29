@@ -2,16 +2,21 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Send, User } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2, RotateCcw, Send, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/config';
+import { useLoginModalStore } from '@/store/loginModal';
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  // notice = 캐릭터 대사가 아닌 시스템 안내 (서버 지연·오류·로그인 등)
+  role: 'user' | 'assistant' | 'notice';
   content: string;
   imageUrl?: string;
   timestamp: Date;
+  failed?: boolean;
+  retryText?: string;
+  action?: 'retry' | 'login' | 'coin';
 }
 
 interface Character {
@@ -30,6 +35,7 @@ interface WebtoonInfo {
 const toParam = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
+// 캐릭터 이름 데이터가 없는 작품: 작품명을 대표 명칭으로, 역할은 주인공
 const buildFallbackCharacter = (webtoon: WebtoonInfo | null): Character => ({
   id: 'main',
   name: webtoon?.title || 'ARATA 캐릭터',
@@ -37,20 +43,19 @@ const buildFallbackCharacter = (webtoon: WebtoonInfo | null): Character => ({
   occupation: webtoon?.title ? `《${webtoon.title}》 · 주인공` : '주인공',
 });
 
-const buildGreeting = (character: Character, webtoon: WebtoonInfo | null) =>
-  `안녕하세요. ${character.id === 'main' && character.name === webtoon?.title ? `《${webtoon.title}》의 주인공` : character.name}입니다.\n${webtoon?.title ? `"${webtoon.title}" 세계관에서 ` : ''}궁금한 장면이나 캐릭터 이야기를 편하게 물어봐 주세요.`;
-
-const buildLocalReply = (character: Character, userInput: string) =>
-  `${character.name}: 지금 서버 답변이 잠시 늦어지고 있어요. 그래도 "${userInput}"에 대해 이야기할 준비는 되어 있어요. 작품 속 장면이나 캐릭터 관계를 조금 더 구체적으로 물어보면 바로 이어서 대화해볼게요.`;
+const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const authToken = () => (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null);
 
 export default function ChatPage() {
   const params = useParams();
   const router = useRouter();
+  const openLogin = useLoginModalStore((state) => state.setOpen);
   const webtoonId = toParam(params.id);
   const characterId = toParam(params.characterId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [greetingLoading, setGreetingLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [character, setCharacter] = useState<Character | null>(null);
   const [webtoon, setWebtoon] = useState<WebtoonInfo | null>(null);
@@ -65,32 +70,28 @@ export default function ChatPage() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [messages, loading, greetingLoading]);
 
   const initChat = async () => {
     if (!webtoonId || !characterId) return;
-
     setInitialLoading(true);
+    let progress = 1;
     try {
       const nextWebtoon = await loadWebtoon();
-      const nextCharacter = await loadCharacter(nextWebtoon);
-      const progress = await loadProgress();
-      await loadChatHistory(nextCharacter, nextWebtoon, progress);
+      await loadCharacter(nextWebtoon);
+      progress = await loadProgress();
       loadDailyCount();
     } finally {
       setInitialLoading(false);
     }
+    await loadChatHistory(progress);
   };
 
   const loadWebtoon = async (): Promise<WebtoonInfo | null> => {
     try {
       const response = await api.get(`/frontend/comics/${webtoonId}`);
       const data = response.data;
-      const nextWebtoon = {
-        id: data.id,
-        title: data.title,
-        thumbnail: data.thumbnailUrl || data.thumbnail || '',
-      };
+      const nextWebtoon = { id: data.id, title: data.title, thumbnail: data.thumbnailUrl || data.thumbnail || '' };
       setWebtoon(nextWebtoon);
       return nextWebtoon;
     } catch (error) {
@@ -102,23 +103,20 @@ export default function ChatPage() {
   const loadCharacter = async (nextWebtoon: WebtoonInfo | null): Promise<Character> => {
     try {
       const response = await api.get(`/chat/webtoon/${webtoonId}/characters`);
-      if (response.data?.success) {
-        const found = response.data.characters?.find((c: any) => c.id === characterId);
-        if (found) {
-          const nextCharacter = {
-            id: found.id,
-            name: found.name,
-            imageUrl: found.imageUrl || nextWebtoon?.thumbnail || '',
-            occupation: found.occupation || '작품 캐릭터',
-          };
-          setCharacter(nextCharacter);
-          return nextCharacter;
-        }
+      const found = response.data?.characters?.find((c: any) => c.id === characterId);
+      if (found) {
+        const nextCharacter = {
+          id: found.id,
+          name: found.name,
+          imageUrl: found.imageUrl || nextWebtoon?.thumbnail || '',
+          occupation: nextWebtoon?.title ? `《${nextWebtoon.title}》 · ${found.occupation || '등장인물'}` : (found.occupation || '등장인물'),
+        };
+        setCharacter(nextCharacter);
+        return nextCharacter;
       }
-    } catch (error) {
-      console.log('캐릭터 정보 로드 실패, 기본 캐릭터로 대체합니다.');
+    } catch {
+      // 기본 캐릭터로 대체
     }
-
     const fallback = buildFallbackCharacter(nextWebtoon);
     setCharacter(fallback);
     return fallback;
@@ -127,15 +125,12 @@ export default function ChatPage() {
   const loadProgress = async () => {
     let progress = 1;
     try {
-      const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-      if (authToken) {
+      if (authToken()) {
         const response = await api.get(`/users/webtoon-progress/${webtoonId}`);
-        if (response.data?.success) {
-          progress = Math.max(1, response.data.data?.maxEpisodeViewed || 1);
-        }
+        if (response.data?.success) progress = Math.max(1, response.data.data?.maxEpisodeViewed || 1);
       }
-    } catch (error) {
-      console.log('진행도 로드 실패');
+    } catch {
+      // 진행도 없으면 1화 기준
     }
     setUserProgress(progress);
     return progress;
@@ -143,160 +138,149 @@ export default function ChatPage() {
 
   const loadDailyCount = async () => {
     try {
-      const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-      const response = await api.get('/chat/daily-count', {
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-      });
-      if (response.data?.success) {
-        setDailyCount({ remaining: response.data.remaining ?? 20 });
-      }
-    } catch (error) {
-      console.log('무료 대화 횟수 로드 실패');
+      const token = authToken();
+      const response = await api.get('/chat/daily-count', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (response.data?.success) setDailyCount({ remaining: response.data.remaining ?? 20 });
+    } catch {
+      // 표시만 생략
     }
   };
 
-  const loadChatHistory = async (
-    nextCharacter: Character,
-    nextWebtoon: WebtoonInfo | null,
-    progress: number,
-  ) => {
+  // 저장된 대화가 있으면 그대로 이어서 보여준다. 없을 때만 캐릭터 인사를 새로 받는다.
+  const loadChatHistory = async (progress: number) => {
+    const token = authToken();
+    if (token) {
+      try {
+        const response = await api.get(`/chat/history/${webtoonId}/${characterId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const saved = (response.data?.messages || []).filter((msg: any) => msg.role === 'user' || msg.role === 'assistant');
+        if (saved.length > 0) {
+          setMessages(saved.map((msg: any) => ({
+            id: msg.id || newId(),
+            role: msg.role,
+            content: msg.content,
+            imageUrl: msg.imageUrl,
+            timestamp: new Date(msg.timestamp || Date.now()),
+          })));
+          return;
+        }
+      } catch {
+        // 기록을 못 불러오면 인사로 시작
+      }
+    }
+    await requestGreeting(progress);
+  };
+
+  const requestGreeting = async (progress: number = userProgress) => {
+    setGreetingLoading(true);
     try {
-      const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-      if (!authToken) {
-        setMessages([createGreetingMessage(nextCharacter, nextWebtoon)]);
-        return;
-      }
-
-      const response = await api.get(`/chat/history/${webtoonId}/${characterId}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-        params: { progress },
+      const token = authToken();
+      const response = await api.post('/chat/greeting', { webtoonId, characterId, userProgress: progress }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-
-      if (response.data?.success && response.data.messages?.length > 0) {
-        setMessages(response.data.messages.map((msg: any) => ({
-          id: msg.id || String(Date.now() + Math.random()),
-          role: msg.role,
-          content: msg.content,
-          imageUrl: msg.imageUrl,
-          timestamp: new Date(msg.timestamp || Date.now()),
-        })));
-      } else {
-        setMessages([createGreetingMessage(nextCharacter, nextWebtoon)]);
+      if (response.data?.greeting) {
+        setMessages([{ id: newId(), role: 'assistant', content: response.data.greeting, timestamp: new Date() }]);
+      } else if (response.data?.alreadyStarted) {
+        await loadChatHistory(progress);
       }
-    } catch (error) {
-      console.log('채팅 기록 로드 실패');
-      setMessages([createGreetingMessage(nextCharacter, nextWebtoon)]);
+    } catch {
+      setMessages([{ id: newId(), role: 'notice', content: '캐릭터가 아직 대화할 준비를 하지 못했어요. 메시지를 보내면 바로 이어서 답해요.', timestamp: new Date() }]);
+    } finally {
+      setGreetingLoading(false);
     }
   };
 
-  const createGreetingMessage = (nextCharacter: Character, nextWebtoon: WebtoonInfo | null): Message => ({
-    id: `greeting-${Date.now()}`,
-    role: 'assistant',
-    content: buildGreeting(nextCharacter, nextWebtoon),
-    timestamp: new Date(),
-  });
-
-  const appendAssistantMessage = (content: string) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: String(Date.now() + Math.random()),
-        role: 'assistant',
-        content,
-        timestamp: new Date(),
-      },
-    ]);
+  const pushNotice = (content: string, extra: Partial<Message> = {}) => {
+    setMessages((prev) => [...prev.filter((msg) => msg.role !== 'notice'), { id: newId(), role: 'notice', content, timestamp: new Date(), ...extra }]);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || loading || !character || !webtoonId || !characterId) return;
-
-    const userInput = inputText.trim();
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: String(Date.now()),
-        role: 'user',
-        content: userInput,
-        timestamp: new Date(),
-      },
-    ]);
-    setInputText('');
+  const sendText = async (userInput: string, existingId?: string) => {
+    if (!userInput || loading || !character || !webtoonId || !characterId) return;
+    const token = authToken();
+    if (!token) {
+      pushNotice('대화를 하려면 로그인이 필요해요.', { action: 'login' });
+      openLogin(true);
+      return;
+    }
+    const userMsgId = existingId || newId();
+    setMessages((prev) => {
+      const cleaned = prev.filter((msg) => msg.role !== 'notice');
+      if (existingId) return cleaned.map((msg) => (msg.id === existingId ? { ...msg, failed: false } : msg));
+      return [...cleaned, { id: userMsgId, role: 'user', content: userInput, timestamp: new Date() }];
+    });
     setLoading(true);
-
     try {
-      const authToken = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
       const response = await fetch(`${apiUrl}/chat/message`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify({
-          webtoonId,
-          characterId,
-          message: userInput,
-          userProgress,
-        }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ webtoonId, characterId, message: userInput, userProgress }),
       });
-
       if (!response.ok || !response.body) {
-        appendAssistantMessage(buildLocalReply(character, userInput));
+        const data = await response.json().catch(() => ({}));
+        setMessages((prev) => prev.map((msg) => (msg.id === userMsgId ? { ...msg, failed: true } : msg)));
+        if (response.status === 401) pushNotice('로그인이 만료됐어요. 다시 로그인해 주세요.', { action: 'login' });
+        else if (response.status === 402) pushNotice(data.message || '오늘 무료 대화를 모두 사용했어요.', { action: 'coin' });
+        else pushNotice(data.message || '캐릭터가 잠시 응답하지 못했어요.', { action: 'retry', retryText: userInput, id: `notice-${userMsgId}` });
         return;
       }
-
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantContent = '';
-      const assistantId = String(Date.now() + 1);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: assistantId,
-          role: 'assistant',
-          content: '',
-          timestamp: new Date(),
-        },
-      ]);
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        for (const line of lines) {
+        for (const line of decoder.decode(value, { stream: true }).split('\n')) {
           if (!line.startsWith('data: ')) continue;
           const data = line.slice(6);
           if (data === '[DONE]') break;
-
           try {
             const parsed = JSON.parse(data);
-            if (parsed.content) {
-              assistantContent += parsed.content;
-              setMessages((prev) => prev.map((msg) =>
-                msg.id === assistantId ? { ...msg, content: assistantContent } : msg
-              ));
-            }
+            if (parsed.content) assistantContent += parsed.content;
           } catch {
-            // Ignore malformed stream fragments.
+            // 조각 무시
           }
         }
       }
-
-      if (!assistantContent.trim()) {
-        setMessages((prev) => prev.map((msg) =>
-          msg.id === assistantId ? { ...msg, content: buildLocalReply(character, userInput) } : msg
-        ));
-      }
+      if (!assistantContent.trim()) throw new Error('empty reply');
+      setMessages((prev) => [...prev, { id: newId(), role: 'assistant', content: assistantContent, timestamp: new Date() }]);
       loadDailyCount();
     } catch (error) {
       console.error('메시지 전송 실패:', error);
-      appendAssistantMessage(buildLocalReply(character, userInput));
+      setMessages((prev) => prev.map((msg) => (msg.id === userMsgId ? { ...msg, failed: true } : msg)));
+      pushNotice('연결이 원활하지 않아 답을 받지 못했어요.', { action: 'retry', retryText: userInput, id: `notice-${userMsgId}` });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendMessage = () => {
+    const userInput = inputText.trim();
+    if (!userInput) return;
+    setInputText('');
+    void sendText(userInput);
+  };
+
+  const handleRetry = (notice: Message) => {
+    if (!notice.retryText) return;
+    const failedId = notice.id.startsWith('notice-') ? notice.id.slice(7) : undefined;
+    void sendText(notice.retryText, failedId);
+  };
+
+  // 사용자가 직접 고를 때만 대화를 지운다
+  const handleNewConversation = async () => {
+    const token = authToken();
+    if (!token) {
+      setMessages([]);
+      await requestGreeting();
+      return;
+    }
+    if (!confirm('지금까지의 대화를 지우고 새로 시작할까요? 지운 대화는 되돌릴 수 없어요.')) return;
+    try {
+      await api.delete(`/chat/history/${webtoonId}/${characterId}`, { headers: { Authorization: `Bearer ${token}` } });
+      setMessages([]);
+      await requestGreeting();
+    } catch {
+      pushNotice('대화를 초기화하지 못했어요. 잠시 후 다시 시도해 주세요.');
     }
   };
 
@@ -340,15 +324,43 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
-            무료 대화 {dailyCount.remaining}/20
-          </p>
+          <div className="flex shrink-0 items-center gap-2">
+            <p className="hidden text-xs font-medium text-gray-600 dark:text-gray-300 sm:block">
+              무료 대화 {dailyCount.remaining}/20
+            </p>
+            <button
+              type="button"
+              onClick={handleNewConversation}
+              className="inline-flex items-center gap-1 rounded-full border border-gray-300 px-3 py-1.5 text-xs font-bold text-gray-700 transition hover:border-arata-green hover:text-arata-green dark:border-gray-600 dark:text-gray-200"
+              title="대화를 지우고 처음부터 시작"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              새 대화
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pb-6 pt-[calc(176px+env(safe-area-inset-top,0px))] md:pt-[calc(184px+env(safe-area-inset-top,0px))]">
         <div className="w-full md:max-w-3xl md:mx-auto px-4 space-y-4">
-          {messages.map((msg) => (
+          {messages.map((msg) => msg.role === 'notice' ? (
+            <div key={msg.id} className="flex justify-center">
+              <div className="flex max-w-[90%] flex-col items-center gap-2 rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-center text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                <p className="flex items-center gap-1.5 font-medium"><AlertCircle className="h-4 w-4 shrink-0" />{msg.content}</p>
+                {msg.action === 'retry' && (
+                  <button type="button" onClick={() => handleRetry(msg)} disabled={loading} className="inline-flex items-center gap-1 rounded-full bg-arata-green px-4 py-1.5 text-xs font-black text-black disabled:opacity-60">
+                    <RotateCcw className="h-3.5 w-3.5" />다시 시도
+                  </button>
+                )}
+                {msg.action === 'login' && (
+                  <button type="button" onClick={() => openLogin(true)} className="rounded-full bg-arata-green px-4 py-1.5 text-xs font-black text-black">로그인</button>
+                )}
+                {msg.action === 'coin' && (
+                  <button type="button" onClick={() => router.push('/coin')} className="rounded-full bg-arata-green px-4 py-1.5 text-xs font-black text-black">코인 충전</button>
+                )}
+              </div>
+            </div>
+          ) : (
             <div
               key={msg.id}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -372,9 +384,9 @@ export default function ChatPage() {
                 <div
                   className={`${
                     msg.role === 'user'
-                      ? 'bg-arata-green text-black'
-                      : 'bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100'
-                  } rounded-2xl px-4 py-3 shadow-sm border border-gray-100 dark:border-gray-800`}
+                      ? `bg-arata-green text-gray-950 border-arata-green ${msg.failed ? 'opacity-60' : ''}`
+                      : 'bg-white text-gray-900 border-gray-100 dark:bg-gray-800 dark:text-gray-50 dark:border-gray-700'
+                  } rounded-2xl px-4 py-3 shadow-sm border`}
                 >
                   <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
                     {msg.content}
@@ -386,15 +398,16 @@ export default function ChatPage() {
                       className="mt-3 w-full h-auto object-cover rounded-lg max-w-[320px]"
                     />
                   )}
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className={`mt-2 text-xs ${msg.role === 'user' ? 'text-gray-800' : 'text-gray-500 dark:text-gray-400'}`}>
                     {msg.timestamp.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    {msg.failed && ' · 전송 실패'}
                   </p>
                 </div>
               </div>
             </div>
           ))}
 
-          {loading && (
+          {(loading || greetingLoading) && (
             <div className="flex items-end gap-2 mb-4">
               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800">
                 {character.imageUrl ? (
@@ -409,7 +422,7 @@ export default function ChatPage() {
                   </div>
                 )}
               </div>
-              <div className="bg-white dark:bg-gray-900 rounded-2xl px-5 py-3 shadow-sm border border-gray-100 dark:border-gray-800">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl px-5 py-3 shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex gap-1.5">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -426,7 +439,7 @@ export default function ChatPage() {
       <div className="border-t border-gray-200 bg-white px-4 pb-3 pt-3 dark:border-gray-800 dark:bg-gray-900">
         <div className="w-full md:max-w-3xl md:mx-auto">
           <div className="flex items-end gap-2">
-            <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center gap-2">
+            <div className="flex-1 bg-gray-100 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded-2xl px-4 py-3 flex items-center gap-2">
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
@@ -438,7 +451,7 @@ export default function ChatPage() {
                 }}
                 placeholder="메시지를 입력하세요"
                 disabled={loading}
-                className="flex-1 bg-transparent outline-none text-gray-950 placeholder-gray-400 dark:text-white text-[16px] leading-normal resize-none max-h-32 overflow-y-auto"
+                className="flex-1 bg-transparent outline-none text-gray-950 placeholder-gray-500 dark:text-white dark:placeholder-gray-400 text-[16px] leading-normal resize-none max-h-32 overflow-y-auto"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -449,7 +462,7 @@ export default function ChatPage() {
             <button
               onClick={handleSendMessage}
               disabled={loading || !inputText.trim()}
-              className="p-3 rounded-full bg-arata-green text-black hover:brightness-95 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-3 rounded-full bg-arata-green text-black hover:brightness-95 transition disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed dark:disabled:bg-gray-700 dark:disabled:text-gray-300"
               aria-label="메시지 보내기"
             >
               {loading ? (
@@ -459,7 +472,7 @@ export default function ChatPage() {
               )}
             </button>
           </div>
-          <div className="flex items-center justify-between text-[11px] mt-2 px-1 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-between text-xs mt-2 px-1 font-medium text-gray-600 dark:text-gray-300">
             <p>독자 진행: {userProgress}화까지 반영</p>
             <p>오늘 무료: {dailyCount.remaining}/20회</p>
           </div>

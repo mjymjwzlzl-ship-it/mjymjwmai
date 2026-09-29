@@ -14,6 +14,12 @@ module.exports = {
           'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
       colors: {
+        // tailwind.config.ts 에만 있어 실제로는 생성되지 않던 브랜드 색 (채팅 말풍선·전송 버튼 등에서 사용)
+        'arata-green': '#00dc64',
+        'arata-black': '#121212',
+        'arata-dark': '#1e1e1e',
+        'arata-gray': '#2a2a2a',
+        'arata-text': '#e0e0e0',
         'arata-purple': {
           50: '#f3f1ff',
           100: '#ebe5ff',

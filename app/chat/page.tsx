@@ -102,7 +102,7 @@ const sideMenu = [
   { labelKey: 'chat.home', href: '/chat', icon: Home, active: true },
   { labelKey: 'chat.explore', href: '#popular', icon: Compass },
   { labelKey: 'chat.ranking', href: '#ranking', icon: Trophy },
-  { labelKey: 'chat.myChat', href: '/chat', icon: MessageCircle },
+  { labelKey: 'chat.myChat', href: '/chat/my', icon: MessageCircle },
   { labelKey: 'chat.favorites', href: '/favorites', icon: Heart },
   { labelKey: 'common.checkIn', href: '/attendance', icon: CalendarCheck },
   { labelKey: 'chat.settings', href: '/settings', icon: Settings },
