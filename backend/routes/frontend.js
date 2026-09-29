@@ -1540,6 +1540,12 @@ function normalizeGenres(raw) {
   return [...new Set(values.map((value) => GENRE_ALIASES[String(value).trim().toLowerCase()] || GENRE_ALIASES[String(value).trim()]).filter(Boolean))];
 }
 
+function authorKey(name) {
+  const key = String(name || '').replace(/\s+/g, '').toLowerCase();
+  if (!key || /^(미상|작가\d*|testcreator|arata|unknown)$/.test(key)) return '';
+  return key;
+}
+
 /**
  * GET /api/frontend/comics/:id/similar?limit=6
  * 비슷한 작품: 공통 장르 > 같은 작가 > 인기(조회·작품 평점·정식연재) 순 점수. 부족하면 같은 등급 인기작으로 채운다.
@@ -1573,16 +1579,15 @@ router.get('/comics/:id/similar', async (req, res) => {
     });
     const ratingMap = new Map(ratingAgg.map((row) => [row.comicId, row._avg.score || 0]));
     const currentGenres = normalizeGenres(current.genre);
+    const currentAuthor = authorKey(current.authorName);
 
     const scored = candidates
       .filter((comic) => comic._count.episodes > 0)
       .map((comic) => {
         const genres = normalizeGenres(comic.genre);
         const genreOverlap = genres.filter((genre) => currentGenres.includes(genre)).length;
-        const sameAuthor = Boolean(
-          (current.authorId && comic.authorId === current.authorId) ||
-          (current.authorName && current.authorName !== '미상' && comic.authorName === current.authorName)
-        );
+        // 실제 작가명으로만 비교 (authorId 는 업로드 계정이라 여러 작품이 공유). 미상·작가1 같은 자리표시 이름 제외.
+        const sameAuthor = Boolean(currentAuthor && authorKey(comic.authorName) === currentAuthor);
         const popularity = Math.log10((comic.viewCount || 0) + 1) * 5 + (ratingMap.get(comic.id) || 0) + (comic.isOfficial ? 3 : 0);
         return { comic, genreOverlap, sameAuthor, popularity, score: genreOverlap * 50 + (sameAuthor ? 20 : 0) + popularity };
       });
@@ -1621,10 +1626,12 @@ router.get('/comics/:id/similar', async (req, res) => {
     // 같은 장르 인기작 (위 목록과 겹치지 않게). 장르를 모르면 같은 등급 인기작.
     const genrePool = currentGenres.length ? popular.filter((entry) => entry.genreOverlap > 0) : popular;
     const sameGenre = [];
-    for (const entry of genrePool.length ? genrePool : popular) {
+    const genreIds = new Set(genrePool.map((entry) => entry.comic.id));
+    // 같은 장르가 모자라면 나머지 인기작으로 채운다
+    for (const entry of [...genrePool, ...popular]) {
       if (sameGenre.length >= limit) break;
-      if (picked.has(entry.comic.id)) continue;
-      sameGenre.push(format(entry, currentGenres.length && genrePool.length ? 'SAME_GENRE_POPULAR' : 'POPULAR'));
+      if (picked.has(entry.comic.id) || sameGenre.some((item) => item.id === entry.comic.id)) continue;
+      sameGenre.push(format(entry, currentGenres.length && genreIds.has(entry.comic.id) ? 'SAME_GENRE_POPULAR' : 'POPULAR'));
     }
 
     res.json({ comics, sameGenre, genres: currentGenres, total: comics.length });
