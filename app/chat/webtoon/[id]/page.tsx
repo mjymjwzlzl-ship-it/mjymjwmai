@@ -37,11 +37,12 @@ const toParam = (value: string | string[] | undefined) =>
 
 const buildFallbackCharacter = (webtoon: WebtoonInfo): Character => ({
   id: 'main',
-  name: `${webtoon.title} 주인공`,
+  // 캐릭터 이름 데이터가 없는 작품: 작품명을 대표 명칭으로, 역할은 주인공
+  name: webtoon.title,
   role: 'main',
   gender: '',
   age: '',
-  occupation: '작품 캐릭터',
+  occupation: '주인공',
   personality: ['친근함', '호기심'],
   appearance: '',
   imageUrl: webtoon.thumbnail,

@@ -32,13 +32,13 @@ const toParam = (value: string | string[] | undefined) =>
 
 const buildFallbackCharacter = (webtoon: WebtoonInfo | null): Character => ({
   id: 'main',
-  name: webtoon?.title ? `${webtoon.title} 주인공` : 'ARATA 캐릭터',
+  name: webtoon?.title || 'ARATA 캐릭터',
   imageUrl: webtoon?.thumbnail || '',
-  occupation: '작품 캐릭터',
+  occupation: webtoon?.title ? `《${webtoon.title}》 · 주인공` : '주인공',
 });
 
 const buildGreeting = (character: Character, webtoon: WebtoonInfo | null) =>
-  `안녕하세요. ${character.name}입니다.\n${webtoon?.title ? `"${webtoon.title}" 세계관에서 ` : ''}궁금한 장면이나 캐릭터 이야기를 편하게 물어봐 주세요.`;
+  `안녕하세요. ${character.id === 'main' && character.name === webtoon?.title ? `《${webtoon.title}》의 주인공` : character.name}입니다.\n${webtoon?.title ? `"${webtoon.title}" 세계관에서 ` : ''}궁금한 장면이나 캐릭터 이야기를 편하게 물어봐 주세요.`;
 
 const buildLocalReply = (character: Character, userInput: string) =>
   `${character.name}: 지금 서버 답변이 잠시 늦어지고 있어요. 그래도 "${userInput}"에 대해 이야기할 준비는 되어 있어요. 작품 속 장면이나 캐릭터 관계를 조금 더 구체적으로 물어보면 바로 이어서 대화해볼게요.`;

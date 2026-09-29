@@ -48,7 +48,21 @@ type ChatCharacter = {
   webtoonTitle: string;
   isNew: boolean;
   views: number;
+  /** 캐릭터 이름이 없어 작품명으로 대신 보여주는지 */
+  unnamed: boolean;
+  /** 역할(주인공·조연 등) */
+  role: string;
 };
+
+// characters.json 의 role 값을 한국어 역할명으로
+const ROLE_LABELS: Record<string, string> = { main: '주인공', protagonist: '주인공', heroine: '히로인', sub: '조연', supporting: '조연', villain: '악역' };
+const roleLabel = (character: any) =>
+  ROLE_LABELS[String(character?.role || '').toLowerCase()] || safeText(character?.role, '') || '등장인물';
+// 보조 정보: 이름이 있으면 《작품》 · 역할, 없으면 역할만 (작품명이 이미 대표 명칭이므로)
+const bannerMeta = (character: ChatCharacter) =>
+  character.unnamed ? character.role : `《${character.webtoonTitle}》 · ${character.role}`;
+const cardTags = (character: ChatCharacter) =>
+  character.unnamed ? `#${character.role}` : `#${character.webtoonTitle} #${character.role}`;
 
 const brokenTextPattern = /[�濡臾梨李泥怨踰湲뱁쒓뚯寃꾨댁ㅼ묓꾩]/;
 
@@ -140,13 +154,13 @@ export default function ChatHomePage() {
   }, [homeData, loading, locale]);
 
   // 작품별 캐릭터 목록 로드 (없는 작품은 주인공 폴백)
-  const comicIds = useMemo(() => comics.slice(0, 8).map((comic) => comic.id).join(','), [comics]);
+  const comicIds = useMemo(() => comics.map((comic) => comic.id).join(','), [comics]);
   const { data: characterMap } = useQuery({
     queryKey: ['chat-characters', comicIds],
     enabled: comics.length > 0,
     retry: false,
     queryFn: async () => {
-      const targets = comics.slice(0, 8);
+      const targets = comics;
       const results = await Promise.all(
         targets.map(async (comic) => {
           try {
@@ -162,14 +176,17 @@ export default function ChatHomePage() {
   });
 
   const characters = useMemo<ChatCharacter[]>(() => {
-    return comics.slice(0, 8).flatMap((comic) => {
+    return comics.flatMap((comic) => {
       const loaded = (characterMap?.[comic.id] || []).slice(0, 12);
 
       if (loaded.length === 0) {
         return [
           {
             key: `${comic.id}-main`,
-            name: t('chat.mainCharacter', { title: comic.title }),
+            // 캐릭터 이름 데이터가 없는 작품: 작품명을 대표 명칭으로, 역할은 '주인공'
+            name: comic.title,
+            unnamed: true,
+            role: '주인공',
             occupation: comic.author,
             image: comic.image,
             scenario: comic.synopsis,
@@ -184,7 +201,9 @@ export default function ChatHomePage() {
 
       return loaded.map((character: any) => ({
         key: `${comic.id}-${character.id}`,
-        name: safeText(character.name, t('chat.mainCharacter', { title: comic.title })),
+        name: safeText(character.name, comic.title),
+        unnamed: !safeText(character.name, ''),
+        role: roleLabel(character),
         occupation: safeText(character.occupation || character.role, comic.author),
         image: character.imageUrl || comic.image,
         scenario: comic.synopsis,
@@ -209,7 +228,17 @@ export default function ChatHomePage() {
 
   // 상단 배너는 4~5개만 노출
   const heroCharacters = filteredCharacters.slice(0, 5);
-  const popularCharacters = filteredCharacters.slice(0, 12);
+  const popularCharacters = useMemo(
+    () => [...filteredCharacters].sort((a, b) => b.views - a.views).slice(0, 12),
+    [filteredCharacters]
+  );
+  // 전체 캐릭터: 인기 여부와 관계없이 모든 캐릭터 (작품명 가나다순)
+  const [showAllCharacters, setShowAllCharacters] = useState(false);
+  const allCharacters = useMemo(
+    () => [...filteredCharacters].sort((a, b) => a.webtoonTitle.localeCompare(b.webtoonTitle, 'ko') || a.name.localeCompare(b.name, 'ko')),
+    [filteredCharacters]
+  );
+  const visibleAllCharacters = showAllCharacters ? allCharacters : allCharacters.slice(0, 12);
   const rankingCharacters = useMemo(
     () => [...filteredCharacters].sort((a, b) => b.views - a.views).slice(0, 5),
     [filteredCharacters]
@@ -308,17 +337,19 @@ export default function ChatHomePage() {
                           <span className="shrink-0 rounded bg-[#00dc64] px-1 py-0.5 text-[9px] font-black text-black">NEW</span>
                         )}
                       </div>
-                      <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">#{character.webtoonTitle}</p>
+                      <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">{cardTags(character)}</p>
                     </div>
-                    <span className="flex items-center gap-1 text-[11px] font-black text-red-500">
-                      <Flame className="h-3 w-3 fill-current" />
-                      {character.views > 0 ? character.views : (3 - index) * 87}
-                    </span>
+                    {character.views > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-black text-red-500">
+                        <Flame className="h-3 w-3 fill-current" />
+                        {character.views.toLocaleString()}
+                      </span>
+                    )}
                   </Link>
                 ))}
               </div>
               <a
-                href="#popular"
+                href="#all-characters"
                 className="mt-3 flex h-8 items-center justify-center rounded-full border border-gray-200 text-xs font-bold text-gray-500 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-white/15 dark:text-gray-400 dark:hover:text-[#00dc64]"
               >
                 {t('chat.viewAll')}
@@ -381,10 +412,10 @@ export default function ChatHomePage() {
                             </div>
                           )}
                           <h2 className={`font-black text-white ${isActive ? 'line-clamp-2 text-lg sm:text-xl' : 'line-clamp-1 text-sm'}`}>
-                            {character.scenario.slice(0, 44)}
+                            {character.name}
                           </h2>
                           <p className={`mt-1 font-bold text-gray-300 ${isActive ? 'text-sm' : 'text-xs'}`}>
-                            &lt;{character.webtoonTitle}&gt; {character.name}
+                            {bannerMeta(character)}
                           </p>
                         </div>
                       </Link>
@@ -477,12 +508,58 @@ export default function ChatHomePage() {
                       )}
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5 pt-8">
                         <h3 className="line-clamp-1 text-sm font-black text-white">{character.name}</h3>
-                        <p className="line-clamp-1 text-[11px] text-gray-300">#{character.webtoonTitle}</p>
+                        <p className="line-clamp-1 text-[11px] text-gray-300">{cardTags(character)}</p>
                       </div>
                     </div>
                   </Link>
                 ))}
               </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-gray-200 py-14 text-center text-gray-500 dark:border-white/15 dark:text-gray-400">
+                {t('chat.noResults')}
+              </div>
+            )}
+          </section>
+
+          {/* 전체 캐릭터 */}
+          <section id="all-characters" className="mt-10 scroll-mt-32">
+            <div className="mb-3.5 flex items-center justify-between">
+              <h2 className="text-xl font-black">
+                전체 캐릭터 <span className="text-base font-bold text-gray-400">{allCharacters.length}</span>
+              </h2>
+            </div>
+            {allCharacters.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+                  {visibleAllCharacters.map((character) => (
+                    <Link key={`all-${character.key}`} href={character.href} className="group min-w-0">
+                      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800">
+                        {character.image ? (
+                          <img
+                            src={getImageUrl(character.image, { width: 420 })}
+                            alt={character.name}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        ) : null}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5 pt-8">
+                          <h3 className="line-clamp-1 text-sm font-black text-white">{character.name}</h3>
+                          <p className="line-clamp-1 text-[11px] text-gray-300">{cardTags(character)}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                {allCharacters.length > 12 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllCharacters((open) => !open)}
+                    className="mt-5 flex h-11 w-full items-center justify-center rounded-xl border border-gray-200 text-sm font-bold text-gray-600 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-white/15 dark:text-gray-300"
+                  >
+                    {showAllCharacters ? '접기' : `전체보기 (${allCharacters.length})`}
+                  </button>
+                )}
+              </>
             ) : (
               <div className="rounded-2xl border border-dashed border-gray-200 py-14 text-center text-gray-500 dark:border-white/15 dark:text-gray-400">
                 {t('chat.noResults')}
