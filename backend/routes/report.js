@@ -44,6 +44,11 @@ router.post('/submit', authenticate, maybeUpload, async (req, res) => {
       if (!comment) return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
       if (comment.userId === reporterId) return res.status(400).json({ message: '내 댓글은 신고할 수 없습니다.' });
       Object.assign(target, { commentId: comment.id, targetUserId: comment.userId, episodeId: comment.episodeId || undefined, comicId: comment.comicId || comment.episode?.comicId || undefined });
+    } else if (type === 'PHOTOBOOK') {
+      const item = await prisma.contentItem.findUnique({ where: { id: targetId }, select: { id: true, ownerId: true, workId: true } });
+      if (!item) return res.status(404).json({ message: '화보를 찾을 수 없습니다.' });
+      if (item.ownerId && item.ownerId === reporterId) return res.status(400).json({ message: '내 화보는 신고할 수 없습니다.' });
+      Object.assign(target, { photobookId: item.id, targetUserId: item.ownerId || undefined, comicId: item.workId || undefined });
     } else if (type === 'POST') {
       const post = await prisma.post.findUnique({ where: { id: targetId }, select: { id: true, authorId: true, comicId: true, episodeId: true } });
       if (!post) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
@@ -68,6 +73,7 @@ router.post('/submit', authenticate, maybeUpload, async (req, res) => {
         ...(type === 'COMMENT' && { commentId: targetId }),
         ...(type === 'USER' && { targetUserId: targetId, commentId: null, postId: null }),
         ...(type === 'POST' && { postId: targetId, postCommentId: null }),
+        ...(type === 'PHOTOBOOK' && { photobookId: targetId }),
         ...(type === 'POST_COMMENT' && { postCommentId: targetId }),
       },
     });

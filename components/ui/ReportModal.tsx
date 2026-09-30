@@ -10,7 +10,7 @@ import { getApiUrl } from '@/lib/api-config';
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetType: 'COMIC' | 'EPISODE' | 'COMMENT' | 'USER' | 'POST' | 'POST_COMMENT';
+  targetType: 'COMIC' | 'EPISODE' | 'COMMENT' | 'USER' | 'POST' | 'POST_COMMENT' | 'PHOTOBOOK';
   targetId: string;
   targetName?: string;
   /** 작품·회차 신고에 자동으로 붙는 정보 */
@@ -42,13 +42,19 @@ const REASONS: Record<ReportModalProps['targetType'], { value: string; label: st
   EPISODE: [],
   POST: [],
   POST_COMMENT: [],
+  PHOTOBOOK: [
+    { value: 'INAPPROPRIATE', label: '부적절한 이미지', description: '선정적·폭력적이거나 불쾌한 이미지' },
+    { value: 'COPYRIGHT', label: '저작권 침해·도용', description: '다른 사람의 그림·사진을 허락 없이 사용' },
+    { value: 'SPAM', label: '도배·광고', description: '같은 화보 반복, 홍보' },
+    { value: 'OTHER', label: '기타', description: '위 항목에 해당하지 않는 사유' },
+  ],
 };
 REASONS.EPISODE = REASONS.COMIC;
 // 게시판 글·댓글: 댓글과 같은 사유 (스포일러 포함)
 REASONS.POST = REASONS.COMMENT.map((r) => (r.value === 'SPOILER' ? { ...r, description: '스포일러 표시 없이 줄거리·결말을 공개' } : r));
 REASONS.POST_COMMENT = REASONS.COMMENT;
 
-const TYPE_LABEL = { COMIC: '작품', EPISODE: '회차', COMMENT: '댓글', USER: '사용자', POST: '게시글', POST_COMMENT: '댓글' } as const;
+const TYPE_LABEL = { COMIC: '작품', EPISODE: '회차', COMMENT: '댓글', USER: '사용자', POST: '게시글', POST_COMMENT: '댓글', PHOTOBOOK: '화보' } as const;
 
 export default function ReportModal({ isOpen, onClose, targetType, targetId, targetName, context }: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState('');

@@ -49,7 +49,8 @@ async function accessFor(user, item) {
     : { allowed: false, reason: 'PURCHASE_REQUIRED', coinPrice: item.coinPrice };
 }
 
-const released = (item) => item.isActive && (!item.releaseAt || item.releaseAt <= new Date());
+// 공개 화보: 켜짐 + 상태 공개 + 전체 공개 + 공개일 지남 + 노출 종료 전
+const released = (item) => { const now = new Date(); return item.isActive && (item.status || 'PUBLISHED') === 'PUBLISHED' && (item.visibility || 'PUBLIC') === 'PUBLIC' && (!item.releaseAt || item.releaseAt <= now) && (!item.endAt || item.endAt > now); };
 
 function summary(item, access) {
   return {
@@ -169,3 +170,4 @@ router.post('/contents/:id/unlock', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.helpers = { accessFor, currentUser, parseJsonArray, released };

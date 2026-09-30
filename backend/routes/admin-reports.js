@@ -26,6 +26,7 @@ const shape = (r) => ({
   description: r.description, status: r.status, statusLabel: STATUS_LABEL[r.status] || r.status, resolution: r.resolution,
   createdAt: r.createdAt, updatedAt: r.updatedAt, resolvedAt: r.resolvedAt, hasImage: !!r.imageUrl,
   // 예전 회차 신고는 comicId 가 비어 있어 회차의 작품으로 채운다
+  photobook: r.photobook ? { id: r.photobook.id, title: r.photobook.name, thumbnail: r.photobook.thumbnail, status: r.photobook.status } : null,
   post: r.post ? { id: r.post.id, title: r.post.title, content: String(r.post.content || '').slice(0, 300), status: r.post.status, isSpoiler: r.post.isSpoiler } : null,
   postComment: r.postComment ? { id: r.postComment.id, content: r.postComment.content, status: r.postComment.status } : null,
   comic: r.comic || r.episode?.comic || null, episode: r.episode ? { id: r.episode.id, episodeNumber: r.episode.episodeNumber, title: r.episode.title } : null, comment: r.comment, reporter: r.reporter ? { id: r.reporter.id, name: who(r.reporter) } : null,
@@ -34,6 +35,11 @@ const shape = (r) => ({
 // 같은 대상: 댓글 > 회차 > 작품(회차 없는 작품 신고) > 사용자
 // 게시판 글·댓글 정보 (Report 에 관계가 없어 따로 읽는다)
 async function attachBoard(list) {
+  // 화보 신고 정보도 여기서 붙인다
+  const pbIds = [...new Set(list.map((r) => r.photobookId).filter(Boolean))];
+  const pbs = pbIds.length ? await prisma.contentItem.findMany({ where: { id: { in: pbIds } }, select: { id: true, name: true, thumbnail: true, status: true } }) : [];
+  const pbm = new Map(pbs.map((x) => [x.id, x]));
+  list = list.map((r) => ({ ...r, photobook: r.photobookId ? pbm.get(r.photobookId) || null : null }));
   const postIds = [...new Set(list.map((r) => r.postId).filter(Boolean))];
   const pcIds = [...new Set(list.map((r) => r.postCommentId).filter(Boolean))];
   const [posts, pcs] = await Promise.all([
@@ -44,6 +50,7 @@ async function attachBoard(list) {
   return list.map((r) => ({ ...r, post: r.postId ? pm.get(r.postId) || null : null, postComment: r.postCommentId ? cm.get(r.postCommentId) || null : null }));
 }
 const sameTargetWhere = (r) => {
+  if (r.photobookId && r.type === 'PHOTOBOOK') return { photobookId: r.photobookId, type: 'PHOTOBOOK' };
   if (r.postCommentId) return { postCommentId: r.postCommentId };
   if (r.postId && r.type === 'POST') return { postId: r.postId, type: 'POST' };
   if (r.commentId) return { commentId: r.commentId };
@@ -57,6 +64,7 @@ router.get('/admin/report-center', async (req, res) => {
   const where = {};
   if (STATUSES.includes(req.query.status)) where.status = req.query.status;
   if (['COMIC', 'EPISODE', 'COMMENT', 'USER', 'BOARD'].includes(req.query.type)) where.type = req.query.type === 'COMIC' ? { in: ['COMIC', 'EPISODE'] } : req.query.type === 'BOARD' ? { in: ['POST', 'POST_COMMENT'] } : req.query.type;
+  if (req.query.type === 'PHOTOBOOK') where.type = 'PHOTOBOOK';
   const q = String(req.query.q || '').trim();
   if (q) where.OR = [{ description: { contains: q } }, { comic: { title: { contains: q } } }, { comment: { content: { contains: q } } }];
   const [reports, counts] = await Promise.all([
@@ -116,6 +124,9 @@ router.patch('/admin/report-center/:id', async (req, res) => {
   } else if (report.type === 'POST' && report.postId && (req.body?.hideComment || req.body?.unhideComment)) {
     await prisma.post.update({ where: { id: report.postId }, data: { status: req.body.hideComment ? 'HIDDEN' : 'NORMAL', statusReason: req.body.hideComment ? (memo || '신고 처리') : null } });
     extraMemo = req.body.hideComment ? ' [게시글 숨김]' : ' [게시글 숨김 해제]';
+  } else if (report.type === 'PHOTOBOOK' && report.photobookId && (req.body?.hideComment || req.body?.unhideComment)) {
+    await prisma.contentItem.update({ where: { id: report.photobookId }, data: { status: req.body.hideComment ? 'HIDDEN' : 'PUBLISHED' } });
+    extraMemo = req.body.hideComment ? ' [화보 숨김]' : ' [화보 숨김 해제]';
   } else if (report.type === 'POST' && report.postId && ['PENDING', 'PROCESSING'].includes(status)) {
     // 확인 중으로 바꾸면 게시글 상태를 "신고 검토 중"으로 (사이트에는 그대로 보임)
   }

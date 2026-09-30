@@ -248,6 +248,7 @@ model Report {
   description String?
   status      String     @default("PENDING") // PENDING(접수) → PROCESSING(확인 중) → RESOLVED(처리 완료) / REJECTED(반려)
   resolution  String?    // 처리 결과 메시지 (마지막 관리자 메모)
+  photobookId   String?  // 화보 신고 (type PHOTOBOOK, ContentItem id)
   postId        String?  // 게시글 신고 (type POST)
   postCommentId String?  // 게시판 댓글 신고 (type POST_COMMENT)
   imageUrl    String?    // 첨부 스크린샷 (backend/private/report-images, 관리자만 열람)
@@ -740,9 +741,26 @@ model ContentItem {
   sponsorshipDisclosure String?
   campaignId            String?
   productTags           String?
+  // 캐릭터 화보관 확장 (2026-09-30)
+  description           String?
+  characterName         String?   // 연결 캐릭터 이름 (작품 characters.json 의 이름을 우선 사용, 없으면 이것)
+  tags                  String?   // 화보 태그 JSON ["교복","겨울"]
+  status                String    @default("PUBLISHED") // PUBLISHED 공개 | DRAFT 비공개 | REVIEW 검토 대기 | HIDDEN 숨김 | REJECTED 반려
+  rejectReason          String?
+  ownerId               String?   // 사용자가 만든 화보 (null = 공식)
+  visibility            String    @default("PUBLIC") // PUBLIC 전체 공개 | PRIVATE 나만 보기 (사용자 화보)
+  endAt                 DateTime? // 노출 종료일
+  seriesId              String?
+  seriesOrder           Int       @default(0)
+  viewCount             Int       @default(0)
+  likeCount             Int       @default(0)
+  saveCount             Int       @default(0)
+  chatClicks            Int       @default(0) // [캐릭터와 채팅하기] 누른 수
+  workClicks            Int       @default(0) // [작품 보기] 누른 수
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  @@index([status, contentType, createdAt])
   @@index([workId, contentType, isActive])
   @@index([characterId, contentType, isActive])
   @@map("content_items")
@@ -991,4 +1009,68 @@ model PostBookmark {
   @@unique([userId, postId])
   @@index([userId, createdAt])
   @@map("post_bookmarks")
+}
+
+// 화보 시리즈 (같은 캐릭터의 여러 화보를 화보집처럼): 예) 은서율 - 성율 마법학교 화보집
+model PhotobookSeries {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  workId        String?
+  characterName String?
+  coverUrl      String?
+  order         Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@map("photobook_series")
+}
+
+// 시즌·이벤트 테마 화보전: 기간 동안 화보관 맨 위에 노출 (이벤트 관리와 연결 가능)
+model PhotobookTheme {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  bannerUrl   String?
+  itemIds     String    @default("[]") // 포함 화보 id JSON (순서대로)
+  startAt     DateTime?
+  endAt       DateTime?
+  isActive    Boolean   @default(true)
+  eventId     String?   // 같이 만든 이벤트
+  createdAt   DateTime  @default(now())
+
+  @@map("photobook_themes")
+}
+
+// 화보 태그 사전 (관리자 태그 관리 · 추천 태그). 화보에는 이름이 JSON 으로 들어간다
+model PhotobookTag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("photobook_tags")
+}
+
+model PhotobookLike {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemId])
+  @@map("photobook_likes")
+}
+
+// 내 화보함 저장
+model PhotobookSave {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemId])
+  @@index([userId, createdAt])
+  @@map("photobook_saves")
 }

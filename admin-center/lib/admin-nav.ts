@@ -7,6 +7,19 @@ export const NAV: NavGroup[] = [
   { key: 'dashboard', label: '대시보드', href: '/', match: [], tabs: [] },
   { key: 'works', label: '작품 관리', href: '/works', match: ['/works', '/comic-status', '/novels'], tabs: [{ label: '작품 목록', href: '/works' }] },
   {
+    key: 'gallery', label: '화보 관리', href: '/gallery', match: ['/gallery'],
+    tabs: [
+      { label: '화보 목록', href: '/gallery' },
+      { label: '화보 등록', href: '/gallery/edit' },
+      { label: '검수', href: '/gallery?status=REVIEW' },
+      { label: '시리즈', href: '/gallery/series' },
+      { label: '테마 화보전', href: '/gallery/themes' },
+      { label: '태그', href: '/gallery/tags' },
+      { label: '추천·인기', href: '/gallery/curation' },
+      { label: '통계', href: '/gallery/stats' },
+    ],
+  },
+  {
     key: 'community', label: '커뮤니티 관리', href: '/community', match: ['/community'],
     tabs: [
       { label: '게시판 관리', href: '/community' },
