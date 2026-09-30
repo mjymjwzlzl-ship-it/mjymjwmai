@@ -97,7 +97,7 @@ router.get('/rankings', async (req, res) => {
       const top = kind === 'new' ? Math.min(list.length, 20) : kind === 'popular' || kind === 'realtime' ? Math.min(list.length, 100) : Math.min(list.length, topSize(list.length));
       result[kind] = { total: list.length, top, items: withRank(list, Math.min(limit, top)) };
     }
-    res.set('Cache-Control', 'public, max-age=60');
+    res.set('Cache-Control', 'no-cache'); // 인기 작품 상단 고정을 바꾸면 바로 보이게 (서버는 1분 메모리 캐시, 저장 때 비움)
     res.json({ realtimeHours: REALTIME_HOURS, rankings: result });
   } catch (error) {
     console.error('랭킹 조회 오류:', error);
