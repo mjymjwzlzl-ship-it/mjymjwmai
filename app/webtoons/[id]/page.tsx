@@ -68,13 +68,13 @@ const NOTICE_TYPE: Record<string, { label: string; className: string }> = {
 interface ComicNotice { id: string; type: string; title: string; content: string; isPinned: boolean; createdAt: string }
 
 const DAY_LABEL: Record<string, string> = { mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일' };
-// "매주 수요일 연재" / "매주 월·목요일 연재" / 휴재·완결은 상태를 함께
+// "매주 수요일 연재" / "매주 월·목요일 연재" / 휴재 "매주 월요일 연재 · 휴재" / 완결 "완결"
 const serialLine = (webtoon: { serialDays?: string[]; status?: string }) => {
   const days = (webtoon.serialDays || []).filter((day) => DAY_LABEL[day]);
-  if (webtoon.status === 'COMPLETED') return days.length ? `완결 · ${days.map((d) => DAY_LABEL[d]).join('·')}요일 연재였어요` : '';
+  if (webtoon.status === 'COMPLETED') return '완결';
   if (!days.length) return '';
   const text = days.length === 7 ? '매일 연재' : `매주 ${days.map((d) => DAY_LABEL[d]).join('·')}요일 연재`;
-  if (webtoon.status === 'HIATUS') return `${text} · 지금은 휴재 중`;
+  if (webtoon.status === 'HIATUS') return `${text} · 휴재`;
   if (webtoon.status === 'SUSPENDED') return '';
   return text;
 };
