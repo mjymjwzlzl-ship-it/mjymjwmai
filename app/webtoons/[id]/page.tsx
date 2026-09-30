@@ -823,8 +823,11 @@ const WebtoonDetailPage = () => {
                               {notice.isPinned && <span className="shrink-0 text-[11px] font-black text-gray-500 dark:text-gray-400" aria-label="상단 고정">📌</span>}
                               {notice.isImportant && <span className="shrink-0 rounded bg-red-600 px-1.5 py-0.5 text-[11px] font-black text-white">중요</span>}
                               <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-black ${meta.className}`}>{meta.label}</span>
-                              <span className="min-w-0 flex-1 truncate font-bold text-gray-900 dark:text-white">{notice.title}</span>
-                              <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">{formatKstDate(notice.createdAt)}</span>
+                              <span className="min-w-0 flex-1">
+                                <span className="line-clamp-2 font-bold text-gray-900 dark:text-white">{notice.title}</span>
+                                <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400 sm:hidden">{formatKstDate(notice.createdAt)}</span>
+                              </span>
+                              <span className="hidden shrink-0 text-xs text-gray-500 dark:text-gray-400 sm:inline">{formatKstDate(notice.createdAt)}</span>
                             </button>
                             {opened && <p className="whitespace-pre-line px-4 pb-4 text-gray-700 dark:text-gray-300">{notice.content}</p>}
                           </li>
