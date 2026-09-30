@@ -12,6 +12,7 @@ import {
   Bell,
   Gamepad2,
   Gift,
+  PartyPopper,
   GalleryVertical,
   Globe2,
   Home,
@@ -43,7 +44,7 @@ const navItems = [
   { href: '/chat', labelKey: 'nav.chat', icon: MessageCircle },
   { href: '#shortform', labelKey: 'nav.shortAnime', icon: PlaySquare, comingSoon: true },
   { href: '/gallery', labelKey: 'nav.gallery', icon: Image },
-  { href: '/events', labelKey: 'nav.events', icon: Gift },
+  { href: '/events', labelKey: 'nav.events', icon: PartyPopper }, // 선물함(Gift)과 구분
   { href: '/community', labelKey: 'nav.community', icon: ClipboardList },
   { href: '/games', labelKey: 'nav.games', icon: Gamepad2 },
 ];

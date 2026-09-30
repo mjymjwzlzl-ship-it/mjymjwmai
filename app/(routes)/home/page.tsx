@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { BadgePercent, Eye, Gift, Heart, Sparkles, Trophy } from 'lucide-react';
+import { BadgePercent, Eye, Heart, PartyPopper, Sparkles, Trophy } from 'lucide-react';
 import EventCard, { type SiteEvent } from '@/components/events/EventCard';
 import HorizontalRail from '@/components/ui/HorizontalRail';
 import { isNovelComic } from '@/lib/comic-content-format';
@@ -665,7 +665,7 @@ export default function HomePage() {
           <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
             <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
               <h2 className="flex items-center gap-2 text-xl font-black">
-                <Gift className="h-5 w-5 text-[#00dc64]" />
+                <PartyPopper className="h-5 w-5 text-[#00dc64]" />
                 {t('nav.events')}
               </h2>
               <Link href="/events" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">

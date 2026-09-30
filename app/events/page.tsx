@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Gift } from 'lucide-react';
+import { PartyPopper } from 'lucide-react';
 import { api } from '@/lib/api';
 import EventCard, { EVENT_STATUS_LABEL, type EventStatus, type SiteEvent } from '@/components/events/EventCard';
 
@@ -27,7 +27,7 @@ export default function EventsPage() {
     <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
       <div className="mx-auto max-w-6xl px-4 py-6">
         <h1 className="flex items-center gap-2 text-2xl font-black">
-          <Gift className="h-6 w-6 text-[#00a84c] dark:text-[#00dc64]" />
+          <PartyPopper className="h-6 w-6 text-[#00a84c] dark:text-[#00dc64]" />
           이벤트
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">진행 중인 이벤트와 곧 시작할 이벤트를 한눈에 확인하세요.</p>
