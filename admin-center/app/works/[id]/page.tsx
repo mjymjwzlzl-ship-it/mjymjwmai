@@ -11,7 +11,7 @@ interface Work {
   id: string; title: string; authorName?: string | null; genre: string; description?: string | null; thumbnail?: string | null; rating: string;
   status: string; resumeAt?: string | null; contentType: string; type: 'webtoon' | 'book' | 'novel'; isPublished: boolean; isOfficial: boolean;
   paidStartEpisode: number; episodeCoinPrice: number; rentalCoinPrice: number | null; rentalDays: number; updateDays?: string | null;
-  viewCount: number; createdAt: string; lastEpisodeAt?: string | null; newUntil?: string | null;
+  viewCount: number; createdAt: string; lastEpisodeAt?: string | null; newUntil?: string | null; tags?: string[];
   badges: { up: boolean; new: boolean; hiatus: boolean; suspended: boolean };
   upcoming: { id: string; episodeNumber: number; title: string; publishAt: string }[];
 }
@@ -19,6 +19,10 @@ interface Episode {
   id: string; episodeNumber: number; title: string; publishedAt: string; scheduled: boolean; publishedToday: boolean; free: boolean;
   imageCount: number; textLength: number; textContent?: string; viewCount: number; purchases: number;
 }
+
+// 사이트 장르 탭과 맞춘 장르 값
+const GENRES = [['fantasy', '판타지'], ['romance', '로맨스'], ['action', '액션'], ['martial', '무협'], ['drama', '드라마'], ['school', '학원'], ['comedy', '코미디'], ['thriller', '스릴러'], ['sports', '스포츠'], ['daily', '일상'],
+  ['modern', '현대물'], ['romance-fantasy', '로맨스판타지'], ['modern-fantasy', '현대판타지'], ['mystery', '미스터리·스릴러'], ['sf', 'SF'], ['horror', '공포·호러'], ['historical', '역사·시대물'], ['lightnovel', '라이트노벨'], ['bl', 'BL'], ['gl', 'GL']] as const;
 
 const DAYS = [['mon', '월'], ['tue', '화'], ['wed', '수'], ['thu', '목'], ['fri', '금'], ['sat', '토'], ['sun', '일']] as const;
 // datetime-local <-> ISO (브라우저 시간대 = 한국)
@@ -63,6 +67,9 @@ export default function WorkDetailPage() {
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [allTags, setAllTags] = useState<{ name: string; count: number }[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  useEffect(() => { adminApi<{ tags: { name: string; count: number }[] }>('/admin/works-tags').then((d) => setAllTags(d.tags)).catch(() => {}); }, []);
 
   const load = useCallback(async () => {
     const data = await adminApi<{ work: Work; episodes: Episode[] }>(`/admin/works/${id}`);
@@ -77,6 +84,7 @@ export default function WorkDetailPage() {
       paidStartEpisode: data.work.paidStartEpisode, episodeCoinPrice: data.work.episodeCoinPrice,
       rentalCoinPrice: data.work.rentalCoinPrice === null || data.work.rentalCoinPrice === undefined ? '' : String(data.work.rentalCoinPrice), rentalDays: data.work.rentalDays || 3,
       updateDays: days,
+      tags: data.work.tags || [],
     });
   }, [id]);
   useEffect(() => { load().catch((e) => alert(e.message)); }, [load]);
@@ -173,7 +181,10 @@ export default function WorkDetailPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="제목"><input className={input} value={form.title} onChange={(e) => set({ title: e.target.value })} /></Field>
             <Field label="작가"><input className={input} value={form.authorName} onChange={(e) => set({ authorName: e.target.value })} /></Field>
-            <Field label="장르" hint="예) fantasy, romance, action"><input className={input} value={form.genre} onChange={(e) => set({ genre: e.target.value })} /></Field>
+            <Field label="장르" hint="목록에서 고르거나 입력"><input list="genre-options" className={input} value={form.genre} onChange={(e) => set({ genre: e.target.value })} /></Field>
+            <datalist id="genre-options">
+              {GENRES.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+            </datalist>
             <Field label="유형">
               <select className={input} value={form.contentType} onChange={(e) => set({ contentType: e.target.value })}>
                 <option value="WEBTOON">웹툰</option><option value="BOOK">단행본</option><option value="NOVEL">웹소설</option>
@@ -187,6 +198,40 @@ export default function WorkDetailPage() {
             <Field label="런칭일" hint="NEW = 런칭일 포함 7일 (예: 9/25 → 10/1까지)"><input type="datetime-local" className={input} value={form.launchedAt} onChange={(e) => set({ launchedAt: e.target.value })} /></Field>
             <div className="md:col-span-2">
               <Field label="소개"><textarea rows={3} className={input} value={form.description} onChange={(e) => set({ description: e.target.value })} /></Field>
+            </div>
+            <div className="text-sm md:col-span-2">
+              <span className="mb-1 block text-gray-300">태그 <span className="text-xs text-gray-500">소재·키워드 (장르와 별개) · 사이트 상세에 대표 5개 표시, 검색·태그 필터·비슷한 작품 추천에 사용</span></span>
+              <div className="flex flex-wrap items-center gap-1.5 rounded border border-gray-600 bg-gray-700 p-2">
+                {form.tags.map((tag: string) => (
+                  <span key={tag} className="flex items-center gap-1 rounded-full bg-purple-600 px-2.5 py-0.5 text-xs font-bold">
+                    #{tag}<button type="button" aria-label={`${tag} 삭제`} onClick={() => set({ tags: form.tags.filter((t: string) => t !== tag) })}>×</button>
+                  </span>
+                ))}
+                <input
+                  list="tag-options"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const tag = tagInput.replace(/^#/, '').trim();
+                      if (tag && !form.tags.includes(tag)) set({ tags: [...form.tags, tag].slice(0, 20) });
+                      setTagInput('');
+                    }
+                  }}
+                  placeholder="태그 입력 후 Enter (예: 회귀)"
+                  className="min-w-40 flex-1 bg-transparent px-1 py-0.5 text-sm outline-none"
+                />
+                <datalist id="tag-options">{allTags.map((t) => <option key={t.name} value={t.name}>{`${t.count}개 작품`}</option>)}</datalist>
+              </div>
+              {allTags.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  <span className="text-xs text-gray-500">기존 태그:</span>
+                  {allTags.slice(0, 30).filter((t) => !form.tags.includes(t.name)).map((t) => (
+                    <button key={t.name} type="button" onClick={() => set({ tags: [...form.tags, t.name].slice(0, 20) })} className="rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-300 hover:bg-gray-600">+{t.name}</button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="text-sm md:col-span-2">
               <span className="mb-1 block text-gray-300">연재 요일</span>

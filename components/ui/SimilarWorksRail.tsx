@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import ComicBadges from '@/components/ui/ComicBadges';
+import { contentTypeLabel } from '@/lib/comic-content-format';
 
 // 회차 감상 후 추천: 작품 상세의 '비슷한 인기 작품'과 같은 기준(/frontend/comics/:id/similar)
 interface SimilarWork {
@@ -19,6 +20,7 @@ interface SimilarWork {
   createdAt?: string;
   lastEpisodeAt?: string | null;
   status?: string;
+  contentType?: string;
 }
 
 export const REASON_LABEL: Record<string, string> = {
@@ -26,6 +28,7 @@ export const REASON_LABEL: Record<string, string> = {
   SAME_AUTHOR: '같은 작가',
   POPULAR: '인기작',
   SAME_GENRE_POPULAR: '장르 인기',
+  SAME_TAG: '같은 태그',
 };
 
 function Rail({ title, items }: { title: string; items: SimilarWork[] }) {
@@ -111,7 +114,7 @@ function Rail({ title, items }: { title: string; items: SimilarWork[] }) {
             </div>
             <p className="mt-1.5 line-clamp-2 text-xs font-bold leading-4 text-gray-900 dark:text-gray-100">{work.title}</p>
             <p className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-              {work.totalEpisodes}화{work.rating > 0 ? ` · ★ ${work.rating.toFixed(1)}` : ''}
+              <span className="rounded bg-gray-100 px-1 py-px text-[10px] font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">{contentTypeLabel(work.contentType)}</span> · {work.totalEpisodes}화{work.rating > 0 ? ` · ★ ${work.rating.toFixed(1)}` : ''}
             </p>
           </Link>
         ))}

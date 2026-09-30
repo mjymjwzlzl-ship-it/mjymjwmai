@@ -100,4 +100,18 @@ router.get('/rankings', async (req, res) => {
   }
 });
 
+// GET /api/frontend/tags : 공개 작품에 쓰인 태그 (많이 쓰인 순). 목록·검색 태그 필터용
+router.get('/tags', async (req, res) => {
+  const { parseTags } = require('../lib/tags');
+  const rows = await prisma.comic.findMany({ where: { isPublished: true, status: { not: 'HIDDEN' }, tags: { not: null }, ...generalComicWhere() }, select: { tags: true, contentType: true, id: true } });
+  const type = String(req.query.type || '');
+  const counts = new Map();
+  for (const row of rows) {
+    if (type && contentTypeOf(row) !== type) continue;
+    for (const tag of parseTags(row.tags)) counts.set(tag, (counts.get(tag) || 0) + 1);
+  }
+  res.set('Cache-Control', 'public, max-age=60');
+  res.json({ tags: [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko')).map(([name, count]) => ({ name, count })) });
+});
+
 module.exports = router;

@@ -1,6 +1,7 @@
 const { guardEpisode } = require('../services/legacy-episode-access');
 const { episodePrices } = require('../services/purchase-access');
 const { contentTypeOf } = require('../lib/content-format');
+const { parseTags } = require('../lib/tags');
 const { isPromoFreeEpisode, activePromotions, describePromotion } = require('../services/promotions');
 const { optionalAuth } = require('../middleware/auth');
 const { guardComicParam, requireVerifiedAdultMode, generalComicWhere } = require('../services/adult-access');
@@ -901,6 +902,7 @@ router.get('/comics/:id', async (req, res) => {
     const formattedComic = {
       id: comic.id,
       title: comic.title,
+      tags: parseTags(comic.tags),
       // UP/NEW 배지: 런칭일·마지막 공개 회차 시각
       createdAt: comic.createdAt,
       lastEpisodeAt: (comic.episodes || []).reduce((max, ep) => (!max || ep.createdAt > max ? ep.createdAt : max), null),
@@ -1569,7 +1571,7 @@ router.get('/comics/:id/similar', async (req, res) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 6, 1), 20);
     const current = await prisma.comic.findUnique({
       where: { id },
-      select: { id: true, genre: true, rating: true, locale: true, authorName: true, authorId: true, contentType: true },
+      select: { id: true, genre: true, rating: true, locale: true, authorName: true, authorId: true, contentType: true, tags: true },
     });
     if (!current) return res.status(404).json({ message: '웹툰을 찾을 수 없습니다.' });
 
@@ -1600,6 +1602,7 @@ router.get('/comics/:id/similar', async (req, res) => {
     const currentAuthor = authorKey(current.authorName);
 
     const currentType = contentTypeOf(current);
+    const currentTags = parseTags(current.tags);
     const latestRows = await prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: candidates.map((c) => c.id) }, createdAt: { lte: new Date() } }, _max: { createdAt: true } });
     const lastEpisodeById = new Map(latestRows.map((row) => [row.comicId, row._max.createdAt]));
     const scored = candidates
@@ -1612,7 +1615,9 @@ router.get('/comics/:id/similar', async (req, res) => {
         const popularity = Math.log10((comic.viewCount || 0) + 1) * 5 + (ratingMap.get(comic.id) || 0) + (comic.isOfficial ? 3 : 0);
         // 같은 유형(웹툰·단행본·웹소설)을 먼저: 웹소설 상세에서는 웹소설, 단행본 상세에서는 단행본이 위로
         const sameType = contentTypeOf(comic) === currentType;
-        return { comic, genreOverlap, sameAuthor, sameType, popularity, score: genreOverlap * 50 + (sameAuthor ? 20 : 0) + popularity };
+        // 같은 태그(소재)가 많을수록 위로
+        const tagOverlap = parseTags(comic.tags).filter((tag) => currentTags.includes(tag)).length;
+        return { comic, genreOverlap, tagOverlap, sameAuthor, sameType, popularity, score: genreOverlap * 50 + tagOverlap * 30 + (sameAuthor ? 20 : 0) + popularity };
       });
 
     const format = (entry, reason) => ({
@@ -1636,14 +1641,14 @@ router.get('/comics/:id/similar', async (req, res) => {
 
     const byType = (a, b) => Number(b.sameType) - Number(a.sameType);
     // 같은 유형 → (장르·작가 관련 → 인기) 순. 같은 유형이 모자랄 때만 다른 유형으로 채운다
-    const related = scored.filter((entry) => entry.sameType && (entry.genreOverlap > 0 || entry.sameAuthor)).sort((a, b) => b.score - a.score);
+    const related = scored.filter((entry) => entry.sameType && (entry.genreOverlap > 0 || entry.tagOverlap > 0 || entry.sameAuthor)).sort((a, b) => b.score - a.score);
     const popular = [...scored].sort((a, b) => byType(a, b) || b.popularity - a.popularity);
     const picked = new Set();
     const comics = [];
     for (const entry of related) {
       if (comics.length >= limit) break;
       picked.add(entry.comic.id);
-      comics.push(format(entry, entry.genreOverlap > 0 ? 'SAME_GENRE' : 'SAME_AUTHOR'));
+      comics.push(format(entry, entry.tagOverlap > 0 ? 'SAME_TAG' : entry.genreOverlap > 0 ? 'SAME_GENRE' : 'SAME_AUTHOR'));
     }
     for (const entry of popular) {
       if (comics.length >= limit) break;

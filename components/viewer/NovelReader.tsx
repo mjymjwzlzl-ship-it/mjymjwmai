@@ -15,7 +15,8 @@ type FontKey = 'sans' | 'serif' | 'myeongjo' | 'gothic';
 export interface NovelSettings { mode: Mode; fontSize: number; lineHeight: number; theme: Theme; tone: Tone; brightness: number; font: FontKey }
 
 const STORAGE_KEY = 'arata_novel_viewer_v1';
-const DEFAULTS: NovelSettings = { mode: 'scroll', fontSize: 18, lineHeight: 1.9, theme: 'white', tone: 'auto', brightness: 100, font: 'sans' };
+// 기본은 책처럼 좌우 넘기기 (카카오페이지·시리즈·리디처럼). 설정에서 세로 스크롤로 바꿀 수 있다
+const DEFAULTS: NovelSettings = { mode: 'page', fontSize: 18, lineHeight: 1.9, theme: 'white', tone: 'auto', brightness: 100, font: 'sans' };
 
 const THEMES: Record<Theme, { label: string; bg: string; fg: string; strong: string; soft: string; swatch: string }> = {
   white: { label: '흰색', bg: '#ffffff', fg: '#222222', strong: '#000000', soft: '#555555', swatch: '#ffffff' },
@@ -35,7 +36,29 @@ function loadSettings(): NovelSettings {
   try { return { ...DEFAULTS, ...(JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}) }; } catch { return DEFAULTS; }
 }
 
-export default function NovelReader({ text, title, onReachEnd }: { text: string; title?: string; onReachEnd?: () => void }) {
+// 회차별 읽은 위치: 좌우 넘기기 = 쪽 번호, 세로 스크롤 = 문단 번호. 끝까지 읽으면 completed.
+// 내 서재 이어보기와 같은 기록(arata_read_position_v1)에도 완독 여부를 남긴다.
+const POS_KEY = 'arata_novel_position_v1';
+type NovelPos = { page: number; paragraph: number; completed: boolean; at: number };
+function readPos(episodeId?: string): NovelPos | null {
+  if (!episodeId) return null;
+  try { return (JSON.parse(localStorage.getItem(POS_KEY) || '{}') || {})[episodeId] || null; } catch { return null; }
+}
+function writePos(episodeId: string | undefined, pos: Omit<NovelPos, 'at'>, progress: number) {
+  if (!episodeId) return;
+  try {
+    const all = JSON.parse(localStorage.getItem(POS_KEY) || '{}') || {};
+    all[episodeId] = { ...pos, at: Date.now() };
+    localStorage.setItem(POS_KEY, JSON.stringify(all));
+    const shared = JSON.parse(localStorage.getItem('arata_read_position_v1') || '{}') || {};
+    shared[episodeId] = { index: 0, ratio: Math.round(progress * 1000) / 1000, completed: pos.completed, at: Date.now() };
+    localStorage.setItem('arata_read_position_v1', JSON.stringify(shared));
+  } catch {}
+}
+
+export default function NovelReader({ text, title, episodeId, onReachEnd, onNext, nextLabel }: {
+  text: string; title?: string; episodeId?: string; onReachEnd?: () => void; onNext?: () => void; nextLabel?: string;
+}) {
   const [settings, setSettings] = useState<NovelSettings>(DEFAULTS);
   const [panelOpen, setPanelOpen] = useState(false);
   const [page, setPage] = useState(0);
@@ -89,7 +112,51 @@ export default function NovelReader({ text, title, onReachEnd }: { text: string;
     observer.observe(frame);
     return () => observer.disconnect();
   }, [measure]);
-  useEffect(() => { setPage(0); }, [text, settings.mode]);
+  // 처음 열 때 저장된 위치로
+  const restored = useRef(false);
+  const [resumedNotice, setResumedNotice] = useState('');
+  useEffect(() => { restored.current = false; }, [episodeId]);
+  useEffect(() => {
+    if (restored.current || settings.mode !== 'page' || frameWidth === 0) return; // 쪽 수를 잰 뒤에 복원
+    const pos = readPos(episodeId);
+    restored.current = true;
+    if (!pos) return;
+    const target = pos.completed ? pageCount - 1 : Math.min(pos.page, pageCount - 1);
+    if (target > 0) { setPage(target); setResumedNotice(pos.completed ? '끝까지 읽은 회차예요' : '마지막으로 읽은 곳부터 이어서 봅니다'); }
+  }, [episodeId, pageCount, settings.mode, frameWidth]);
+  useEffect(() => {
+    if (settings.mode !== 'page' || !restored.current) return;
+    const completed = page >= pageCount - 1 || Boolean(readPos(episodeId)?.completed);
+    writePos(episodeId, { page, paragraph: 0, completed }, pageCount > 1 ? page / (pageCount - 1) : 1);
+  }, [page, pageCount, settings.mode, episodeId]);
+  useEffect(() => { if (!resumedNotice) return; const t = setTimeout(() => setResumedNotice(''), 3500); return () => clearTimeout(t); }, [resumedNotice]);
+
+  // 세로 스크롤: 화면에 보이는 문단 번호를 기록, 처음엔 그 문단으로 이동
+  const articleRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (settings.mode !== 'scroll') return;
+    const article = articleRef.current;
+    if (!article) return;
+    const paras = Array.from(article.querySelectorAll<HTMLElement>('p[data-para]'));
+    const pos = readPos(episodeId);
+    if (pos && (pos.paragraph > 0 || pos.completed)) {
+      const target = paras[pos.completed ? paras.length - 1 : Math.min(pos.paragraph, paras.length - 1)];
+      window.setTimeout(() => { target?.scrollIntoView({ block: 'start' }); setResumedNotice(pos.completed ? '끝까지 읽은 회차예요' : '마지막으로 읽은 곳부터 이어서 봅니다'); }, 300);
+    }
+    let furthest = pos?.paragraph || 0;
+    let completed = Boolean(pos?.completed);
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const index = Number((entry.target as HTMLElement).dataset.para) || 0;
+        furthest = index;
+        if (index >= paras.length - 1) completed = true;
+      }
+      writePos(episodeId, { page: 0, paragraph: furthest, completed }, paras.length > 1 ? furthest / (paras.length - 1) : 1);
+    }, { threshold: 0.6 });
+    paras.forEach((p) => observer.observe(p));
+    return () => observer.disconnect();
+  }, [settings.mode, episodeId, text]);
   useEffect(() => { if (settings.mode === 'page' && page === pageCount - 1) onReachEnd?.(); }, [page, pageCount, settings.mode, onReachEnd]);
 
   const go = (delta: number) => setPage((current) => Math.max(0, Math.min(pageCount - 1, current + delta)));
@@ -104,9 +171,12 @@ export default function NovelReader({ text, title, onReachEnd }: { text: string;
       )}
 
       {settings.mode === 'scroll' ? (
-        <article className="mx-auto max-w-2xl px-5 py-10 sm:px-8" style={bodyStyle}>
+        <article ref={articleRef} className="mx-auto max-w-2xl px-5 py-10 sm:px-8" style={bodyStyle}>
           {title && <h2 className="mb-8 text-center font-bold" style={{ fontSize: settings.fontSize * 1.15 }}>{title}</h2>}
-          {paragraphs.map((line, index) => <p key={index} className="mb-[0.9em] break-keep">{line}</p>)}
+          {paragraphs.map((line, index) => <p key={index} data-para={index} className="mb-[0.9em] break-keep">{line}</p>)}
+          {onNext && (
+            <button type="button" onClick={(event) => { event.stopPropagation(); onNext(); }} className="mt-10 w-full rounded-xl bg-[#00dc64] py-3 text-base font-black text-black">{nextLabel || '다음 화 보기'} →</button>
+          )}
         </article>
       ) : (
         <div className="mx-auto max-w-2xl px-5 py-6 sm:px-8">
@@ -134,12 +204,19 @@ export default function NovelReader({ text, title, onReachEnd }: { text: string;
             <button type="button" aria-label="이전 쪽" className="absolute inset-y-0 left-0 w-1/4" onClick={(event) => { event.stopPropagation(); go(-1); }} />
             <button type="button" aria-label="다음 쪽" className="absolute inset-y-0 right-0 w-1/4" onClick={(event) => { event.stopPropagation(); go(1); }} />
           </div>
+          {onNext && page >= pageCount - 1 && (
+            <button type="button" onClick={(event) => { event.stopPropagation(); onNext(); }} className="mt-3 w-full rounded-xl bg-[#00dc64] py-3 text-base font-black text-black">{nextLabel || '다음 화 보기'} →</button>
+          )}
           <div className="mt-3 flex items-center justify-center gap-4 text-sm font-bold" style={{ color: theme.soft }} onClick={(event) => event.stopPropagation()}>
             <button type="button" onClick={() => go(-1)} disabled={page === 0} className="disabled:opacity-30" aria-label="이전 쪽"><ChevronLeft className="h-5 w-5" /></button>
             <span>{page + 1} / {pageCount}</span>
             <button type="button" onClick={() => go(1)} disabled={page >= pageCount - 1} className="disabled:opacity-30" aria-label="다음 쪽"><ChevronRight className="h-5 w-5" /></button>
           </div>
         </div>
+      )}
+
+      {resumedNotice && (
+        <div className="pointer-events-none fixed inset-x-0 top-24 z-[66] flex justify-center"><span className="rounded-full bg-black/80 px-4 py-2 text-sm font-bold text-white">{resumedNotice}</span></div>
       )}
 
       {/* 뷰어 설정 버튼 */}

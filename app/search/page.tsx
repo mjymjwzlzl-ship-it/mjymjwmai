@@ -27,6 +27,12 @@ function SearchResults() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const query = searchParams.get('q') || '';
+  // 태그로 찾기: /search?tag=회귀 (작품 상세 태그·인기 태그에서 들어온다)
+  const tag = searchParams.get('tag') || '';
+  const [popularTags, setPopularTags] = useState<{ name: string; count: number }[]>([]);
+  useEffect(() => {
+    api.get('/frontend/tags').then(({ data }) => setPopularTags((data?.tags || []).slice(0, 20))).catch(() => {});
+  }, []);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(query);
@@ -35,17 +41,17 @@ function SearchResults() {
     (typeof window !== 'undefined' && localStorage.getItem('adult') === 'on');
 
   useEffect(() => {
-    if (query) {
+    if (query || tag) {
       performSearch(query);
     } else {
       setLoading(false);
     }
-  }, [query]);
+  }, [query, tag]);
 
   const performSearch = async (searchTerm: string) => {
     try {
       setLoading(true);
-      const response = await api.get(`/search?q=${encodeURIComponent(searchTerm)}&adult=${isAdultMode}`);
+      const response = await api.get(`/search?q=${encodeURIComponent(searchTerm)}&adult=${isAdultMode}${tag ? `&tag=${encodeURIComponent(tag)}` : ''}`);
       setResults(removeHiddenComicDuplicates(response.data.results || []));
     } catch (error) {
       console.error('검색 실패:', error);
@@ -83,9 +89,21 @@ function SearchResults() {
           </button>
         </form>
 
-        {query && (
+        {popularTags.length > 0 && (
+          <div className="-mt-4 mb-8 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-xs font-black text-gray-400">인기 태그</span>
+            {popularTags.map((item) => (
+              <Link key={item.name} href={`/search?tag=${encodeURIComponent(item.name)}`}
+                className={`rounded-full px-2.5 py-1 text-xs font-bold transition ${tag === item.name ? 'bg-[#00dc64] text-black' : 'bg-white text-gray-600 hover:text-[#00a84c] dark:bg-white/5 dark:text-gray-300'}`}>
+                #{item.name}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {(query || tag) && (
           <div className="mb-6">
-            <h1 className="mb-2 text-2xl font-black">{t('search.resultsTitle', { query })}</h1>
+            <h1 className="mb-2 text-2xl font-black">{tag && !query ? `#${tag} 태그 작품` : t('search.resultsTitle', { query })}</h1>
             {!loading && <p className="text-gray-500 dark:text-gray-400">{t('search.resultCount', { count: results.length })}</p>}
           </div>
         )}
@@ -96,7 +114,7 @@ function SearchResults() {
           </div>
         )}
 
-        {!loading && query && (
+        {!loading && (query || tag) && (
           results.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 md:gap-6 lg:grid-cols-5 xl:grid-cols-6">
               {results.map((item) => {
@@ -139,7 +157,7 @@ function SearchResults() {
           )
         )}
 
-        {!loading && !query && (
+        {!loading && !query && !tag && (
           <EmptySearchState title={t('search.promptTitle')} description={t('search.promptDescription')} />
         )}
       </div>

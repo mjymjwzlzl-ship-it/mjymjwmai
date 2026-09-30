@@ -8,9 +8,10 @@ import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { REASON_LABEL } from '@/components/ui/SimilarWorksRail';
 import ComicBadges from '@/components/ui/ComicBadges';
+import { contentTypeLabel } from '@/lib/comic-content-format';
 
 // 작품 상세 [이 작품과 비슷한 인기작품] 전체보기 (같은 기준 /frontend/comics/:id/similar, 최대 20개)
-interface SimilarComic { id: string; title: string; author?: string; thumbnailUrl: string; totalEpisodes: number; rating?: number; reason?: string; createdAt?: string; lastEpisodeAt?: string | null; status?: string }
+interface SimilarComic { id: string; title: string; author?: string; thumbnailUrl: string; totalEpisodes: number; rating?: number; reason?: string; createdAt?: string; lastEpisodeAt?: string | null; status?: string; contentType?: string }
 
 export default function SimilarListPage() {
   const params = useParams();
@@ -53,7 +54,7 @@ export default function SimilarListPage() {
                   </span>
                 </div>
                 <p className="mt-1.5 line-clamp-2 text-xs font-bold sm:text-sm">{comic.title}</p>
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">{comic.totalEpisodes}화{comic.rating ? ` · ★ ${comic.rating.toFixed(1)}` : ''}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400"><span className="rounded bg-gray-100 px-1 py-px text-[10px] font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">{contentTypeLabel(comic.contentType)}</span> · {comic.totalEpisodes}화{comic.reason && REASON_LABEL[comic.reason] ? ` · ${REASON_LABEL[comic.reason]}` : ''}</p>
               </Link>
             ))}
           </div>

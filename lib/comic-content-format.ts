@@ -47,3 +47,7 @@ export function selectNovelComics<T extends ComicWithId>(
   if (!Array.isArray(comics)) return [];
   return comics.filter(isNovelComic);
 }
+
+// 카드에 붙이는 콘텐츠 유형 표시 ([웹툰] [단행본] [웹소설])
+export const CONTENT_TYPE_LABEL: Record<string, string> = { webtoon: '웹툰', book: '단행본', novel: '웹소설' };
+export const contentTypeLabel = (type?: string | null) => CONTENT_TYPE_LABEL[String(type || 'webtoon').toLowerCase()] || '웹툰';

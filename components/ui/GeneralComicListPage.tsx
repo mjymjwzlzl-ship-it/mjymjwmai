@@ -41,6 +41,7 @@ type Comic = any;
 
 type NormalizedComic = {
   id: string;
+  tagList: string[];
   isUp: boolean;
   isNew: boolean;
   title: string;
@@ -165,6 +166,12 @@ const categories = [
   { query: 'lightNovel', value: '라이트노벨' },
   { query: 'bl', value: 'BL' },
   { query: 'gl', value: 'GL' },
+  { query: 'romanceFantasy', value: '로맨스판타지' },
+  { query: 'modernFantasy', value: '현대판타지' },
+  { query: 'mystery', value: '미스터리·스릴러' },
+  { query: 'sf', value: 'SF' },
+  { query: 'horror', value: '공포·호러' },
+  { query: 'historical', value: '역사·시대물' },
 ];
 
 const optionChips = [
@@ -193,6 +200,14 @@ const genreLabels: Record<string, string> = {
   'light-novel': '라이트노벨',
   bl: 'BL',
   gl: 'GL',
+  'romance-fantasy': '로맨스판타지',
+  romancefantasy: '로맨스판타지',
+  'modern-fantasy': '현대판타지',
+  modernfantasy: '현대판타지',
+  mystery: '미스터리·스릴러',
+  sf: 'SF',
+  horror: '공포·호러',
+  historical: '역사·시대물',
 };
 
 const brokenTextPattern = /\uFFFD/;
@@ -256,6 +271,7 @@ const normalizeComic = (
 
   return {
     id: String(comic.id),
+    tagList: (() => { try { const list = Array.isArray(comic.tags) ? comic.tags : JSON.parse(comic.tags || '[]'); return Array.isArray(list) ? list.map(String) : []; } catch { return []; } })(),
     isUp: isUpToday(comic.lastEpisodeAt),
     isNew: isNewLaunch(comic.createdAt),
     title: localizedTitle,
@@ -316,6 +332,12 @@ export default function GeneralComicListPage({
   const [sort, setSort] = useState<CatalogSort>('updated');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [weekday, setWeekday] = useState<WeekdayKey>('all');
+  // 태그(소재) 필터: 장르 탭과 별도. ?tag=회귀 로도 연다
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [tagsOpen, setTagsOpen] = useState(false);
+  useEffect(() => {
+    try { const tag = new URLSearchParams(window.location.search).get('tag'); if (tag) setActiveTag(tag); } catch {}
+  }, []);
   // 검수용: ?badgeTest=1 이면 앞의 세 작품에 UP / NEW / UP+NEW 를 강제로 표시 (홈과 동일)
   const [badgeTest, setBadgeTest] = useState(false);
   useEffect(() => {
@@ -460,13 +482,20 @@ export default function GeneralComicListPage({
         comic.synopsis.toLowerCase().includes(query) ||
         comic.tags.some((tag) => tag.toLowerCase().includes(query));
 
-      const weekdayOk = weekday === 'all' || weekdayIds.has(comic.id);
+      const weekdayOk = (weekday === 'all' || weekdayIds.has(comic.id)) && (!activeTag || comic.tagList.includes(activeTag));
       return categoryOk && optionOk && searchOk && weekdayOk && matchesStatus(comic, statusFilter);
     });
 
     const sorted = sortCatalog(filteredItems, sort);
     return badgeTest ? sorted.map((comic, index) => (index < 3 ? { ...comic, isUp: index !== 1, isNew: index !== 0 } : comic)) : sorted;
-  }, [activeCategory, activeOption, baseItems, searchQuery, sort, statusFilter, weekday, weekdayIds, badgeTest]);
+  }, [activeCategory, activeOption, baseItems, searchQuery, sort, statusFilter, weekday, weekdayIds, badgeTest, activeTag]);
+
+  // 지금 목록에 있는 작품들의 태그 (많이 쓰인 순)
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const comic of baseItems) for (const tag of comic.tagList) counts.set(tag, (counts.get(tag) || 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko'));
+  }, [baseItems]);
 
   useEffect(() => {
     setPage(1);
@@ -568,6 +597,24 @@ export default function GeneralComicListPage({
                 </div>
               </div>
             </div>
+
+            {/* 태그(소재·키워드) 필터: 장르와 별도. 많이 쓰인 12개 + 더보기 */}
+            {tagCounts.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-3 dark:border-gray-800" aria-label="태그">
+                <span className="mr-1 shrink-0 text-xs font-black text-gray-400">태그</span>
+                {(tagsOpen ? tagCounts : tagCounts.slice(0, 12)).map(([tag, count]) => {
+                  const active = activeTag === tag;
+                  return (
+                    <button key={tag} type="button" aria-pressed={active} onClick={() => { setActiveTag(active ? null : tag); setPage(1); }}
+                      className={`min-h-8 rounded-full px-2.5 text-xs font-bold transition ${active ? 'bg-[#00dc64] text-black' : 'bg-gray-100 text-gray-600 hover:text-gray-900 dark:bg-white/5 dark:text-gray-300'}`}>
+                      #{tag} <span className="opacity-60">{count}</span>
+                    </button>
+                  );
+                })}
+                {tagCounts.length > 12 && <button type="button" onClick={() => setTagsOpen((v) => !v)} className="text-xs font-bold text-gray-400 underline">{tagsOpen ? '접기' : `더보기 +${tagCounts.length - 12}`}</button>}
+                {activeTag && <button type="button" onClick={() => setActiveTag(null)} className="text-xs font-bold text-red-500">태그 해제</button>}
+              </div>
+            )}
 
             {/* 요일별 연재 (홈과 같은 탭) */}
             {/* 모바일은 8칸을 화면 폭에 나눠 넘기지 않아도 다 보이게 */}

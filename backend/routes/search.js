@@ -6,12 +6,14 @@ const { prisma } = require('../lib/prisma');
 router.get('/', async (req, res) => {
   try {
     const { q, adult } = req.query;
+    // ?tag=회귀 : 태그로 찾기 (검색어 없이도 가능)
+    const tag = String(req.query.tag || '').trim();
 
-    if (!q || q.trim().length === 0) {
+    if ((!q || q.trim().length === 0) && !tag) {
       return res.json({ results: [] });
     }
 
-    const searchTerm = q.trim();
+    const searchTerm = (q || '').trim();
     const isAdultMode = adult === 'true' || adult === '1';
     console.log('검색어:', searchTerm, '성인모드:', isAdultMode);
 
@@ -39,11 +41,14 @@ router.get('/', async (req, res) => {
               description: {
                 contains: searchTerm
               }
-            }
+            },
+            { tags: { contains: searchTerm } }
           ]
         }
       ]
     };
+    if (!searchTerm) webtoonWhere.AND.shift();
+    if (tag) webtoonWhere.AND.push({ tags: { contains: JSON.stringify(tag) } });
 
     // soft-hide: 공개 검색에는 isPublished=true만 노출
     webtoonWhere.AND.push({ isPublished: true });
@@ -84,6 +89,9 @@ router.get('/', async (req, res) => {
         rating: true, // 연령등급 ("19", "ADULT", "all" 등)
         description: true,
         genre: true,
+        tags: true,
+        contentType: true,
+        status: true,
         viewCount: true,
         createdAt: true,
         _count: {
@@ -99,7 +107,8 @@ router.get('/', async (req, res) => {
     });
 
     // 소설 검색
-    const novels = await prisma.novel.findMany({
+    // 태그만으로 찾을 때는 예전 소설(Novel) 테이블은 건너뛴다
+    const novels = !searchTerm ? [] : await prisma.novel.findMany({
       where: {
         AND: [
           {

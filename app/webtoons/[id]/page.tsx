@@ -22,6 +22,7 @@ import {
   resolveComicGenre,
 } from '@/lib/comic-localization';
 import ComicBadges from '@/components/ui/ComicBadges';
+import { contentTypeLabel } from '@/lib/comic-content-format';
 
 // ?깆씤?몄쬆 紐⑤떖 ?숈쟻 濡쒕뱶
 const AdultVerificationModal = dynamic(() => import('@/components/ui/AdultVerificationModal'), {
@@ -73,6 +74,7 @@ interface WebtoonDetail {
   id: number;
   title: string;
   status?: 'ONGOING' | 'HIATUS' | 'COMPLETED' | 'SUSPENDED' | string;
+  tags?: string[];
   createdAt?: string;
   lastEpisodeAt?: string | null;
   statusNotice?: string | null;
@@ -109,6 +111,7 @@ interface SimilarComic {
   createdAt?: string;
   lastEpisodeAt?: string | null;
   status?: string;
+  contentType?: string;
 }
 
 interface UserProgress {
@@ -192,6 +195,7 @@ const WebtoonDetailPage = () => {
   const [allEpisodes, setAllEpisodes] = useState<Episode[]>([]);
   // 가운데 영역 탭: 회차 목록 / 공지사항(휴재·판매중지 안내)
   const [mainTab, setMainTab] = useState<'episodes' | 'notice'>('episodes');
+  const [tagsExpanded, setTagsExpanded] = useState(false);
   const [notices, setNotices] = useState<ComicNotice[]>([]);
   const [openNoticeId, setOpenNoticeId] = useState<string | null>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
@@ -568,6 +572,17 @@ const WebtoonDetailPage = () => {
                     <span className="rounded-full bg-[#00dc64] px-3 py-1 text-xs font-black text-black">{t('detail.official')}</span>
                   )}
                 </div>
+                {/* 태그(소재·키워드): 대표 5개, 더보기로 전체. 누르면 같은 태그 작품 검색 */}
+                {(webtoon.tags || []).length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(tagsExpanded ? webtoon.tags! : webtoon.tags!.slice(0, 5)).map((tag) => (
+                      <Link key={tag} href={`/search?tag=${encodeURIComponent(tag)}`} className="rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-bold text-gray-600 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:text-gray-300">#{tag}</Link>
+                    ))}
+                    {webtoon.tags!.length > 5 && (
+                      <button type="button" onClick={() => setTagsExpanded((v) => !v)} className="text-xs font-bold text-gray-400 underline">{tagsExpanded ? '접기' : `더보기 +${webtoon.tags!.length - 5}`}</button>
+                    )}
+                  </div>
+                )}
                 {webtoon.status === 'SUSPENDED' && (
                   <button type="button" onClick={() => showStatusNotice('SUSPENDED')} className="w-full rounded-xl border border-red-300 bg-red-50 p-3 text-left text-xs leading-relaxed text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
                     <span className="block text-sm font-black">현재 판매가 중지된 작품이에요</span>
@@ -929,7 +944,7 @@ const WebtoonDetailPage = () => {
                           </span>
                         </div>
                         <p className="mt-1 line-clamp-2 text-xs font-bold text-gray-900 dark:text-gray-100">{localizeComicTitle(comic, locale, safeText(comic.title, t('detail.recommended')))}</p>
-                        <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('detail.episodeCount', { count: comic.totalEpisodes })}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400"><span className="rounded bg-gray-100 px-1 py-px text-[10px] font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">{contentTypeLabel(comic.contentType)}</span> · {t('detail.episodeCount', { count: comic.totalEpisodes })}</p>
                       </Link>
                     ))}
                   </HorizontalRail>
@@ -956,6 +971,7 @@ const WebtoonDetailPage = () => {
                           </h4>
                           <p className="text-gray-400 text-xs truncate mb-1">{localizeComicAuthor(comic, locale, 'ARATA')}</p>
                           <div className="flex items-center space-x-2 text-xs">
+                            <span className="rounded bg-gray-100 px-1 py-px text-[10px] font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">{contentTypeLabel(comic.contentType)}</span>
                             <span className="text-gray-500 dark:text-gray-400">{t('detail.episodeCount', { count: comic.totalEpisodes })}</span>
                             {comic.reason && REASON_LABEL[comic.reason] && (
                               <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">{REASON_LABEL[comic.reason]}</span>

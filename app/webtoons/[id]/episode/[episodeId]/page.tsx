@@ -491,7 +491,8 @@ export default function EpisodePage() {
   // 스크롤 진행률 추적 + 읽던 위치 저장 (스크롤 영역은 로딩이 끝난 뒤에 생기므로 episode 기준으로 붙인다)
   useEffect(() => {
     const scrollElement = scrollRef.current;
-    if (!scrollElement || !episode?.canView || !episodeKey) return;
+    // 웹소설은 NovelReader 가 쪽·문단 단위로 위치를 저장한다
+    if (!scrollElement || !episode?.canView || !episodeKey || episode.contentType === 'NOVEL') return;
     let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
     const savePosition = () => {
@@ -880,7 +881,13 @@ export default function EpisodePage() {
         <div className="flex flex-col items-center">
           {episode.canView && episode.contentType === 'NOVEL' ? (
             // 웹소설: 텍스트 뷰어 (보기 방식·글자·배경·밝기·글꼴 설정)
-            <NovelReader text={episode.text || ''} title={`${episode.episodeNumber}화 ${episode.title && episode.title !== `${episode.episodeNumber}화` ? episode.title : ''}`.trim()} />
+            <NovelReader
+              text={episode.text || ''}
+              episodeId={episodeKey}
+              title={`${episode.episodeNumber}화 ${episode.title && episode.title !== `${episode.episodeNumber}화` ? episode.title : ''}`.trim()}
+              onNext={isLastEpisode ? undefined : () => { void goNextEpisode(); }}
+              nextLabel="다음 화 보기"
+            />
           ) : episode.canView && episode.images && episode.images.length > 0 ? (
             // 구매했거나 무료 에피소드인 경우 이미지 표시
             episode.images.map((imageUrl, index) => (

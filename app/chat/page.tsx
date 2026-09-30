@@ -109,6 +109,8 @@ const sideMenu = [
   { labelKey: 'chat.settings', href: '/settings', icon: Settings },
 ];
 
+const MOBILE_CHAT_MENU = ['chat.home', 'chat.explore', 'chat.myChat', 'chat.favorites'];
+
 export default function ChatHomePage() {
   const { locale, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
@@ -366,12 +368,13 @@ export default function ChatHomePage() {
         <main className="min-w-0 flex-1">
           {/* 모바일: PC 왼쪽 사이드바와 같은 메뉴를 가로 칩으로 (탐색·랭킹·내 채팅·즐겨찾기·출석 체크·설정·이벤트) */}
           <nav className="mb-4 flex flex-wrap gap-2 lg:hidden" aria-label="캐릭터 채팅 메뉴">
-            {sideMenu.map((item) => {
+            {/* 모바일은 핵심 기능만: 랭킹은 아래 랭킹 영역, 출석 체크·설정·이벤트는 사이드 메뉴에서 */}
+            {sideMenu.filter((item) => MOBILE_CHAT_MENU.includes(item.labelKey)).map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.labelKey}
-                  href={item.href === '#ranking' ? '#ranking-mobile' : item.href}
+                  href={item.href}
                   className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-black transition ${
                     item.active
                       ? 'border-[#00dc64] bg-[#00dc64]/10 text-[#00a84c] dark:text-[#00dc64]'
@@ -383,10 +386,6 @@ export default function ChatHomePage() {
                 </Link>
               );
             })}
-            <Link href="/register" className="flex shrink-0 items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-3.5 py-2 text-xs font-black text-orange-600 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300">
-              <Flame className="h-4 w-4" />
-              {t('chat.event')} · {t('chat.subscriptionSale')}
-            </Link>
           </nav>
 
           {/* 히어로 캐러셀 */}

@@ -29,6 +29,7 @@ const upload = multer({
 
 const { isUpToday, isNewLaunch, newUntil, kstDay } = require('../lib/badges');
 const { applyStatusNotice } = require('../services/status-notice');
+const { parseTags, normalizeTags } = require('../lib/tags');
 const parseImages = (value) => {
   if (Array.isArray(value)) return value;
   try { const parsed = JSON.parse(value); if (Array.isArray(parsed)) return parsed; } catch {}
@@ -39,6 +40,14 @@ async function latestPublished(comicIds) {
   const rows = await prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: comicIds }, createdAt: { lte: new Date() } }, _max: { createdAt: true } });
   return new Map(rows.map((row) => [row.comicId, row._max.createdAt]));
 }
+
+// 등록된 태그 전체 (관리자 태그 선택용, 많이 쓰인 순)
+router.get('/admin/works-tags', authenticate, requireAdmin, async (req, res) => {
+  const rows = await prisma.comic.findMany({ where: { tags: { not: null } }, select: { tags: true } });
+  const counts = new Map();
+  for (const row of rows) for (const tag of parseTags(row.tags)) counts.set(tag, (counts.get(tag) || 0) + 1);
+  res.json({ tags: [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko')).map(([name, count]) => ({ name, count })) });
+});
 
 router.get('/admin/works', async (req, res) => {
   const q = String(req.query.q || '').trim();
@@ -79,6 +88,7 @@ router.get('/admin/works/:id', async (req, res) => {
     work: {
       ...comic,
       type: contentTypeOf(comic),
+      tags: parseTags(comic.tags),
       episodes: undefined,
       badges: { up: isUpToday(lastEpisodeAt), new: isNewLaunch(comic.createdAt), hiatus: comic.status === 'HIATUS', suspended: comic.status === 'SUSPENDED' },
       newUntil: newUntil(comic.createdAt),
@@ -130,6 +140,7 @@ router.patch('/admin/works/:id', async (req, res) => {
     if (Number.isNaN(date.getTime())) return res.status(400).json({ message: '런칭일 형식이 올바르지 않습니다.' });
     data.createdAt = date;
   }
+  if (b.tags !== undefined) data.tags = JSON.stringify(normalizeTags(b.tags));
   if (b.updateDays !== undefined) data.updateDays = JSON.stringify((Array.isArray(b.updateDays) ? b.updateDays : []).filter((d) => ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].includes(d)));
   for (const [key, min, max] of [['paidStartEpisode', 0, 100000], ['episodeCoinPrice', 0, 1000], ['rentalDays', 1, 365]]) {
     if (b[key] === undefined) continue;
