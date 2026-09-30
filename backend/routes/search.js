@@ -3,6 +3,8 @@ const router = express.Router();
 const { prisma } = require('../lib/prisma');
 const { optionalAuth } = require('../middleware/auth');
 const { adultComicWhere, generalComicWhere, isAdultModeRequest } = require('../services/adult-access');
+const { parseTags } = require('../lib/tags');
+const { parseCredits } = require('../lib/credits');
 
 // 성인 작품: 19 ON(adultMode=true) + 로그인 + 성인 인증일 때만 일반 작품과 함께 검색된다.
 // 그 밖에는 빼고, 제목·작가·태그가 맞는 성인 작품 수만 hiddenAdult 로 알려 준다(목록·제목은 보내지 않음).
@@ -26,31 +28,15 @@ router.get('/', async (req, res) => {
     const isAdultMode = isAdultModeRequest(req) && !!req.user?.adultVerified;
     if (isAdultModeRequest(req)) { res.set('Cache-Control', 'private, no-store'); res.set('Vary', 'Authorization'); }
 
-    // 웹툰 검색 조건
+    // 웹툰 검색 조건: 작품명·작가명(참여자)·태그만. 소개글·장르는 검색 대상이 아니다
+    // (소개글에 단어가 들어 있다는 이유로 제목·작가와 무관한 작품이 나오던 문제)
     const webtoonWhere = {
       AND: [
         {
           OR: [
-            {
-              title: {
-                contains: searchTerm
-              }
-            },
-            {
-              authorName: {
-                contains: searchTerm
-              }
-            },
-            {
-              genre: {
-                contains: searchTerm
-              }
-            },
-            {
-              description: {
-                contains: searchTerm
-              }
-            },
+            { title: { contains: searchTerm } },
+            { authorName: { contains: searchTerm } },
+            { credits: { contains: searchTerm } },
             { tags: { contains: searchTerm } }
           ]
         }
@@ -82,6 +68,7 @@ router.get('/', async (req, res) => {
         description: true,
         genre: true,
         tags: true,
+        credits: true,
         contentType: true,
         status: true,
         viewCount: true,
@@ -104,23 +91,7 @@ router.get('/', async (req, res) => {
       where: {
         AND: [
           {
-            OR: [
-              {
-                title: {
-                  contains: searchTerm
-                }
-              },
-              {
-                genre: {
-                  contains: searchTerm
-                }
-              },
-              {
-                description: {
-                  contains: searchTerm
-                }
-              }
-            ]
+            OR: [{ title: { contains: searchTerm } }]
           },
           { isBlocked: false }, // 차단된 소설 제외
           ...(isAdultMode ? [] : [{ isAdult: false }]) // 19 ON + 성인 인증이면 성인 소설도 함께
@@ -148,8 +119,26 @@ router.get('/', async (req, res) => {
     });
 
     // 결과 합치기
-    const webtoonResults = webtoons.map(w => ({
+    // 왜 결과에 나왔는지: 작품명이 아니라 작가·태그로 맞은 경우 그 정보를 함께 준다
+    const matchOf = (w) => {
+      if (hashTag || tag) {
+        const want = hashTag || tag;
+        const hit = parseTags(w.tags).find((t) => t.includes(want));
+        return hit ? { by: 'tag', value: hit } : null;
+      }
+      if (!searchTerm || String(w.title || '').includes(searchTerm)) return null;
+      const credit = parseCredits(w).find((c) => c.name.includes(searchTerm));
+      if (credit || String(w.authorName || '').includes(searchTerm)) return { by: 'author', value: credit ? credit.name : w.authorName };
+      const hit = parseTags(w.tags).find((t) => t.includes(searchTerm));
+      return hit ? { by: 'tag', value: hit } : null;
+    };
+    // credits 는 JSON 이라 역할 글자('글'·'그림')에도 걸리므로, 실제 이름·제목·태그에 들어 있는 것만 남긴다
+    const reallyMatches = (w) => !searchTerm || String(w.title || '').includes(searchTerm) || String(w.authorName || '').includes(searchTerm)
+      || parseCredits(w).some((c) => c.name.includes(searchTerm)) || parseTags(w.tags).some((t) => t.includes(searchTerm));
+    const webtoonResults = webtoons.filter(reallyMatches).map(({ credits, ...w }) => ({
       ...w,
+      tags: parseTags(w.tags),
+      matched: matchOf({ ...w, credits }),
       type: 'webtoon'
     }));
 

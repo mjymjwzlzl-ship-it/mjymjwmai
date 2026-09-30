@@ -21,6 +21,8 @@ interface SearchResult {
   type: 'webtoon' | 'novel';
   ageRating?: string;
   rating?: string;
+  // 작품명이 아니라 작가·태그로 검색된 경우 그 이유
+  matched?: { by: 'author' | 'tag'; value: string } | null;
 }
 
 function SearchResults() {
@@ -168,6 +170,11 @@ function SearchResults() {
                       {displayTitle}
                     </h3>
                     {author && <p className="truncate text-xs text-gray-500 md:text-sm dark:text-gray-400">{author}</p>}
+                    {item.matched && (
+                      <p className="mt-0.5 truncate text-[11px] font-bold text-[#00a84c] dark:text-[#00dc64]">
+                        {item.matched.by === 'tag' ? `#${item.matched.value} 태그 일치` : `작가 일치 · ${item.matched.value}`}
+                      </p>
+                    )}
                   </Link>
                 );
               })}

@@ -497,6 +497,34 @@ async function latestEpisodeDates(comicIds) {
   return new Map(rows.map((row) => [row.comicId, row._max.createdAt]));
 }
 
+// 내 서재 숨김 목록 { comicId → hiddenAt }
+async function hiddenMap(userId, section) {
+  const rows = await prisma.libraryHide.findMany({ where: { userId, section }, select: { comicId: true, hiddenAt: true } });
+  return new Map(rows.map((row) => [row.comicId, row.hiddenAt]));
+}
+
+// POST: /api/users/library/remove { section: viewed|liked|purchased, comicIds: [] }
+// 열람·구매: 내 서재 목록에서만 뺀다(구매·소장·대여 내역과 열람 권한은 그대로). 찜: 찜 해제 = 작품 알림도 해제.
+router.post('/library/remove', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+  const section = String(req.body?.section || '');
+  const comicIds = [...new Set((Array.isArray(req.body?.comicIds) ? req.body.comicIds : []).map(String))].slice(0, 500);
+  if (!['viewed', 'liked', 'purchased'].includes(section) || !comicIds.length) return res.status(400).json({ message: '삭제할 작품을 선택하세요.' });
+  if (section === 'liked') {
+    const result = await prisma.like.deleteMany({ where: { userId, comicId: { in: comicIds } } });
+    return res.json({ success: true, removed: result.count });
+  }
+  const now = new Date();
+  for (const comicId of comicIds) {
+    await prisma.libraryHide.upsert({
+      where: { userId_comicId_section: { userId, comicId, section } },
+      create: { userId, comicId, section, hiddenAt: now },
+      update: { hiddenAt: now },
+    });
+  }
+  res.json({ success: true, removed: comicIds.length });
+});
+
 // GET: /api/users/library/reading - 열람한 작품 (열람 기록 전체, 작품별 1개)
 router.get('/library/reading', authenticateToken, async (req, res) => {
   try {
@@ -531,6 +559,10 @@ router.get('/library/reading', authenticateToken, async (req, res) => {
       // views 는 최신순: 처음 만난 기록 = 마지막으로 본 회차 (이어보기 기준)
       entry.episodes.add(view.episodeId);
     }
+
+    // 내 서재에서 지운 작품: 지운 뒤 다시 본 기록이 없으면 빼기
+    const viewedHides = await hiddenMap(userId, 'viewed');
+    for (const [comicId, entry] of comicMap) if (viewedHides.has(comicId) && entry.lastReadAt <= viewedHides.get(comicId)) comicMap.delete(comicId);
 
     const comicIds = Array.from(comicMap.keys());
     const [comics, latest, episodeRows] = await Promise.all([
@@ -643,6 +675,10 @@ router.get('/library/purchased', authenticateToken, async (req, res) => {
         }
       }
     }
+
+    // 내 서재에서 지운 작품: 지운 뒤 새로 산 회차가 없으면 빼기 (소장 권한은 그대로)
+    const purchasedHides = await hiddenMap(userId, 'purchased');
+    for (const [comicId, entry] of comicMap) if (purchasedHides.has(comicId) && entry.lastPurchasedAt <= purchasedHides.get(comicId)) comicMap.delete(comicId);
 
     const comicIds = Array.from(comicMap.keys());
     const [comics, latest] = await Promise.all([

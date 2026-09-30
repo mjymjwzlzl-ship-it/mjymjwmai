@@ -872,3 +872,17 @@ model Gift {
   @@index([userId, claimedAt])
   @@map("gifts")
 }
+
+// 내 서재 목록에서 숨긴 작품 (열람한 작품·구매 작품). 구매·소장·대여 내역은 그대로, 목록에서만 뺀다.
+// hiddenAt 이후 다시 보거나 새로 구매하면 목록에 다시 나타난다. 찜한 작품 삭제는 찜 해제(Like 삭제)라 여기 쓰지 않음.
+model LibraryHide {
+  id        String   @id @default(cuid())
+  userId    String
+  comicId   String
+  section   String   // viewed | purchased
+  hiddenAt  DateTime @default(now())
+
+  @@unique([userId, comicId, section])
+  @@index([userId, section])
+  @@map("library_hides")
+}

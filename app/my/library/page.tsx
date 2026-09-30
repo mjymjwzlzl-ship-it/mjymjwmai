@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { BookmarkCheck, Clock, Heart, Library, Play } from 'lucide-react';
+import { BookmarkCheck, Check, Clock, Heart, Library, Pencil, Play, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { comicContentType } from '@/lib/comic-content-format';
@@ -155,6 +155,12 @@ function LibraryContent() {
   const [purchased, setPurchased] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [positions, setPositions] = useState<Record<string, ReadPosition>>({});
+  // 편집: 여러 작품 골라 한꺼번에(또는 하나만) 내 서재에서 삭제
+  const [editing, setEditing] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmIds, setConfirmIds] = useState<string[] | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [toast, setToast] = useState('');
   useEffect(() => { setPositions(readPositions()); }, []);
 
   useEffect(() => {
@@ -206,6 +212,8 @@ function LibraryContent() {
   }, []);
 
   const selectTab = (next: Tab) => {
+    setEditing(false);
+    setSelected(new Set());
     setTab(next);
     router.replace(`/my/library?tab=${next}`, { scroll: false });
   };
@@ -218,6 +226,34 @@ function LibraryContent() {
     [tabItems, type, sort],
   );
   const needsLogin = tab !== 'viewed' && !loggedIn;
+  // 유형 필터를 바꾸면 보이지 않는 작품은 선택에서 뺀다
+  useEffect(() => { setSelected((prev) => new Set([...prev].filter((id) => items.some((item) => item.comicId === id)))); }, [items]);
+  const toggleSelect = (comicId: string) => setSelected((prev) => { const next = new Set(prev); if (next.has(comicId)) next.delete(comicId); else next.add(comicId); return next; });
+  const allSelected = items.length > 0 && items.every((item) => selected.has(item.comicId));
+
+  const removeItems = async (comicIds: string[]) => {
+    setRemoving(true);
+    try {
+      if (loggedIn) await api.post('/users/library/remove', { section: tab, comicIds });
+      if (tab === 'viewed') {
+        // 이 기기에 남은 열람 기록도 지운다
+        try {
+          const history = JSON.parse(localStorage.getItem('viewedWebtoons') || '[]');
+          if (Array.isArray(history)) localStorage.setItem('viewedWebtoons', JSON.stringify(history.filter((item: any) => !comicIds.includes(String(item.webtoonId)))));
+        } catch {}
+      }
+      const drop = (list: LibraryItem[]) => list.filter((item) => !comicIds.includes(item.comicId));
+      if (tab === 'viewed') setViewed(drop); else if (tab === 'liked') setLiked(drop); else setPurchased(drop);
+      setSelected(new Set());
+      setConfirmIds(null);
+      setToast(`${comicIds.length}개 작품을 ${tab === 'liked' ? '찜 목록에서 뺐어요' : '내 서재 목록에서 삭제했어요'}`);
+      window.setTimeout(() => setToast(''), 2500);
+    } catch {
+      alert('삭제하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setRemoving(false);
+    }
+  };
 
   const subtitle = (item: LibraryItem) => {
     if (sort === 'updated' && item.updatedAt) return `${formatDate(item.updatedAt)} 업데이트`;
@@ -290,6 +326,7 @@ function LibraryContent() {
                 );
               })}
             </div>
+            <div className="flex items-center gap-2">
             <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
               <span className="sr-only">정렬</span>
               <select
@@ -302,6 +339,30 @@ function LibraryContent() {
                 ))}
               </select>
             </label>
+            {tabItems.length > 0 && (
+              <button type="button" onClick={() => { setEditing((v) => !v); setSelected(new Set()); }} aria-pressed={editing}
+                className={`flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-black transition ${editing ? 'border-gray-950 bg-gray-950 text-white dark:border-white dark:bg-white dark:text-black' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-500 dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-200'}`}>
+                <Pencil className="h-3.5 w-3.5" />{editing ? '편집 끝' : '편집'}
+              </button>
+            )}
+            </div>
+          </div>
+        )}
+
+        {editing && !needsLogin && items.length > 0 && (
+          <div className="sticky top-2 z-20 mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white/95 px-3 py-2.5 shadow-sm backdrop-blur dark:border-gray-800 dark:bg-[#1b1b1b]/95">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-bold">
+              <input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(items.map((item) => item.comicId)))} className="h-4 w-4 accent-[#00dc64]" />
+              전체 선택
+            </label>
+            <span className="text-sm text-gray-500 dark:text-gray-400">{selected.size}개 선택</span>
+            <span className="ml-auto flex gap-2">
+              <button type="button" onClick={() => { setEditing(false); setSelected(new Set()); }} className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-black text-gray-700 dark:bg-white/10 dark:text-gray-200">취소</button>
+              <button type="button" disabled={!selected.size} onClick={() => setConfirmIds([...selected])} className="flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40">
+                <Trash2 className="h-3.5 w-3.5" />선택 삭제
+              </button>
+            </span>
+            <p className="w-full text-[11px] text-gray-500 dark:text-gray-400">{tab === 'liked' ? '찜을 해제하면 작품 알림도 함께 꺼져요. 구매/대여 내역은 유지됩니다.' : '내 서재 목록에서만 삭제되며 구매/대여 내역은 유지됩니다.'}</p>
           </div>
         )}
 
@@ -324,8 +385,15 @@ function LibraryContent() {
         ) : (
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {items.map((item) => (
-              <li key={`${tab}-${item.comicId}`} className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-[#1b1b1b]">
-                <Link href={`/webtoons/${item.comicId}`} className="block">
+              <li key={`${tab}-${item.comicId}`} className={`group relative overflow-hidden rounded-xl border bg-white shadow-sm transition hover:shadow-md dark:bg-[#1b1b1b] ${editing && selected.has(item.comicId) ? 'border-[#00dc64] ring-2 ring-[#00dc64]' : 'border-gray-200 dark:border-gray-800'}`}>
+                {editing && (
+                  <>
+                    <button type="button" onClick={() => toggleSelect(item.comicId)} aria-pressed={selected.has(item.comicId)} aria-label={`${item.title} 선택`} className="absolute inset-0 z-10" />
+                    <span className={`pointer-events-none absolute left-2 top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 ${selected.has(item.comicId) ? 'border-[#00dc64] bg-[#00dc64] text-black' : 'border-white bg-black/40 text-transparent'}`}><Check className="h-4 w-4" /></span>
+                    <button type="button" onClick={() => setConfirmIds([item.comicId])} aria-label={`${item.title} 삭제`} className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </>
+                )}
+                <Link href={`/webtoons/${item.comicId}`} className="block" tabIndex={editing ? -1 : undefined}>
                   <div className="relative aspect-[3/4] overflow-hidden bg-gray-200 dark:bg-gray-800">
                     {item.thumbnail ? (
                       <img
@@ -351,7 +419,7 @@ function LibraryContent() {
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{subtitle(item)}</p>
                   </div>
                 </Link>
-                {tab !== 'liked' && item.lastEpisodeId && (
+                {!editing && tab !== 'liked' && item.lastEpisodeId && (
                   <div className="px-3 pb-3">
                     <Link
                       href={`/webtoons/${item.comicId}/episode/${tab === 'viewed' ? resumeInfo(item, positions)?.episodeId || item.lastEpisodeId : item.lastEpisodeId}`}
@@ -367,6 +435,22 @@ function LibraryContent() {
           </ul>
         )}
       </div>
+      {confirmIds && (
+        <div className="fixed inset-0 z-[1200] flex items-end justify-center bg-black/50 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="삭제 확인">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-gray-950 shadow-xl dark:bg-[#1b1b1b] dark:text-white">
+            <p className="text-base font-black">{tab === 'liked' ? `${confirmIds.length}개 작품의 찜을 해제할까요?` : `${confirmIds.length}개 작품을 목록에서 삭제할까요?`}</p>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              {tab === 'liked' ? '찜을 해제하면 작품 알림도 함께 꺼져요. 구매/대여 내역은 유지됩니다.' : '내 서재 목록에서만 삭제되며 구매/대여 내역은 유지됩니다.'}
+            </p>
+            {tab !== 'liked' && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{tab === 'purchased' ? '소장·대여한 회차는 작품 상세에서 계속 볼 수 있고, 새로 구매하면 목록에 다시 나타나요.' : '작품을 다시 보면 목록에 다시 나타나요.'}</p>}
+            <div className="mt-4 flex gap-2">
+              <button type="button" onClick={() => setConfirmIds(null)} className="flex-1 rounded-xl bg-gray-100 py-2.5 text-sm font-black dark:bg-white/10">취소</button>
+              <button type="button" disabled={removing} onClick={() => void removeItems(confirmIds)} className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-black text-white disabled:opacity-50">{removing ? '삭제 중...' : tab === 'liked' ? '찜 해제' : '삭제'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {toast && <div role="status" className="fixed bottom-24 left-1/2 z-[1200] -translate-x-1/2 rounded-full bg-gray-950 px-4 py-2 text-sm font-bold text-white shadow-lg dark:bg-white dark:text-black">{toast}</div>}
     </div>
   );
 }
