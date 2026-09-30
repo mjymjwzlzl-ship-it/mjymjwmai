@@ -9,7 +9,7 @@ import { adminApi } from '@/lib/works';
 // isImportant = [중요] 배지, isPinned = 상단 고정. 휴재·판매중지 유형은 사이트 상태 배지를 누르면 이 공지로 이동한다.
 export interface ComicNotice { id: string; type: string; title: string; content: string; isPinned: boolean; isImportant?: boolean; createdAt: string; updatedAt?: string }
 
-export const NOTICE_TYPE_LABEL: Record<string, string> = { HIATUS: '휴재 안내', RESUME: '연재 재개', SCHEDULE: '일정 변경', SUSPENDED: '판매중지', GENERAL: '일반 공지' };
+export const NOTICE_TYPE_LABEL: Record<string, string> = { HIATUS: '휴재 안내', RESUME: '연재 재개', SCHEDULE: '일정 변경', SUSPENDED: '판매중지', COMPLETE: '완결 안내', EVENT: '이벤트 안내', GENERAL: '일반 공지' };
 
 // datetime-local 값(한국 시간 브라우저 기준) <-> ISO
 const toLocal = (value?: string | null) => {

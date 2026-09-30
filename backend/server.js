@@ -320,7 +320,8 @@ app.use('/api/admin', adminRouter);
 app.use('/api/creator', creatorRouter);
 app.use('/api/comics', comicsRouter);
 app.use('/api/users', usersRouter);
-app.use('/api/frontend', require('./routes/rankings')); // 인기·실시간·유형별 TOP 랭킹
+app.use('/api/frontend', require('./routes/rankings'));
+app.use('/api/frontend', require('./routes/creators')); // 작가·스튜디오 상세 (참여 작품) // 인기·실시간·유형별 TOP 랭킹
 app.use('/api', require('./routes/promotions')); // 할인·무료 이벤트 작품
 app.use('/api', require('./routes/comic-status')); // 관리자: 연재 상태·공지
 app.use('/api', require('./routes/admin-works')); // 관리자: 작품 관리(작품별 상세·회차·예약 공개)

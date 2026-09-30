@@ -138,7 +138,7 @@ export default function NotificationsPage() {
               <div className="flex justify-center py-20"><div className="h-10 w-10 animate-spin rounded-full border-b-2 border-[#00dc64]" /></div>
             ) : items.length === 0 ? (
               <p className="rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center text-sm font-bold text-gray-500 dark:border-gray-700 dark:bg-[#1b1b1b] dark:text-gray-400">
-                {tab === 'update' ? '찜한 작품에 새 회차가 올라오면 여기에 알려 드려요.' : '새 알림이 없습니다.'}
+                {tab === 'update' ? '찜한 작품의 새 회차와 작품 공지(휴재·연재 재개·완결·이벤트 안내 등)를 여기에 알려 드려요.' : '새 알림이 없습니다.'}
               </p>
             ) : (
               <ul className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-[#1b1b1b]">

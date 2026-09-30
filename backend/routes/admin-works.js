@@ -15,6 +15,7 @@ const sharp = require('sharp');
 const { prisma } = require('../lib/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { contentTypeOf } = require('../lib/content-format');
+const { parseCredits, normalizeCredits } = require('../lib/credits');
 const { refreshPromotions } = require('../services/promotions');
 
 const router = express.Router();
@@ -89,6 +90,7 @@ router.get('/admin/works/:id', async (req, res) => {
       ...comic,
       type: contentTypeOf(comic),
       tags: parseTags(comic.tags),
+      credits: parseCredits(comic),
       episodes: undefined,
       badges: { up: isUpToday(lastEpisodeAt), new: isNewLaunch(comic.createdAt), hiatus: comic.status === 'HIATUS', suspended: comic.status === 'SUSPENDED' },
       newUntil: newUntil(comic.createdAt),
@@ -122,6 +124,12 @@ router.patch('/admin/works/:id', async (req, res) => {
   const data = {};
   for (const key of ['title', 'authorName', 'genre', 'description', 'thumbnail']) if (b[key] !== undefined) data[key] = String(b[key]).trim();
   if (data.title === '') return res.status(400).json({ message: '제목은 비울 수 없습니다.' });
+  // 참여자(글·그림·스튜디오): 저장하면 작가 표시(authorName)도 이름을 이어 맞춘다(검색·목록 표시용)
+  if (b.credits !== undefined) {
+    const credits = normalizeCredits(b.credits);
+    data.credits = credits.length ? JSON.stringify(credits) : null;
+    if (credits.length) data.authorName = [...new Set(credits.map((c) => c.name))].join(', ');
+  }
   if (b.contentType !== undefined) {
     if (!TYPES[b.contentType]) return res.status(400).json({ message: '유형이 올바르지 않습니다.' });
     data.contentType = TYPES[b.contentType];

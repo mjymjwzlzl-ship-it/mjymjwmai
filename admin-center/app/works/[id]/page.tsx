@@ -12,7 +12,7 @@ interface Work {
   id: string; title: string; authorName?: string | null; genre: string; description?: string | null; thumbnail?: string | null; rating: string;
   status: string; resumeAt?: string | null; contentType: string; type: 'webtoon' | 'book' | 'novel'; isPublished: boolean; isOfficial: boolean;
   paidStartEpisode: number; episodeCoinPrice: number; rentalCoinPrice: number | null; rentalDays: number; updateDays?: string | null;
-  viewCount: number; createdAt: string; lastEpisodeAt?: string | null; newUntil?: string | null; tags?: string[];
+  viewCount: number; createdAt: string; lastEpisodeAt?: string | null; newUntil?: string | null; tags?: string[]; credits?: { role: string; name: string }[];
   badges: { up: boolean; new: boolean; hiatus: boolean; suspended: boolean };
   upcoming: { id: string; episodeNumber: number; title: string; publishAt: string }[];
 }
@@ -24,6 +24,9 @@ interface Episode {
 // 사이트 장르 탭과 맞춘 장르 값
 const GENRES = [['fantasy', '판타지'], ['romance', '로맨스'], ['action', '액션'], ['martial', '무협'], ['drama', '드라마'], ['school', '학원'], ['comedy', '코미디'], ['thriller', '스릴러'], ['sports', '스포츠'], ['daily', '일상'],
   ['modern', '현대물'], ['romance-fantasy', '로맨스판타지'], ['modern-fantasy', '현대판타지'], ['mystery', '미스터리·스릴러'], ['sf', 'SF'], ['horror', '공포·호러'], ['historical', '역사·시대물'], ['lightnovel', '라이트노벨'], ['bl', 'BL'], ['gl', 'GL']] as const;
+
+// 참여자 역할 (백엔드 lib/credits.js 와 같은 목록)
+const CREDIT_ROLES = ['작가', '글', '그림', '글·그림', '원작', '각색', '스튜디오'];
 
 // 소재 태그 추천(웹툰·단행본·웹소설 공통). 기존 태그에 없어도 바로 고를 수 있게
 const SUGGESTED_TAGS = ['회귀', '환생', '빙의', '아카데미', '헌터', '게임물', '학원물', '일진', '복수', '아포칼립스', '생존', '먼치킨', '재벌', '계약연애', '힐링', '타임슬립'];
@@ -89,6 +92,7 @@ export default function WorkDetailPage() {
       rentalCoinPrice: data.work.rentalCoinPrice === null || data.work.rentalCoinPrice === undefined ? '' : String(data.work.rentalCoinPrice), rentalDays: data.work.rentalDays || 3,
       updateDays: days,
       tags: data.work.tags || [],
+      credits: (data.work.credits && data.work.credits.length ? data.work.credits : [{ role: '작가', name: data.work.authorName || '' }]).map((c) => ({ ...c })),
     });
   }, [id]);
   useEffect(() => { load().catch((e) => alert(e.message)); }, [load]);
@@ -97,8 +101,12 @@ export default function WorkDetailPage() {
     setSaving(true);
     setMessage('');
     try {
+      // 작가 표시(authorName)는 참여자 이름을 이어 서버에서 맞춘다. 이름을 모두 비우면 참여자는 그대로 둔다
+      const credits = form.credits.filter((c: { name: string }) => c.name.trim());
+      const { authorName: _authorName, credits: _credits, ...rest } = form;
       await adminApi(`/admin/works/${id}`, { method: 'PATCH', json: {
-        ...form,
+        ...rest,
+        ...(credits.length ? { credits } : {}),
         resumeAt: form.status === 'HIATUS' ? fromLocal(form.resumeAt) : null,
         launchedAt: fromLocal(form.launchedAt),
         paidStartEpisode: Number(form.paidStartEpisode), episodeCoinPrice: Number(form.episodeCoinPrice), rentalDays: Number(form.rentalDays),
@@ -184,7 +192,21 @@ export default function WorkDetailPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="제목"><input className={input} value={form.title} onChange={(e) => set({ title: e.target.value })} /></Field>
-            <Field label="작가"><input className={input} value={form.authorName} onChange={(e) => set({ authorName: e.target.value })} /></Field>
+            <div className="text-sm">
+              <span className="mb-1 block text-gray-300">참여자 <span className="text-xs text-gray-500">글·그림을 따로 넣으면 사이트에 &quot;글 홍길동 · 그림 김철수&quot;, 이름마다 작가 페이지 링크</span></span>
+              <div className="space-y-1.5">
+                {form.credits.map((credit: { role: string; name: string }, index: number) => (
+                  <div key={index} className="flex gap-1.5">
+                    <select className={`${input} w-28 shrink-0`} value={credit.role} onChange={(e) => set({ credits: form.credits.map((c: any, i: number) => (i === index ? { ...c, role: e.target.value } : c)) })}>
+                      {CREDIT_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
+                    </select>
+                    <input className={input} value={credit.name} placeholder="이름 또는 스튜디오명" onChange={(e) => set({ credits: form.credits.map((c: any, i: number) => (i === index ? { ...c, name: e.target.value } : c)) })} />
+                    <button type="button" aria-label="참여자 삭제" disabled={form.credits.length <= 1} onClick={() => set({ credits: form.credits.filter((_: any, i: number) => i !== index) })} className="shrink-0 rounded bg-gray-700 px-2 text-gray-300 hover:bg-gray-600 disabled:opacity-40"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                ))}
+                {form.credits.length < 10 && <button type="button" onClick={() => set({ credits: [...form.credits, { role: '그림', name: '' }] })} className="flex items-center gap-1 text-xs text-purple-300 hover:text-purple-200"><Plus className="h-3.5 w-3.5" />참여자 추가</button>}
+              </div>
+            </div>
             <Field label="장르" hint="목록에서 고르거나 입력"><input list="genre-options" className={input} value={form.genre} onChange={(e) => set({ genre: e.target.value })} /></Field>
             <datalist id="genre-options">
               {GENRES.map(([key, label]) => <option key={key} value={key}>{label}</option>)}

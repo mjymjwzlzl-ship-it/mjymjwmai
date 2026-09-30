@@ -8,7 +8,7 @@ type PrefKey = 'updates' | 'events' | 'promotions';
 interface ComicPref { comicId: string; title: string; thumbnail?: string | null; notify: boolean }
 
 const ROWS: { key: PrefKey; title: string; desc: string }[] = [
-  { key: 'updates', title: '작품 업데이트', desc: '찜한 작품에 새 회차가 올라오면 알려 드려요' },
+  { key: 'updates', title: '작품 업데이트', desc: '찜한 작품의 새 회차와 작품 공지(휴재·연재 재개·완결·이벤트 안내 등)를 알려 드려요' },
   { key: 'events', title: '이벤트', desc: '이벤트 시작과 종료 임박(24시간 전) 안내' },
   { key: 'promotions', title: '할인·무료 소식', desc: '할인·무료 공개 등 프로모션이 시작되면 알려 드려요' },
 ];
@@ -86,7 +86,7 @@ export default function NotificationSettings() {
       <div className="rounded-lg bg-gray-50 p-5 dark:bg-gray-800">
         <h3 className="mb-1 text-lg font-semibold">작품별 업데이트 알림</h3>
         <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-          찜한 작품마다 새 회차 알림을 따로 켜고 끌 수 있어요.{!prefs.updates && ' (지금은 작품 업데이트 알림 전체가 꺼져 있어요)'}
+          찜한 작품마다 작품 알림(새 회차·작품 공지)을 따로 켜고 끌 수 있어요. 찜을 풀면 알림도 함께 해제돼요.{!prefs.updates && ' (지금은 작품 업데이트 알림 전체가 꺼져 있어요)'}
         </p>
         {comics.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">찜한 작품이 없습니다.</p>
@@ -100,7 +100,7 @@ export default function NotificationSettings() {
                   </div>
                   <span className="line-clamp-1 text-sm font-bold">{comic.title}</span>
                 </div>
-                <Toggle checked={comic.notify} onChange={(value) => void setComic(comic.comicId, value)} label={`${comic.title} 새 회차 알림`} />
+                <Toggle checked={comic.notify} onChange={(value) => void setComic(comic.comicId, value)} label={`${comic.title} 작품 알림`} />
               </li>
             ))}
           </ul>

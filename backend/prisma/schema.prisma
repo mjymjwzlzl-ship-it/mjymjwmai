@@ -102,6 +102,7 @@ model Comic {
   isOfficial  Boolean    @default(false) // 정식연재 여부
   contentType String     @default("WEBTOON") // WEBTOON | BOOK(단행본) | NOVEL(웹소설)
   tags        String?    // 작품 태그(소재·키워드) JSON 배열 ["회귀","헌터"] — 장르와 별개
+  credits     String?    // 참여자 JSON [{"role":"글","name":"홍길동"},{"role":"그림","name":"김철수"}] — 비면 authorName 을 나눠 씀 (lib/credits.js)
   status      String     @default("ONGOING") // ONGOING(연재중), HIATUS(휴재), COMPLETED(완결), SUSPENDED(판매중지: 새 구매 불가, 보유 회차는 열람), HIDDEN
   statusNotice String?   // 작품 상세 [공지사항] 탭 안내 (휴재 사유·판매중지 안내 등)
   resumeAt    DateTime?  // 휴재 작품 연재 재개 예정일

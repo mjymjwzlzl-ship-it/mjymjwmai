@@ -10,7 +10,8 @@ const { autoNotice, applyStatusNotice } = require('../services/status-notice');
 const router = express.Router();
 const adminOnly = [authenticate, requireAdmin];
 const STATUSES = ['ONGOING', 'HIATUS', 'COMPLETED', 'SUSPENDED', 'HIDDEN'];
-const NOTICE_TYPES = ['HIATUS', 'RESUME', 'SCHEDULE', 'SUSPENDED', 'GENERAL'];
+// 휴재 안내 / 연재 재개 / 일정 변경 / 판매중지 / 완결 안내 / 이벤트 안내 / 일반 공지
+const NOTICE_TYPES = ['HIATUS', 'RESUME', 'SCHEDULE', 'SUSPENDED', 'COMPLETE', 'EVENT', 'GENERAL'];
 
 const kstDate = (value) => new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
 // 상단 고정 → 작성일 최신순. 새 공지를 써도 지난 공지는 그대로 쌓인다(게시판)

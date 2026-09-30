@@ -96,7 +96,8 @@ router.post('/:webtoonId', async (req, res) => {
         where: { id: existingLike.id }
       });
 
-      res.json({ success: true, message: '찜 목록에서 제거되었습니다', action: 'removed' });
+      // 찜을 풀면 Like 가 지워지므로 작품 알림(구독)도 함께 해제된다
+      res.json({ success: true, message: '찜 목록에서 제거되었습니다', action: 'removed', notify: false });
     } else {
       // 찜 추가
       await prisma.like.create({
@@ -106,7 +107,8 @@ router.post('/:webtoonId', async (req, res) => {
         }
       });
 
-      res.json({ success: true, message: '찜 목록에 추가되었습니다', action: 'added' });
+      // 찜하면 작품 알림(새 회차·작품 공지) ON 으로 구독
+      res.json({ success: true, message: '찜 목록에 추가되었습니다', action: 'added', notify: true });
     }
   } catch (error) {
     console.error('찜 추가 실패:', error);
@@ -163,7 +165,7 @@ router.get('/check/:webtoonId', async (req, res) => {
       }
     });
 
-    res.json({ isFavorite: !!existingLike });
+    res.json({ isFavorite: !!existingLike, notify: !!existingLike?.notify });
   } catch (error) {
     console.error('찜 확인 실패:', error);
     res.json({ isFavorite: false });

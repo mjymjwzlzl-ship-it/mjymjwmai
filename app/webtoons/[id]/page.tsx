@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { Bell, BellOff } from 'lucide-react';
 import { goBackOr } from '@/lib/nav-history';
 import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy, CalendarDays } from 'lucide-react';
 import CheerModal from '@/components/ui/CheerModal';
@@ -55,6 +56,8 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   HIATUS: { label: '휴재중', className: 'bg-amber-400/20 text-amber-700 dark:text-amber-300' },
   COMPLETED: { label: '완결', className: 'bg-gray-800 text-white dark:bg-white dark:text-black' },
   SUSPENDED: { label: '판매중지', className: 'bg-red-600/15 text-red-600 dark:text-red-400' },
+  COMPLETE: { label: '완결 안내', className: 'bg-violet-500/15 text-violet-700 dark:text-violet-300' },
+  EVENT: { label: '이벤트 안내', className: 'bg-pink-500/15 text-pink-700 dark:text-pink-300' },
 };
 
 // 작품 공지 유형
@@ -63,6 +66,8 @@ const NOTICE_TYPE: Record<string, { label: string; className: string }> = {
   RESUME: { label: '연재 재개', className: 'bg-[#00dc64]/15 text-[#00a84c] dark:text-[#00dc64]' },
   SCHEDULE: { label: '일정 변경', className: 'bg-sky-500/15 text-sky-700 dark:text-sky-300' },
   SUSPENDED: { label: '판매중지', className: 'bg-red-600/15 text-red-600 dark:text-red-400' },
+  COMPLETE: { label: '완결 안내', className: 'bg-violet-500/15 text-violet-700 dark:text-violet-300' },
+  EVENT: { label: '이벤트 안내', className: 'bg-pink-500/15 text-pink-700 dark:text-pink-300' },
   GENERAL: { label: '일반 공지', className: 'bg-gray-200 text-gray-700 dark:bg-white/10 dark:text-gray-300' },
 };
 // isImportant = [중요] 배지, isPinned = 상단 고정 (관리자 작품 관리에서 작품별로 작성, 쌓이는 게시판)
@@ -104,6 +109,7 @@ interface WebtoonDetail {
   status?: 'ONGOING' | 'HIATUS' | 'COMPLETED' | 'SUSPENDED' | string;
   tags?: string[];
   contentType?: string;
+  credits?: { role: string; name: string }[];
   serialDays?: string[];
   createdAt?: string;
   lastEpisodeAt?: string | null;
@@ -255,6 +261,18 @@ const WebtoonDetailPage = () => {
   }, [params.id]);
   useEffect(() => { if (openNoticeId) markNoticeSeen([openNoticeId]); }, [openNoticeId, markNoticeSeen]);
   const hasUnseenNotice = notices.some((notice) => isNewNotice(notice) && !seenNoticeIds.has(notice.id));
+  // 알림함의 작품 공지 알림에서 들어오면(?notice=공지id) [작품 공지] 탭을 열고 그 공지를 펼쳐 보여준다
+  const noticeLinkHandled = useRef(false);
+  useEffect(() => {
+    if (noticeLinkHandled.current || !notices.length) return;
+    let target = '';
+    try { target = new URLSearchParams(window.location.search).get('notice') || ''; } catch {}
+    if (!target || !notices.some((notice) => notice.id === target)) return;
+    noticeLinkHandled.current = true;
+    setMainTab('notice');
+    setOpenNoticeId(target);
+    window.setTimeout(() => document.getElementById(`notice-${target}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+  }, [notices]);
   // [작품 공지] 탭에서 공지 줄이 실제로 화면에 보이면 읽음
   useEffect(() => {
     if (mainTab !== 'notice' || !notices.length || typeof IntersectionObserver === 'undefined') return;
@@ -284,6 +302,21 @@ const WebtoonDetailPage = () => {
   const [userProgress, setUserProgress] = useState<UserProgress>({ lastReadEpisode: 0, readEpisodes: [] });
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
+  // 작품 알림(구독): 찜하면 ON, 찜 유지한 채 끌 수 있음, 찜 해제하면 함께 해제 (Like.notify)
+  const [notifyOn, setNotifyOn] = useState(false);
+  const [notifyBusy, setNotifyBusy] = useState(false);
+  const toggleNotify = async () => {
+    if (!isLiked || notifyBusy) return;
+    setNotifyBusy(true);
+    try {
+      const { data } = await api.put(`/notifications/comics/${params.id}`, { notify: !notifyOn });
+      setNotifyOn(!!data?.notify);
+    } catch {
+      alert('알림 설정을 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setNotifyBusy(false);
+    }
+  };
   const [showAdultVerification, setShowAdultVerification] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [cheerOpen, setCheerOpen] = useState(false);
@@ -314,6 +347,7 @@ const WebtoonDetailPage = () => {
       const response = await api.get(`/favorites/check/${params.id}`);
       if (response.data) {
         setIsLiked(response.data.isFavorite);
+        setNotifyOn(!!response.data.notify);
       }
     } catch (error) {
       console.error('李??곹깭 ?뺤씤 ?ㅽ뙣:', error);
@@ -475,6 +509,7 @@ const WebtoonDetailPage = () => {
 
       if (response.data) {
         setIsLiked(response.data.action === 'added');
+        setNotifyOn(response.data.notify ?? response.data.action === 'added');
       }
 
       window.dispatchEvent(new CustomEvent('favoriteToggled', {
@@ -610,8 +645,25 @@ const WebtoonDetailPage = () => {
                 <div>
                   <h1 className="text-2xl font-black text-gray-950 dark:text-white mb-1.5">{displayTitle}</h1>
                   <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                    <User className="w-4 h-4" />
-                    <span>{displayAuthor}</span>
+                    <User className="w-4 h-4 shrink-0" />
+                    {/* 참여자: 글·그림·스튜디오 이름을 누르면 그 작가/스튜디오 작품 목록 (/creators/이름) */}
+                    {locale === 'ko' && (webtoon.credits || []).length > 0 ? (
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                        {webtoon.credits!.map((credit, index) => (
+                          <span key={`${credit.role}-${credit.name}`} className="flex items-center gap-1">
+                            {index > 0 && <span className="text-gray-300 dark:text-gray-600">·</span>}
+                            {credit.role !== '작가' && <span className="text-xs text-gray-400">{credit.role}</span>}
+                            {['미상', '알 수 없음', '작가', 'ARATA', '-'].includes(credit.name) ? (
+                              <span>{credit.name}</span>
+                            ) : (
+                              <Link href={`/creators/${encodeURIComponent(credit.name)}`} className="font-bold text-gray-700 underline-offset-2 hover:text-[#00a84c] hover:underline dark:text-gray-200 dark:hover:text-[#00dc64]">{credit.name}</Link>
+                            )}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      <span>{displayAuthor}</span>
+                    )}
                   </div>
                   {/* 연재 요일 (관리자 [작품 관리] 연재 요일과 연동, 배지 대신 한 줄) */}
                   {serialLine(webtoon) && (
@@ -741,6 +793,28 @@ const WebtoonDetailPage = () => {
                       <span>{t('detail.share')}</span>
                     </button>
                   </div>
+                  {/* 작품 알림: 찜한 작품만. 새 회차·작품 공지(휴재·연재 재개·완결·이벤트 등)를 알림함 [작품 업데이트]로 */}
+                  {isLiked ? (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={notifyOn}
+                      onClick={() => void toggleNotify()}
+                      disabled={notifyBusy}
+                      className="flex w-full items-center gap-2 rounded-xl border border-gray-200 px-3 py-2.5 text-left text-sm transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:hover:bg-white/5"
+                    >
+                      {notifyOn ? <Bell className="h-4 w-4 shrink-0 fill-amber-400 text-amber-500" /> : <BellOff className="h-4 w-4 shrink-0 text-gray-400" />}
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-bold text-gray-900 dark:text-white">작품 알림 {notifyOn ? 'ON' : 'OFF'}</span>
+                        <span className="block text-xs text-gray-500 dark:text-gray-400">{notifyOn ? '새 회차·작품 공지를 알림함으로 알려 드려요' : '찜은 그대로, 알림만 꺼 두었어요'}</span>
+                      </span>
+                      <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${notifyOn ? 'bg-[#00dc64]' : 'bg-gray-300 dark:bg-gray-600'}`} aria-hidden="true">
+                        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${notifyOn ? 'left-[22px]' : 'left-0.5'}`} />
+                      </span>
+                    </button>
+                  ) : (
+                    <p className="px-1 text-xs text-gray-500 dark:text-gray-400">찜하면 새 회차·작품 공지를 알림함으로 받아 볼 수 있어요.</p>
+                  )}
                 </div>
 
                 {/* 작품 응원 */}

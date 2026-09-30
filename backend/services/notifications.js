@@ -62,6 +62,35 @@ async function episodeUpdates(userId, since) {
   });
 }
 
+// 찜(알림 ON)한 작품의 새 작품 공지: 휴재·연재 재개·완결·일정 변경·이벤트 안내 등. [작품 업데이트]로 모인다.
+const NOTICE_LABEL = { HIATUS: '휴재 안내', RESUME: '연재 재개', SCHEDULE: '일정 변경', SUSPENDED: '판매중지', COMPLETE: '완결 안내', EVENT: '이벤트 안내', GENERAL: '작품 공지' };
+async function noticeUpdates(userId, since) {
+  const likes = await prisma.like.findMany({ where: { userId, notify: true }, select: { comicId: true, createdAt: true } });
+  if (!likes.length) return [];
+  const likedAt = new Map(likes.map((like) => [like.comicId, like.createdAt]));
+  const notices = await prisma.comicNotice.findMany({
+    where: { comicId: { in: likes.map((like) => like.comicId) }, createdAt: { gt: since, lte: new Date() } },
+    orderBy: { createdAt: 'asc' },
+  });
+  if (!notices.length) return [];
+  const comics = await prisma.comic.findMany({ where: { id: { in: [...new Set(notices.map((n) => n.comicId))] }, isPublished: true }, select: { id: true, title: true, thumbnail: true } });
+  const comicById = new Map(comics.map((comic) => [comic.id, comic]));
+  return notices
+    .filter((notice) => comicById.has(notice.comicId) && notice.createdAt > likedAt.get(notice.comicId))
+    .map((notice) => {
+      const comic = comicById.get(notice.comicId);
+      return {
+        type: 'UPDATE',
+        title: `「${comic.title}」 [${NOTICE_LABEL[notice.type] || '작품 공지'}] ${notice.title}`,
+        body: String(notice.content || '').replace(/\s+/g, ' ').slice(0, 80) || null,
+        link: `/webtoons/${comic.id}?notice=${notice.id}`,
+        imageUrl: comic.thumbnail,
+        dedupeKey: `notice:${notice.id}`,
+        createdAt: notice.createdAt,
+      };
+    });
+}
+
 async function eventNews(now) {
   const events = await prisma.event.findMany({ where: { isActive: true, startAt: { lte: now } } });
   const items = [];
@@ -103,7 +132,7 @@ async function syncNotifications(userId, { force = false } = {}) {
   if (syncing.has(userId)) return syncing.get(userId);
   const job = (async () => {
     const items = [];
-    if (pref.updates) items.push(...await episodeUpdates(userId, pref.syncedAt));
+    if (pref.updates) items.push(...await episodeUpdates(userId, pref.syncedAt), ...await noticeUpdates(userId, pref.syncedAt));
     if (pref.events) items.push(...await eventNews(now));
     if (pref.promotions) items.push(...await promotionNews(now));
     await insertNew(userId, items);

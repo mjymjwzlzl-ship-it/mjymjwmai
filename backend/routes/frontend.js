@@ -5,6 +5,7 @@ const { parseTags } = require('../lib/tags');
 const { isPromoFreeEpisode, activePromotions, describePromotion } = require('../services/promotions');
 const { optionalAuth } = require('../middleware/auth');
 const { guardComicParam, requireVerifiedAdultMode, generalComicWhere } = require('../services/adult-access');
+const { parseCredits } = require('../lib/credits');
 const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const { prisma } = require('../lib/prisma');
@@ -918,6 +919,8 @@ router.get('/comics/:id', async (req, res) => {
       tags: parseTags(comic.tags),
       // 콘텐츠 유형: 태그를 누르면 같은 유형 목록(/daily·/books·/novel)으로
       contentType: comic.contentType || 'WEBTOON',
+      // 참여자(글·그림·스튜디오): 이름을 누르면 /creators/이름
+      credits: parseCredits(comic),
       // 연재 요일: 홈 [요일별 연재]와 같은 기준 (관리자 작품 관리의 연재 요일 + 카테고리 요일 편성)
       serialDays: await serialDaysOf(comic),
       // UP/NEW 배지: 런칭일·마지막 공개 회차 시각
