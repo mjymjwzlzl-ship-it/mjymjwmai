@@ -474,6 +474,7 @@ export default function GeneralComicListPage({
   const groupSize = isWide ? 10 : 5;
   const groupStart = Math.floor((currentPage - 1) / groupSize) * groupSize + 1;
   const groupEnd = Math.min(groupStart + groupSize - 1, pageCount);
+  const pagerNav = 'h-11 w-8 rounded-md text-xl font-black text-gray-500 hover:bg-gray-100 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent sm:w-10 dark:hover:bg-white/10';
   const goGroup = (direction: 1 | -1) => {
     const next = groupStart + direction * groupSize;
     if (next >= 1 && next <= pageCount) setPage(next);
@@ -724,7 +725,7 @@ export default function GeneralComicListPage({
           {items.length > 0 && (
             <div className="flex flex-col items-center gap-3 border-t border-gray-100 p-6 dark:border-gray-800">
               <div
-                className="flex touch-pan-y items-center justify-center gap-1 sm:gap-2"
+                className="flex touch-pan-y items-center justify-center gap-0.5 sm:gap-2"
                 onTouchStart={(event) => { swipeStart.current = event.touches[0].clientX; }}
                 onTouchEnd={(event) => {
                   if (swipeStart.current === null) return;
@@ -733,9 +734,9 @@ export default function GeneralComicListPage({
                   if (Math.abs(dx) > 40) goGroup(dx < 0 ? 1 : -1);
                 }}
               >
-                {groupStart > 1 && (
-                  <button type="button" onClick={() => goGroup(-1)} aria-label={`이전 ${groupSize}페이지`} className="h-11 w-9 rounded-md text-xl font-black text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10">‹</button>
-                )}
+                {/* << 첫 페이지 · < 이전 구간 (첫 구간이면 흐리게) */}
+                <button type="button" onClick={() => setPage(1)} disabled={currentPage === 1} aria-label="첫 페이지" className={pagerNav}>«</button>
+                <button type="button" onClick={() => goGroup(-1)} disabled={groupStart === 1} aria-label={`이전 ${groupSize}페이지`} className={pagerNav}>‹</button>
                 {Array.from({ length: groupEnd - groupStart + 1 }).map((_, index) => {
                   const pageNumber = groupStart + index;
                   return (
@@ -744,7 +745,7 @@ export default function GeneralComicListPage({
                       type="button"
                       onClick={() => setPage(pageNumber)}
                       aria-current={pageNumber === currentPage ? 'page' : undefined}
-                      className={`h-11 min-w-10 rounded-md px-2 text-sm font-black sm:min-w-11 ${
+                      className={`h-11 min-w-9 rounded-md px-1 text-sm font-black sm:min-w-11 sm:px-2 ${
                         pageNumber === currentPage
                           ? 'bg-[#00dc64] text-black shadow-md shadow-green-500/20'
                           : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10'
@@ -754,11 +755,11 @@ export default function GeneralComicListPage({
                     </button>
                   );
                 })}
-                {groupEnd < pageCount && (
-                  <button type="button" onClick={() => goGroup(1)} aria-label={`다음 ${groupSize}페이지`} className="h-11 w-9 rounded-md text-xl font-black text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10">›</button>
-                )}
+                {/* > 다음 구간 · >> 마지막 페이지 (마지막이면 흐리게) */}
+                <button type="button" onClick={() => goGroup(1)} disabled={groupEnd >= pageCount} aria-label={`다음 ${groupSize}페이지`} className={pagerNav}>›</button>
+                <button type="button" onClick={() => setPage(pageCount)} disabled={currentPage === pageCount} aria-label="마지막 페이지" className={pagerNav}>»</button>
               </div>
-              {pageCount > groupSize && <p className="text-xs text-gray-400">{currentPage} / {pageCount} 페이지</p>}
+              <p className="text-xs text-gray-400">{currentPage} / {pageCount} 페이지</p>
             </div>
           )}
         </section>
