@@ -5,7 +5,7 @@ const express = require('express');
 const { prisma } = require('../lib/prisma');
 const { optionalAuth } = require('../middleware/auth');
 const { isAdultComic, isAdultModeRequest } = require('../services/adult-access');
-const { parseCredits, isLinkableName } = require('../lib/credits');
+const { parseCredits, isLinkableName, isStudioName } = require('../lib/credits');
 const { contentTypeOf } = require('../lib/content-format');
 const { parseTags } = require('../lib/tags');
 
@@ -46,11 +46,11 @@ router.get('/creators/:name', optionalAuth, async (req, res) => {
   matched.sort(sort === 'popular' ? (a, b) => b.viewCount - a.viewCount || latestOf(b) - latestOf(a) : (a, b) => latestOf(b) - latestOf(a));
   if (!matched.length && !hiddenAdult) return res.status(404).json({ message: '작가 정보를 찾을 수 없습니다.' });
 
-  // 대표 역할: 스튜디오로만 참여했으면 스튜디오, 아니면 작가(글·그림 등 역할 목록)
+  // 대표 구분: 이름이 스튜디오·팀이거나 스튜디오로만 참여했으면 스튜디오, 아니면 작가(글·그림 등 역할 목록)
   const roleSet = [...new Set(matched.flatMap((w) => w.roles))];
   res.json({
     name,
-    kind: roleSet.length && roleSet.every((r) => r === '스튜디오') ? 'studio' : 'creator',
+    kind: isStudioName(name) || (roleSet.length && roleSet.every((r) => r === '스튜디오')) ? 'studio' : 'creator',
     roles: roleSet,
     sort,
     counts: { total: matched.length, webtoon: matched.filter((w) => w.contentType === 'webtoon').length, book: matched.filter((w) => w.contentType === 'book').length, novel: matched.filter((w) => w.contentType === 'novel').length },
