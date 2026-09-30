@@ -916,6 +916,8 @@ router.get('/comics/:id', async (req, res) => {
       id: comic.id,
       title: comic.title,
       tags: parseTags(comic.tags),
+      // 콘텐츠 유형: 태그를 누르면 같은 유형 목록(/daily·/books·/novel)으로
+      contentType: comic.contentType || 'WEBTOON',
       // 연재 요일: 홈 [요일별 연재]와 같은 기준 (관리자 작품 관리의 연재 요일 + 카테고리 요일 편성)
       serialDays: await serialDaysOf(comic),
       // UP/NEW 배지: 런칭일·마지막 공개 회차 시각

@@ -68,6 +68,9 @@ const NOTICE_TYPE: Record<string, { label: string; className: string }> = {
 // isImportant = [중요] 배지, isPinned = 상단 고정 (관리자 작품 관리에서 작품별로 작성, 쌓이는 게시판)
 interface ComicNotice { id: string; type: string; title: string; content: string; isPinned: boolean; isImportant?: boolean; createdAt: string }
 
+// 태그를 누르면 가는 같은 유형 목록
+const TAG_LIST_PATH: Record<string, string> = { WEBTOON: '/daily', BOOK: '/books', NOVEL: '/novel' };
+
 const DAY_LABEL: Record<string, string> = { mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일' };
 // "매주 수요일 연재" / "매주 월·목요일 연재" / 휴재 "매주 월요일 연재 · 휴재" / 완결 "완결"
 const serialLine = (webtoon: { serialDays?: string[]; status?: string }) => {
@@ -88,6 +91,7 @@ interface WebtoonDetail {
   title: string;
   status?: 'ONGOING' | 'HIATUS' | 'COMPLETED' | 'SUSPENDED' | string;
   tags?: string[];
+  contentType?: string;
   serialDays?: string[];
   createdAt?: string;
   lastEpisodeAt?: string | null;
@@ -597,11 +601,11 @@ const WebtoonDetailPage = () => {
                     <span className="rounded-full bg-[#00dc64] px-3 py-1 text-xs font-black text-black">{t('detail.official')}</span>
                   )}
                 </div>
-                {/* 태그(소재·키워드): 대표 5개, 더보기로 전체. 누르면 같은 태그 작품 검색 */}
+                {/* 태그(소재·키워드): 대표 5개, 더보기로 전체. 누르면 같은 유형 목록(웹툰·단행본·웹소설)에서 그 태그로 필터 */}
                 {(webtoon.tags || []).length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5">
                     {(tagsExpanded ? webtoon.tags! : webtoon.tags!.slice(0, 5)).map((tag) => (
-                      <Link key={tag} href={`/search?tag=${encodeURIComponent(tag)}`} className="rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-bold text-gray-600 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:text-gray-300">#{tag}</Link>
+                      <Link key={tag} href={`${TAG_LIST_PATH[String(webtoon.contentType || 'WEBTOON').toUpperCase()] || '/daily'}?tag=${encodeURIComponent(tag)}`} className="rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-bold text-gray-600 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:text-gray-300">#{tag}</Link>
                     ))}
                     {webtoon.tags!.length > 5 && (
                       <button type="button" onClick={() => setTagsExpanded((v) => !v)} className="text-xs font-bold text-gray-400 underline">{tagsExpanded ? '접기' : `더보기 +${webtoon.tags!.length - 5}`}</button>

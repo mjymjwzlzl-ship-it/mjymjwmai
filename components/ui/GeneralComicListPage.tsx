@@ -599,10 +599,10 @@ export default function GeneralComicListPage({
             </div>
 
             {/* 태그(소재·키워드) 필터: 장르와 별도. 많이 쓰인 12개 + 더보기 */}
-            {tagCounts.length > 0 && (
+            {(tagCounts.length > 0 || activeTag) && (
               <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-3 dark:border-gray-800" aria-label="태그">
                 <span className="mr-1 shrink-0 text-xs font-black text-gray-400">태그</span>
-                {(tagsOpen ? tagCounts : tagCounts.slice(0, 12)).map(([tag, count]) => {
+                {(tagsOpen ? tagCounts : [...tagCounts.slice(0, 12), ...tagCounts.slice(12).filter(([tag]) => tag === activeTag), ...(activeTag && !tagCounts.some(([tag]) => tag === activeTag) ? [[activeTag, 0] as [string, number]] : [])]).map(([tag, count]) => {
                   const active = activeTag === tag;
                   return (
                     <button key={tag} type="button" aria-pressed={active} onClick={() => { setActiveTag(active ? null : tag); setPage(1); }}

@@ -25,6 +25,9 @@ interface Episode {
 const GENRES = [['fantasy', '판타지'], ['romance', '로맨스'], ['action', '액션'], ['martial', '무협'], ['drama', '드라마'], ['school', '학원'], ['comedy', '코미디'], ['thriller', '스릴러'], ['sports', '스포츠'], ['daily', '일상'],
   ['modern', '현대물'], ['romance-fantasy', '로맨스판타지'], ['modern-fantasy', '현대판타지'], ['mystery', '미스터리·스릴러'], ['sf', 'SF'], ['horror', '공포·호러'], ['historical', '역사·시대물'], ['lightnovel', '라이트노벨'], ['bl', 'BL'], ['gl', 'GL']] as const;
 
+// 소재 태그 추천(웹툰·단행본·웹소설 공통). 기존 태그에 없어도 바로 고를 수 있게
+const SUGGESTED_TAGS = ['회귀', '환생', '빙의', '아카데미', '헌터', '게임물', '학원물', '일진', '복수', '아포칼립스', '생존', '먼치킨', '재벌', '계약연애', '힐링', '타임슬립'];
+
 const DAYS = [['mon', '월'], ['tue', '화'], ['wed', '수'], ['thu', '목'], ['fri', '금'], ['sat', '토'], ['sun', '일']] as const;
 // datetime-local <-> ISO (브라우저 시간대 = 한국)
 const toLocal = (value?: string | null) => {
@@ -233,6 +236,13 @@ export default function WorkDetailPage() {
                   ))}
                 </div>
               )}
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                <span className="text-xs text-gray-500">추천 소재:</span>
+                {SUGGESTED_TAGS.filter((tag) => !form.tags.includes(tag) && !allTags.slice(0, 30).some((t) => t.name === tag)).map((tag) => (
+                  <button key={tag} type="button" onClick={() => set({ tags: [...form.tags, tag].slice(0, 20) })} className="rounded-full border border-gray-600 px-2 py-0.5 text-xs text-gray-300 hover:bg-gray-700">+{tag}</button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">태그는 웹툰·단행본·웹소설 모두 사이트 작품 상세와 목록 태그 필터에 같은 방식으로 나갑니다.</p>
             </div>
             <div className="text-sm md:col-span-2">
               <span className="mb-1 block text-gray-300">연재 요일</span>
