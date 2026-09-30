@@ -482,6 +482,7 @@ const LIBRARY_COMIC_SELECT = {
   rating: true,
   status: true,
   contentType: true,
+  createdAt: true,
   updatedAt: true,
   _count: { select: { episodes: true } },
 };
@@ -490,7 +491,7 @@ async function latestEpisodeDates(comicIds) {
   if (comicIds.length === 0) return new Map();
   const rows = await prisma.episode.groupBy({
     by: ['comicId'],
-    where: { comicId: { in: comicIds } },
+    where: { comicId: { in: comicIds }, createdAt: { lte: new Date() } },
     _max: { createdAt: true },
   });
   return new Map(rows.map((row) => [row.comicId, row._max.createdAt]));
@@ -535,7 +536,7 @@ router.get('/library/reading', authenticateToken, async (req, res) => {
     const [comics, latest, episodeRows] = await Promise.all([
       prisma.comic.findMany({ where: { id: { in: comicIds } }, select: LIBRARY_COMIC_SELECT }),
       latestEpisodeDates(comicIds),
-      prisma.episode.findMany({ where: { comicId: { in: comicIds } }, select: { id: true, comicId: true, episodeNumber: true }, orderBy: { episodeNumber: 'asc' } }),
+      prisma.episode.findMany({ where: { comicId: { in: comicIds }, createdAt: { lte: new Date() } }, select: { id: true, comicId: true, episodeNumber: true }, orderBy: { episodeNumber: 'asc' } }),
     ]);
     const comicById = new Map(comics.map((comic) => [comic.id, comic]));
     // 마지막으로 본 회차의 다음 회차 (끝까지 본 경우 [다음 화 이어보기])

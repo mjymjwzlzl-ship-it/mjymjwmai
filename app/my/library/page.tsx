@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { comicContentType } from '@/lib/comic-content-format';
 import { useLoginModalStore } from '@/store/loginModal';
+import ComicBadges from '@/components/ui/ComicBadges';
 
 type Tab = 'viewed' | 'liked' | 'purchased';
 type ContentType = 'all' | 'webtoon' | 'book' | 'novel';
@@ -28,6 +29,7 @@ interface LibraryItem {
   /** 탭 기준 시각: 열람=마지막으로 본 시각, 찜=찜한 시각, 구매=마지막 구매 시각 */
   at?: string;
   updatedAt?: string;
+  launchedAt?: string;
   status?: string;
   contentType: Exclude<ContentType, 'all'>;
 }
@@ -133,6 +135,7 @@ function fromServer(item: any, at: string | undefined): LibraryItem {
     author: item.comic?.authorName,
     totalEpisodes: item.totalEpisodes ?? item.comic?._count?.episodes,
     updatedAt: item.lastUpdatedAt,
+    launchedAt: item.comic?.createdAt,
     status: item.comic?.status,
     at,
     contentType: contentTypeOf(comicId, item.comic?.contentType),
@@ -340,9 +343,7 @@ function LibraryContent() {
                     {item.contentType === 'book' && (
                       <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">단행본</span>
                     )}
-                    {tab === 'viewed' && time(item.updatedAt) > time(item.at) && (
-                      <span className="absolute right-1.5 top-1.5 rounded bg-[#00dc64] px-1.5 py-0.5 text-[10px] font-black text-black">UP</span>
-                    )}
+                    <ComicBadges lastEpisodeAt={item.updatedAt} createdAt={item.launchedAt} className="absolute right-1.5 top-1.5" />
                     {typeof item.progress === 'number' && item.progress > 0 && (
                       <div className="absolute inset-x-0 bottom-0 h-1 bg-black/30">
                         <div className="h-full bg-[#00dc64]" style={{ width: `${Math.min(item.progress, 100)}%` }} />

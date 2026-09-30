@@ -323,6 +323,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/frontend', require('./routes/rankings')); // 인기·실시간·유형별 TOP 랭킹
 app.use('/api', require('./routes/promotions')); // 할인·무료 이벤트 작품
 app.use('/api', require('./routes/comic-status')); // 관리자: 연재 상태·공지
+app.use('/api', require('./routes/admin-works')); // 관리자: 작품 관리(작품별 상세·회차·예약 공개)
 app.use('/api/frontend', frontendRouter);
 app.use('/api/episodes', episodesRouter);
 app.use('/api/payment', paymentRouter);

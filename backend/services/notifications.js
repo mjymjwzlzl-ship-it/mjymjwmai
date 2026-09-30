@@ -36,7 +36,7 @@ async function episodeUpdates(userId, since) {
   if (!likes.length) return [];
   const likedAt = new Map(likes.map((like) => [like.comicId, like.createdAt]));
   const episodes = await prisma.episode.findMany({
-    where: { comicId: { in: likes.map((like) => like.comicId) }, createdAt: { gt: since } },
+    where: { comicId: { in: likes.map((like) => like.comicId) }, createdAt: { gt: since, lte: new Date() } },
     select: { id: true, episodeNumber: true, title: true, createdAt: true, comicId: true, comic: { select: { title: true, thumbnail: true, isPublished: true } } },
     orderBy: { episodeNumber: 'asc' },
   });

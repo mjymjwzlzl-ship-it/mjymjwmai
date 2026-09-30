@@ -23,10 +23,12 @@ async function buildRankings() {
   const ids = comics.map((comic) => comic.id);
   const since = new Date(Date.now() - REALTIME_HOURS * 60 * 60 * 1000);
 
-  const [recentViews, ratingRows] = await Promise.all([
+  const [recentViews, ratingRows, latestRows] = await Promise.all([
     prisma.view.groupBy({ by: ['comicId'], where: { comicId: { in: ids }, createdAt: { gte: since } }, _count: { _all: true } }),
     prisma.rating.findMany({ where: { episode: { comicId: { in: ids } } }, select: { score: true, episode: { select: { comicId: true } } } }),
+    prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: ids }, createdAt: { lte: new Date() } }, _max: { createdAt: true } }),
   ]);
+  const lastEpisodeById = new Map(latestRows.map((row) => [row.comicId, row._max.createdAt]));
   const recentById = new Map(recentViews.map((row) => [row.comicId, row._count._all]));
   const ratingById = new Map();
   for (const row of ratingRows) {
@@ -55,6 +57,7 @@ async function buildRankings() {
       recentViews: recentById.get(comic.id) || 0,
       popularScore: comic.viewCount + likes * 10 + rating.sum,
       launchedAt: comic.createdAt,
+      lastEpisodeAt: lastEpisodeById.get(comic.id) || null,
       isNew: Date.now() - new Date(comic.createdAt).getTime() <= 7 * 24 * 60 * 60 * 1000,
     };
   });

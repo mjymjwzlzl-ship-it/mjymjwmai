@@ -21,6 +21,7 @@ import {
   localizeComicTitle,
   resolveComicGenre,
 } from '@/lib/comic-localization';
+import ComicBadges from '@/components/ui/ComicBadges';
 
 // ?깆씤?몄쬆 紐⑤떖 ?숈쟻 濡쒕뱶
 const AdultVerificationModal = dynamic(() => import('@/components/ui/AdultVerificationModal'), {
@@ -72,6 +73,8 @@ interface WebtoonDetail {
   id: number;
   title: string;
   status?: 'ONGOING' | 'HIATUS' | 'COMPLETED' | 'SUSPENDED' | string;
+  createdAt?: string;
+  lastEpisodeAt?: string | null;
   statusNotice?: string | null;
   resumeAt?: string | null;
   author: string;
@@ -103,6 +106,8 @@ interface SimilarComic {
   paidStartEpisode?: number;
   episodeCoinPrice?: number;
   reason?: string;
+  createdAt?: string;
+  lastEpisodeAt?: string | null;
 }
 
 interface UserProgress {
@@ -544,6 +549,7 @@ const WebtoonDetailPage = () => {
                   <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600 dark:bg-white/10 dark:text-gray-300">
                     {displayGenre}
                   </span>
+                  <ComicBadges lastEpisodeAt={webtoon.lastEpisodeAt} createdAt={webtoon.createdAt} />
                   {webtoon.status && STATUS_BADGE[webtoon.status] && (
                     <button
                       type="button"
@@ -916,9 +922,10 @@ const WebtoonDetailPage = () => {
                             loading="lazy"
                             draggable={false}
                           />
-                          {comic.reason && REASON_LABEL[comic.reason] && (
-                            <span className="absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[10px] font-bold text-white">{REASON_LABEL[comic.reason]}</span>
-                          )}
+                          <span className="absolute left-1 top-1 flex flex-col items-start gap-0.5">
+                            {comic.reason && REASON_LABEL[comic.reason] && <span className="rounded bg-black/70 px-1 py-0.5 text-[10px] font-bold text-white">{REASON_LABEL[comic.reason]}</span>}
+                            <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} size="xs" />
+                          </span>
                         </div>
                         <p className="mt-1 line-clamp-2 text-xs font-bold text-gray-900 dark:text-gray-100">{localizeComicTitle(comic, locale, safeText(comic.title, t('detail.recommended')))}</p>
                         <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('detail.episodeCount', { count: comic.totalEpisodes })}</p>
@@ -942,8 +949,9 @@ const WebtoonDetailPage = () => {
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-gray-950 dark:text-white text-sm font-medium truncate mb-1">
-                            {localizeComicTitle(comic, locale, safeText(comic.title, t('detail.recommended')))}
+                          <h4 className="mb-1 flex min-w-0 items-center gap-1 text-sm font-medium text-gray-950 dark:text-white">
+                            <span className="truncate">{localizeComicTitle(comic, locale, safeText(comic.title, t('detail.recommended')))}</span>
+                            <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} size="xs" className="shrink-0" />
                           </h4>
                           <p className="text-gray-400 text-xs truncate mb-1">{localizeComicAuthor(comic, locale, 'ARATA')}</p>
                           <div className="flex items-center space-x-2 text-xs">

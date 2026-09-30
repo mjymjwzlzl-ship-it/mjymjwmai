@@ -20,8 +20,10 @@ router.get('/frontend/promotions', async (req, res) => {
     })).filter((promo) => type === 'all' || (type === 'discount' ? promo.type === 'DISCOUNT' : promo.type !== 'DISCOUNT'));
     const comics = await prisma.comic.findMany({
       where: { id: { in: [...new Set(promos.map((promo) => promo.comicId))] }, isPublished: true, status: { not: 'HIDDEN' }, ...generalComicWhere() },
-      select: { id: true, title: true, authorName: true, thumbnail: true, genre: true, _count: { select: { episodes: true } } },
+      select: { id: true, title: true, authorName: true, thumbnail: true, genre: true, createdAt: true, _count: { select: { episodes: true } } },
     });
+    const latestRows = await prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: comics.map((c) => c.id) }, createdAt: { lte: now } }, _max: { createdAt: true } });
+    const lastEpisodeById = new Map(latestRows.map((row) => [row.comicId, row._max.createdAt]));
     const comicById = new Map(comics.map((comic) => [comic.id, comic]));
     // 작품당 한 칸: 여러 혜택이면 배지를 모두 붙인다
     const items = new Map();
@@ -29,7 +31,7 @@ router.get('/frontend/promotions', async (req, res) => {
       const comic = comicById.get(promo.comicId);
       if (!comic) continue;
       if (!items.has(comic.id)) {
-        items.set(comic.id, { id: comic.id, title: comic.title, author: comic.authorName, thumbnail: comic.thumbnail, genre: comic.genre, totalEpisodes: comic._count.episodes, promotions: [] });
+        items.set(comic.id, { id: comic.id, title: comic.title, author: comic.authorName, thumbnail: comic.thumbnail, genre: comic.genre, totalEpisodes: comic._count.episodes, createdAt: comic.createdAt, lastEpisodeAt: lastEpisodeById.get(comic.id) || null, promotions: [] });
       }
       items.get(comic.id).promotions.push(describePromotion(promo, now));
     }

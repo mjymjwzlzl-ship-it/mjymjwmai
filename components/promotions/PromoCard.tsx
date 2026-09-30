@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { getImageUrl } from '@/lib/utils';
+import ComicBadges from '@/components/ui/ComicBadges';
 
 export interface PromoInfo { id: string; type: 'DISCOUNT' | 'FREE_EPISODES' | 'FREE_RENTAL'; label: string; remaining: string; endsToday: boolean; endAt: string }
-export interface PromoComic { id: string; title: string; author?: string | null; thumbnail?: string | null; totalEpisodes: number; promotions: PromoInfo[] }
+export interface PromoComic { id: string; title: string; author?: string | null; thumbnail?: string | null; totalEpisodes: number; createdAt?: string; lastEpisodeAt?: string | null; promotions: PromoInfo[] }
 export type PromoTab = 'all' | 'discount' | 'free';
 export const PROMO_TABS: { key: PromoTab; label: string }[] = [
   { key: 'all', label: '전체' },
@@ -23,6 +24,7 @@ export default function PromoCard({ item }: { item: PromoComic }) {
           <img src={getImageUrl(item.thumbnail, { width: 360 })} alt={item.title} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
         ) : null}
         <div className="absolute left-1.5 top-1.5 flex flex-col items-start gap-1">
+          <ComicBadges lastEpisodeAt={item.lastEpisodeAt} createdAt={item.createdAt} />
           {soonest?.endsToday && <span className="rounded-sm bg-black px-1.5 py-0.5 text-[11px] font-black text-yellow-300">오늘만</span>}
           {item.promotions.map((promo) => (
             <span key={promo.id} className={`rounded-sm px-1.5 py-0.5 text-[11px] font-black ${promo.type === 'DISCOUNT' ? 'bg-red-600 text-white' : 'bg-[#00dc64] text-black'}`}>

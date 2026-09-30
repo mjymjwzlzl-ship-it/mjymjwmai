@@ -197,7 +197,7 @@ router.get('/home', async (req, res) => {
     // 작품별 최신 회차 등록 시각 (홈 UP 배지·최근 업데이트 순)
     const latestEpisodeRows = await prisma.episode.groupBy({
       by: ['comicId'],
-      where: { comicId: { in: allComics.map((comic) => comic.id) } },
+      where: { comicId: { in: allComics.map((comic) => comic.id) }, createdAt: { lte: new Date() } },
       _max: { createdAt: true },
     });
     const lastEpisodeAtById = new Map(latestEpisodeRows.map((row) => [row.comicId, row._max.createdAt]));
@@ -279,6 +279,7 @@ router.get('/comics/popular', async (req, res) => {
           }
         },
         episodes: {
+          where: { createdAt: { lte: new Date() } }, // 예약 공개 회차는 공개 시각 전까지 숨김
           select: {
             id: true,
             episodeNumber: true,
@@ -414,6 +415,7 @@ router.get('/categories/:category', async (req, res) => {
           }
         },
         episodes: {
+          where: { createdAt: { lte: new Date() } }, // 예약 공개 회차는 공개 시각 전까지 숨김
           select: {
             id: true,
             title: true,
@@ -551,6 +553,7 @@ router.get('/comics', async (req, res) => {
           }
         },
         episodes: {
+          where: { createdAt: { lte: new Date() } }, // 예약 공개 회차는 공개 시각 전까지 숨김
           select: {
             id: true,
             title: true,
@@ -707,7 +710,7 @@ router.get('/comics/:id/recent-episodes', async (req, res) => {
     }
 
     const episodes = await prisma.episode.findMany({
-      where: { comicId: id },
+      where: { comicId: id, createdAt: { lte: new Date() } }, // 예약 공개 회차 제외
       select: {
         id: true,
         title: true,
@@ -822,6 +825,7 @@ router.get('/comics/:id', async (req, res) => {
           }
         },
         episodes: {
+          where: { createdAt: { lte: new Date() } }, // 예약 공개 회차는 공개 시각 전까지 숨김
           select: {
             id: true,
             title: true,
@@ -892,6 +896,9 @@ router.get('/comics/:id', async (req, res) => {
     const formattedComic = {
       id: comic.id,
       title: comic.title,
+      // UP/NEW 배지: 런칭일·마지막 공개 회차 시각
+      createdAt: comic.createdAt,
+      lastEpisodeAt: (comic.episodes || []).reduce((max, ep) => (!max || ep.createdAt > max ? ep.createdAt : max), null),
       // 연재 상태 배지·공지사항 탭: ONGOING | HIATUS | COMPLETED | SUSPENDED
       status: comic.status,
       statusNotice: comic.statusNotice || null,
@@ -960,7 +967,7 @@ router.get('/comics/:id/episodes', async (req, res) => {
     });
 
     const episodes = await prisma.episode.findMany({
-      where: { comicId: id },
+      where: { comicId: id, createdAt: { lte: new Date() } }, // 예약 공개 회차 제외
       orderBy: { episodeNumber: 'asc' },
       select: {
         id: true,
@@ -1417,6 +1424,7 @@ router.get('/categories/adult/:category', requireVerifiedAdultMode, async (req, 
           }
         },
         episodes: {
+          where: { createdAt: { lte: new Date() } }, // 예약 공개 회차는 공개 시각 전까지 숨김
           select: {
             id: true,
             title: true,
@@ -1492,7 +1500,7 @@ router.get('/comics/:id/episode-position/:episodeId', async (req, res) => {
 
     // 에피소드 번호만 가져오기 (최소 쿼리)
     const episodes = await prisma.episode.findMany({
-      where: { comicId: id },
+      where: { comicId: id, createdAt: { lte: new Date() } }, // 예약 공개 회차 제외
       select: {
         id: true,
         episodeNumber: true
@@ -1587,6 +1595,8 @@ router.get('/comics/:id/similar', async (req, res) => {
     const currentAuthor = authorKey(current.authorName);
 
     const currentType = contentTypeOf(current);
+    const latestRows = await prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: candidates.map((c) => c.id) }, createdAt: { lte: new Date() } }, _max: { createdAt: true } });
+    const lastEpisodeById = new Map(latestRows.map((row) => [row.comicId, row._max.createdAt]));
     const scored = candidates
       .filter((comic) => comic._count.episodes > 0)
       .map((comic) => {
@@ -1607,6 +1617,8 @@ router.get('/comics/:id/similar', async (req, res) => {
       genre: entry.comic.genre,
       thumbnailUrl: entry.comic.thumbnail ? entry.comic.thumbnail.replace(/\.(jpg|jpeg|png)$/i, '.webp') : '/api/placeholder/300/400',
       contentType: contentTypeOf(entry.comic),
+      createdAt: entry.comic.createdAt,
+      lastEpisodeAt: lastEpisodeById.get(entry.comic.id) || null,
       viewCount: entry.comic.viewCount || 0,
       rating: Math.round(((ratingMap.get(entry.comic.id) || 0) / 2) * 10) / 10,
       totalEpisodes: entry.comic._count.episodes,

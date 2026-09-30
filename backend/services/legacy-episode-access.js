@@ -22,7 +22,9 @@ function guardEpisode({ purchasing = false } = {}) {
     try {
       if (req.headers.authorization && !req.user) return res.status(401).json({ code: 'INVALID_TOKEN', message: '다시 로그인해주세요.' });
       const episode = await prisma.episode.findUnique({ where: { id: req.params.episodeId }, include: { comic: true } });
-      if (!episode || episode.comic.isPublished === false || (req.params.id && req.params.id !== episode.comicId)) {
+      // 예약 공개 회차: 공개 시각 전에는 관리자만
+      const scheduled = episode && episode.createdAt > new Date() && req.user?.role !== 'ADMIN';
+      if (!episode || scheduled || episode.comic.isPublished === false || (req.params.id && req.params.id !== episode.comicId)) {
         return res.status(404).json({ message: '회차를 찾을 수 없습니다.' });
       }
       const content = episodeContent(episode);

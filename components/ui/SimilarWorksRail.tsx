@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
+import ComicBadges from '@/components/ui/ComicBadges';
 
 // 회차 감상 후 추천: 작품 상세의 '비슷한 인기 작품'과 같은 기준(/frontend/comics/:id/similar)
 interface SimilarWork {
@@ -15,6 +16,8 @@ interface SimilarWork {
   totalEpisodes: number;
   rating: number;
   reason: 'SAME_GENRE' | 'SAME_AUTHOR' | 'POPULAR' | 'SAME_GENRE_POPULAR';
+  createdAt?: string;
+  lastEpisodeAt?: string | null;
 }
 
 export const REASON_LABEL: Record<string, string> = {
@@ -100,8 +103,9 @@ function Rail({ title, items }: { title: string; items: SimilarWork[] }) {
                 draggable={false}
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
               />
-              <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                {REASON_LABEL[work.reason] || '추천'}
+              <span className="absolute left-1.5 top-1.5 flex flex-col items-start gap-1">
+                <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">{REASON_LABEL[work.reason] || '추천'}</span>
+                <ComicBadges lastEpisodeAt={work.lastEpisodeAt} createdAt={work.createdAt} />
               </span>
             </div>
             <p className="mt-1.5 line-clamp-2 text-xs font-bold leading-4 text-gray-900 dark:text-gray-100">{work.title}</p>

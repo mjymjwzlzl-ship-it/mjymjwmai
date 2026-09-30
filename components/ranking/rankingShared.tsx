@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Eye, Heart, Star } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
+import ComicBadges from '@/components/ui/ComicBadges';
 
 export type RankingKind = 'popular' | 'realtime' | 'new' | 'webtoon' | 'book' | 'novel';
 export interface RankingItem {
@@ -16,6 +17,7 @@ export interface RankingItem {
   rating: number;
   recentViews: number;
   launchedAt?: string;
+  lastEpisodeAt?: string | null;
   isNew?: boolean;
 }
 export interface RankingList { total: number; top: number; items: RankingItem[] }
@@ -58,14 +60,16 @@ export function RankingCard({ item, kind }: { item: RankingItem; kind: RankingKi
         ) : null}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-1 text-sm font-black group-hover:text-[#00a84c] dark:group-hover:text-[#00dc64]">{item.title}</p>
+        <p className="flex min-w-0 items-center gap-1 text-sm font-black group-hover:text-[#00a84c] dark:group-hover:text-[#00dc64]">
+          <span className="line-clamp-1">{item.title}</span>
+          <ComicBadges lastEpisodeAt={item.lastEpisodeAt} createdAt={item.launchedAt} size="xs" className="shrink-0" />
+        </p>
         <p className="mt-0.5 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">{[item.author, `${item.totalEpisodes}화`].filter(Boolean).join(' · ')}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] font-bold text-gray-500 dark:text-gray-400">
           {kind === 'realtime' ? (
             <span className="text-red-500">최근 조회 {item.recentViews.toLocaleString()}</span>
           ) : kind === 'new' ? (
             <>
-              {item.isNew && <span className="rounded-sm bg-[#00dc64] px-1.5 py-0.5 text-[10px] font-black text-black">NEW</span>}
               <span>{item.launchedAt ? new Date(item.launchedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Seoul' }) : ''} 런칭</span>
             </>
           ) : (
