@@ -86,7 +86,7 @@ export default function WorkDetailPage() {
     try { days = JSON.parse(data.work.updateDays || '[]') || []; } catch {}
     setForm({
       title: data.work.title, authorName: data.work.authorName || '', genre: data.work.genre || '', description: data.work.description || '',
-      contentType: data.work.contentType || 'WEBTOON', rating: ['19', 'ADULT'].includes(data.work.rating) ? '19' : 'GENERAL', status: data.work.status,
+      contentType: data.work.contentType || 'WEBTOON', rating: ['19', 'ADULT'].includes(data.work.rating) ? '19' : data.work.rating === '15' ? '15' : 'GENERAL', locale: (data.work as any).locale || 'ko', status: data.work.status,
       resumeAt: toLocal(data.work.resumeAt), statusNotice: data.work.statusNotice || '', isPublished: data.work.isPublished, isOfficial: data.work.isOfficial, launchedAt: toLocal(data.work.createdAt),
       paidStartEpisode: data.work.paidStartEpisode, episodeCoinPrice: data.work.episodeCoinPrice,
       rentalCoinPrice: data.work.rentalCoinPrice === null || data.work.rentalCoinPrice === undefined ? '' : String(data.work.rentalCoinPrice), rentalDays: data.work.rentalDays || 3,
@@ -103,14 +103,13 @@ export default function WorkDetailPage() {
     try {
       // 작가 표시(authorName)는 참여자 이름을 이어 서버에서 맞춘다. 이름을 모두 비우면 참여자는 그대로 둔다
       const credits = form.credits.filter((c: { name: string }) => c.name.trim());
-      const { authorName: _authorName, credits: _credits, ...rest } = form;
+      // 가격은 결제 관리에서만 바꾼다 (여기서 저장할 때 덮어쓰지 않게 뺀다)
+      const { authorName: _authorName, credits: _credits, paidStartEpisode: _p, episodeCoinPrice: _o, rentalCoinPrice: _r, rentalDays: _d, ...rest } = form;
       await adminApi(`/admin/works/${id}`, { method: 'PATCH', json: {
         ...rest,
         ...(credits.length ? { credits } : {}),
         resumeAt: form.status === 'HIATUS' ? fromLocal(form.resumeAt) : null,
         launchedAt: fromLocal(form.launchedAt),
-        paidStartEpisode: Number(form.paidStartEpisode), episodeCoinPrice: Number(form.episodeCoinPrice), rentalDays: Number(form.rentalDays),
-        rentalCoinPrice: form.rentalCoinPrice === '' ? null : Number(form.rentalCoinPrice),
       } });
       await load();
       setMessage('저장했습니다. 사이트에 바로 반영됩니다.');
@@ -216,7 +215,8 @@ export default function WorkDetailPage() {
                 <option value="WEBTOON">웹툰</option><option value="BOOK">단행본</option><option value="NOVEL">웹소설</option>
               </select>
             </Field>
-            <Field label="연령"><select className={input} value={form.rating} onChange={(e) => set({ rating: e.target.value })}><option value="GENERAL">일반</option><option value="19">19+</option></select></Field>
+            <Field label="이용등급" hint="19세 = 성인 작품(성인 인증·19 ON)"><select className={input} value={form.rating} onChange={(e) => set({ rating: e.target.value })}><option value="GENERAL">전체 이용가</option><option value="15">15세</option><option value="19">19세</option></select></Field>
+            <Field label="언어"><select className={input} value={form.locale} onChange={(e) => set({ locale: e.target.value })}><option value="ko">한국어</option><option value="en">영어</option></select></Field>
             <Field label="연재 상태" hint="휴재·판매중지 = 배지·[중요] 공지 자동">
               <select className={input} value={form.status} onChange={(e) => set({ status: e.target.value })}>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
             </Field>
@@ -288,14 +288,14 @@ export default function WorkDetailPage() {
         </section>
 
         <section className="rounded-lg bg-gray-800 p-5">
-          <h2 className="mb-3 text-lg font-bold">판매 설정</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Field label="유료 시작 회차" hint="0 = 전편 무료"><input type="number" min={0} className={input} value={form.paidStartEpisode} onChange={(e) => set({ paidStartEpisode: e.target.value })} /></Field>
-            <Field label="소장가(코인)"><input type="number" min={0} className={input} value={form.episodeCoinPrice} onChange={(e) => set({ episodeCoinPrice: e.target.value })} /></Field>
-            <Field label="대여가(코인)" hint="비우면 소장가-1, 0이면 대여 없음"><input type="number" min={0} className={input} value={form.rentalCoinPrice} onChange={(e) => set({ rentalCoinPrice: e.target.value })} /></Field>
-            <Field label="대여 기간(일)"><input type="number" min={1} className={input} value={form.rentalDays} onChange={(e) => set({ rentalDays: e.target.value })} /></Field>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold">판매 가격</h2>
+            <a href={`/payment?work=${id}`} className="rounded bg-gray-700 px-3 py-1.5 text-sm hover:bg-gray-600">결제 관리에서 가격 수정 →</a>
           </div>
-          <p className="mt-3 text-xs text-gray-400">할인·무료 이벤트는 [할인·무료]에서 관리합니다. 연재 상태를 휴재·판매중지로 바꿔 저장하면 [중요] 공지가 아래 목록에 자동으로 추가됩니다.</p>
+          <p className="mt-2 text-sm text-gray-300">
+            {Number(form.paidStartEpisode) === 0 ? '전편 무료' : `${form.paidStartEpisode}화부터 유료 · 소장 ${form.episodeCoinPrice}코인 · 대여 ${form.rentalCoinPrice === '' ? `${Math.max(0, Number(form.episodeCoinPrice) - 1)}코인(자동)` : Number(form.rentalCoinPrice) === 0 ? '없음' : `${form.rentalCoinPrice}코인`} · 대여 ${form.rentalDays}일`}
+          </p>
+          <p className="mt-2 text-xs text-gray-400">가격은 [결제 관리 &gt; 작품별 가격], 할인·무료는 [프로모션 &gt; 할인·무료 작품]에서 관리합니다(한곳에서만 설정). 연재 상태를 휴재·판매중지로 바꿔 저장하면 [중요] 공지가 아래 목록에 자동으로 추가됩니다.</p>
         </section>
 
         {/* 작품 공지: 사이트 작품 상세 [작품 공지] 탭 */}

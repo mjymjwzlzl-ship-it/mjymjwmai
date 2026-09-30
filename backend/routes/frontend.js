@@ -7,6 +7,8 @@ const { optionalAuth } = require('../middleware/auth');
 const { guardComicParam, requireVerifiedAdultMode, generalComicWhere } = require('../services/adult-access');
 const { parseCredits } = require('../lib/credits');
 const { homeMainBanners } = require('../lib/banners');
+const { autoCategories } = require('../lib/auto-categories');
+const { getCuration, homeSections } = require('../lib/curation');
 const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const { prisma } = require('../lib/prisma');
@@ -27,11 +29,7 @@ const WEEK_FULL = { monday: 'mon', tuesday: 'tue', wednesday: 'wed', thursday: '
 async function serialDaysOf(comic) {
   const days = new Set();
   try { for (const day of JSON.parse(comic.updateDays || '[]') || []) if (WEEK_ORDER.includes(day)) days.add(day); } catch {}
-  try {
-    const settings = await loadCategorySettings();
-    const week = settings.week && typeof settings.week === 'object' && !Array.isArray(settings.week) ? settings.week : {};
-    for (const [full, key] of Object.entries(WEEK_FULL)) if (Array.isArray(week[full]) && week[full].includes(comic.id)) days.add(key);
-  } catch {}
+  // 예전 카테고리 요일 편성은 작품 연재 요일로 옮겼다 (작품 관리가 기준)
   return WEEK_ORDER.filter((day) => days.has(day));
 }
 
@@ -147,20 +145,7 @@ router.get('/home', async (req, res) => {
       return comicIds.map(id => comics.find(c => c.id === id)).filter(Boolean);
     };
 
-    // 각 카테고리별 웹툰 가져오기
-    const [
-      dailyComics,
-      weekComics,
-      completeComics,
-      latestComics,
-      newComics
-    ] = await Promise.all([
-      getCategoryComics(categorySettings.daily),
-      getCategoryComics(categorySettings.week),
-      getCategoryComics(categorySettings.complete),
-      getCategoryComics(categorySettings.latest),
-      getCategoryComics(categorySettings.new)
-    ]);
+    // 요일·매일·완결·신작·최신 업데이트는 작품 정보로 자동 분류 (lib/auto-categories.js)
 
     // 실시간 탑텐: 조회수 기준 상위 10개 (성인 웹툰 제외)
     const realtimeComics = await prisma.comic.findMany({
@@ -219,31 +204,22 @@ router.get('/home', async (req, res) => {
     const lastEpisodeAtById = new Map(latestEpisodeRows.map((row) => [row.comicId, row._max.createdAt]));
     for (const comic of allComics) comic.lastEpisodeAt = lastEpisodeAtById.get(comic.id) || null;
     const allComicById = new Map(allComics.map((comic) => [comic.id, comic]));
-    const weekdayCategories = {};
-    // 요일 편성 = 관리자 [작품 관리]의 작품별 연재 요일(updateDays) + 예전 카테고리 요일 편성
-    const daysOf = (comic) => { try { const days = JSON.parse(comic.updateDays || '[]'); return Array.isArray(days) ? days : []; } catch { return []; } };
-    for (const [day, key] of Object.entries(WEEKDAY_KEYS)) {
-      const ids = Array.isArray(weekSchedule[day]) ? weekSchedule[day] : [];
-      const fromSchedule = ids.map((id) => allComicById.get(id)).filter(Boolean);
-      const seen = new Set(fromSchedule.map((comic) => comic.id));
-      const fromComic = allComics.filter((comic) => !seen.has(comic.id) && daysOf(comic).includes(key));
-      weekdayCategories[`week_${key}`] = [...fromSchedule, ...fromComic];
-    }
+    const auto = autoCategories(allComics);
 
     res.json({
       success: true,
       data: {
         // 홈 대배너: [배너 관리]에 등록된 것만 (lib/banners.js)
         banners: await homeMainBanners(),
+        // 노출 관리: 오늘의 추천작·추천 신작(직접 고른 작품 id), 홈 섹션 순서·노출
+        curation: {
+          todayPicks: await getCuration('today_picks', []),
+          newPicks: await getCuration('new_picks', []),
+          sections: (await homeSections()).map(({ key, visible }) => ({ key, visible })),
+        },
         categories: {
           realtime: realtimeComics,
-          daily: dailyComics.length > 0 ? dailyComics : allComics.filter(c => c.status === 'ONGOING').slice(0, 10),
-          week: weekComics.length > 0 ? weekComics : allComics.slice(0, 10),
-          complete: completeComics.length > 0 ? completeComics : allComics.filter(c => c.status === 'COMPLETED'),
-          latest: latestComics.length > 0 ? latestComics : allComics.slice(0, 10),
-          new: newComics.length > 0 ? newComics : allComics.filter(c => c.status === 'ONGOING').slice(0, 10),
-          completed: completeComics.length > 0 ? completeComics : allComics.filter(c => c.status === 'COMPLETED'),
-          ...weekdayCategories
+          ...auto,
         },
         allComics
       }
@@ -1306,20 +1282,7 @@ router.get('/adult-home', requireVerifiedAdultMode, async (req, res) => {
       return comicIds.map(id => comics.find(c => c.id === id)).filter(Boolean);
     };
 
-    // 각 카테고리별 웹툰 가져오기
-    const [
-      dailyComics,
-      weekComics,
-      completeComics,
-      latestComics,
-      newComics
-    ] = await Promise.all([
-      getCategoryComics(categorySettings.daily),
-      getCategoryComics(categorySettings.week),
-      getCategoryComics(categorySettings.complete),
-      getCategoryComics(categorySettings.latest),
-      getCategoryComics(categorySettings.new)
-    ]);
+    // 요일·매일·완결·신작·최신 업데이트는 작품 정보로 자동 분류 (lib/auto-categories.js)
 
     // 실시간 탑텐: 조회수 기준 상위 10개 (성인 웹툰만)
     const realtimeComics = await prisma.comic.findMany({
@@ -1363,6 +1326,11 @@ router.get('/adult-home', requireVerifiedAdultMode, async (req, res) => {
       // 목록·[성인] 장르 탭에서 전체를 써야 하므로 개수 제한 없음
     });
 
+    // 최신 업데이트 분류용 마지막 공개 회차 시각
+    const adultLatestRows = await prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: allComics.map((c) => c.id) }, createdAt: { lte: new Date() } }, _max: { createdAt: true } });
+    const adultLastById = new Map(adultLatestRows.map((row) => [row.comicId, row._max.createdAt]));
+    for (const comic of allComics) comic.lastEpisodeAt = adultLastById.get(comic.id) || null;
+
     res.json({
       success: true,
       data: {
@@ -1378,12 +1346,7 @@ router.get('/adult-home', requireVerifiedAdultMode, async (req, res) => {
         })),
         categories: {
           realtime: realtimeComics,
-          daily: dailyComics.length > 0 ? dailyComics : allComics.filter(c => c.status === 'ONGOING').slice(0, 10),
-          week: weekComics.length > 0 ? weekComics : allComics.slice(0, 10),
-          complete: completeComics.length > 0 ? completeComics : allComics.filter(c => c.status === 'COMPLETED'),
-          latest: latestComics.length > 0 ? latestComics : allComics.slice(0, 10),
-          new: newComics.length > 0 ? newComics : allComics.filter(c => c.status === 'ONGOING').slice(0, 10),
-          completed: completeComics.length > 0 ? completeComics : allComics.filter(c => c.status === 'COMPLETED')
+          ...autoCategories(allComics)
         },
         allComics
       }

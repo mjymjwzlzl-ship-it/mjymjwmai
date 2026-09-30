@@ -1,5 +1,6 @@
 const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
+const { getCoinPackages } = require('../lib/coin-packages');
 const jwt = require('jsonwebtoken');
 const { prisma } = require('../lib/prisma');
 
@@ -56,13 +57,8 @@ router.get('/coin-packages', authenticateToken, async (req, res) => {
     const { first_time_bonus } = req.query;
     const userId = req.user?.userId;
     
-    let packages = [
-      { id: 'basic', coins: 10, price: 1980, bonus: 0, description: '기본 패키지' },
-      { id: 'standard', coins: 30, price: 5500, bonus: 3, description: '10% 보너스' },
-      { id: 'premium', coins: 50, price: 8900, bonus: 5, description: '15% 할인', popular: true },
-      { id: 'ultimate', coins: 100, price: 16900, bonus: 15, description: '20% 할인 + 15% 보너스' },
-      { id: 'mega', coins: 300, price: 49900, bonus: 60, description: '25% 할인 + 20% 보너스' },
-    ];
+    // 코인 가격표: 관리자 [결제 관리 > 코인 가격]에서 바꾼다 (lib/coin-packages.js)
+    let packages = (await getCoinPackages()).filter((pkg) => pkg.active !== false);
     
     // 첫 구독 할인 적용 여부 확인
     let isFirstTimeBonus = false;
@@ -218,13 +214,7 @@ router.post('/init', authenticateToken, async (req, res) => {
     console.log('✅ 사용자 찾음:', user.username, user.email);
 
     // 코인 패키지 정의
-    const coinPackages = [
-      { id: 'basic', coins: 10, price: 1980, bonus: 0 },
-      { id: 'standard', coins: 30, price: 5500, bonus: 3 },
-      { id: 'premium', coins: 50, price: 8900, bonus: 5 },
-      { id: 'ultimate', coins: 100, price: 16900, bonus: 15 },
-      { id: 'mega', coins: 300, price: 49900, bonus: 60 },
-    ];
+    const coinPackages = await getCoinPackages();
 
     // 패키지 정보 찾기
     const selectedPackage = coinPackages.find(p => p.id === packageId);

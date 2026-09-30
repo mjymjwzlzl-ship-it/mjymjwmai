@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Mail, Star, Clock, CheckCircle, Reply, Trash2, Search, X, PenSquare, Inbox, SendIcon, Archive, MessageSquare, Forward, Users, Paperclip } from 'lucide-react';
-import AdminHeader from '@/components/AdminHeader';
 
 interface SupportMail {
   id: string;
@@ -371,7 +370,7 @@ export default function SupportPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <AdminHeader />
+      
       <div className="flex h-[calc(100vh-64px)]">
         {/* 사이드바 - 메일 목록 */}
         <div className="w-96 border-r border-gray-800 flex flex-col">

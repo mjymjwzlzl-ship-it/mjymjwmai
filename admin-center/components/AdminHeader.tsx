@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { LogOut, Home, BarChart3, FileText, Users, Shield, TrendingUp, Edit, Mail, AlertTriangle, CalendarDays, BadgePercent, Ticket, Library } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { NAV, groupOf } from '@/lib/admin-nav';
+import { LogOut, Mail } from 'lucide-react';
 
 export default function AdminHeader() {
   const router = useRouter();
+  const pathname = usePathname();
   const [adminName, setAdminName] = useState('관리자');
   const [unreadCount, setUnreadCount] = useState(1); // 더미 데이터로 1개 표시
   
@@ -26,11 +28,11 @@ export default function AdminHeader() {
   };
 
   return (
-    <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
+    <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           {/* 로고 및 메뉴 */}
-          <div className="flex items-center space-x-8">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-2">
             <Link href="/" className="flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">A</span>
@@ -38,48 +40,17 @@ export default function AdminHeader() {
               <span className="text-xl font-bold text-white">관리자 센터</span>
             </Link>
             
-            {/* 네비게이션 메뉴 */}
-            <nav className="flex items-center space-x-6">
-              <Link href="/" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <Home className="w-4 h-4" />
-                <span className="text-sm font-medium">대시보드</span>
-              </Link>
-              <Link href="/works" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <Library className="w-4 h-4" />
-                <span className="text-sm font-medium">작품 관리</span>
-              </Link>
-              <Link href="/banners" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <Edit className="w-4 h-4" />
-                <span className="text-sm font-medium">배너 관리</span>
-              </Link>
-              <Link href="/events" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <CalendarDays className="w-4 h-4" />
-                <span className="text-sm font-medium">이벤트 관리</span>
-              </Link>
-              <Link href="/promotions" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <BadgePercent className="w-4 h-4" />
-                <span className="text-sm font-medium">할인·무료</span>
-              </Link>
-              <Link href="/benefits" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <Ticket className="w-4 h-4" />
-                <span className="text-sm font-medium">쿠폰·선물</span>
-              </Link>
-              <Link href="/popular" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-sm font-medium">인기작 관리</span>
-              </Link>
-              <Link href="/payment" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <BarChart3 className="w-4 h-4" />
-                <span className="text-sm font-medium">결제 관리</span>
-              </Link>
-              <Link href="/adult-settings" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <Shield className="w-4 h-4" />
-                <span className="text-sm font-medium">성인 설정</span>
-              </Link>
-              <Link href="/reports" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm font-medium">신고 관리</span>
-              </Link>
+            {/* 상단 메뉴바: lib/admin-nav.ts (8개 메뉴, 세부 기능은 아래 탭 줄) */}
+            <nav className="flex flex-wrap items-center gap-x-1 gap-y-1" aria-label="관리자 메뉴">
+              {NAV.map((group) => {
+                const active = groupOf(pathname || '/').key === group.key;
+                return (
+                  <Link key={group.key} href={group.href} aria-current={active ? 'page' : undefined}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${active ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
+                    {group.label}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
           

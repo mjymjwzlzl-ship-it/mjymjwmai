@@ -912,3 +912,29 @@ model ReportHistory {
   @@index([reportId, createdAt])
   @@map("report_histories")
 }
+
+// 노출 관리 설정 (key → JSON 값): today_picks·new_picks·popular_pins(작품 id 배열), home_sections([{key,visible}]),
+// coin_packages(코인 가격표). 작품 정보 자체는 Comic 에만 둔다.
+model HomeCuration {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("home_curations")
+}
+
+// 회원 이용 제한·차단 이력 (관리자 [사용자 관리])
+model UserStatusLog {
+  id         String   @id @default(cuid())
+  userId     String
+  fromStatus String
+  toStatus   String   // ACTIVE | SUSPENDED(이용 제한) | BANNED(차단)
+  reason     String?
+  adminId    String?
+  adminName  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("user_status_logs")
+}

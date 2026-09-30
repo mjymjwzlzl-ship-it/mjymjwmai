@@ -9,6 +9,7 @@ const { prisma } = require('../lib/prisma');
 const { generalComicWhere } = require('../services/adult-access');
 const { contentTypeOf } = require('../lib/content-format');
 const { isNewLaunch } = require('../lib/badges');
+const { getCuration } = require('../lib/curation');
 
 const router = express.Router();
 const KINDS = ['popular', 'realtime', 'new', 'webtoon', 'book', 'novel'];
@@ -64,9 +65,13 @@ async function buildRankings() {
   });
 
   const byPopular = (a, b) => b.popularScore - a.popularScore || b.views - a.views;
-  const popular = [...items].sort(byPopular);
+  // [노출 관리 > 인기 작품] 상단 고정 작품은 점수와 관계없이 맨 앞 (고정 순서대로)
+  const pins = (await getCuration('popular_pins', [])).map(String);
+  const pinRank = new Map(pins.map((id, i) => [id, i]));
+  for (const item of items) item.pinned = pinRank.has(String(item.id));
+  const popular = [...items].sort((a, b) => (pinRank.has(String(a.id)) ? pinRank.get(String(a.id)) : 1e9) - (pinRank.has(String(b.id)) ? pinRank.get(String(b.id)) : 1e9) || byPopular(a, b));
   const realtime = items.filter((item) => item.recentViews > 0).sort((a, b) => b.recentViews - a.recentViews || byPopular(a, b));
-  const ofType = (type) => popular.filter((item) => item.contentType === type);
+  const ofType = (type) => [...items].sort(byPopular).filter((item) => item.contentType === type);
   const newest = [...items].sort((a, b) => new Date(b.launchedAt).getTime() - new Date(a.launchedAt).getTime() || byPopular(a, b));
   return { popular, realtime, new: newest, webtoon: ofType('webtoon'), book: ofType('book'), novel: ofType('novel') };
 }
@@ -115,3 +120,6 @@ router.get('/tags', async (req, res) => {
 });
 
 module.exports = router;
+// 관리자 노출 관리·통계에서 같은 집계를 쓴다
+module.exports.rankings = rankings;
+module.exports.clearRankingCache = () => { cache = { at: 0, data: null }; };

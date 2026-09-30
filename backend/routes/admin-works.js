@@ -60,15 +60,18 @@ router.get('/admin/works', async (req, res) => {
   };
   const comics = await prisma.comic.findMany({
     where,
-    select: { id: true, title: true, authorName: true, thumbnail: true, genre: true, rating: true, status: true, contentType: true, isPublished: true, paidStartEpisode: true, episodeCoinPrice: true, viewCount: true, createdAt: true, _count: { select: { episodes: true } } },
+    select: { id: true, title: true, authorName: true, thumbnail: true, genre: true, rating: true, status: true, contentType: true, isPublished: true, paidStartEpisode: true, episodeCoinPrice: true, rentalCoinPrice: true, rentalDays: true, viewCount: true, likeCount: true, createdAt: true, locale: true, updateDays: true, tags: true, _count: { select: { episodes: true } } },
     orderBy: { createdAt: 'desc' },
   });
   const latest = await latestPublished(comics.map((c) => c.id));
-  const scheduledRows = await prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: comics.map((c) => c.id) }, createdAt: { gt: new Date() } }, _count: { _all: true } });
+  const scheduledRows = await prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: comics.map((c) => c.id) }, createdAt: { gt: new Date() } }, _count: { _all: true }, _min: { createdAt: true } });
+  const nextScheduledById = new Map(scheduledRows.map((row) => [row.comicId, row._min.createdAt]));
   const scheduledById = new Map(scheduledRows.map((row) => [row.comicId, row._count._all]));
   const type = String(req.query.type || '');
   const list = comics
-    .map((c) => ({ ...c, type: contentTypeOf(c), episodes: c._count.episodes, scheduled: scheduledById.get(c.id) || 0, lastEpisodeAt: latest.get(c.id) || null, badges: { up: isUpToday(latest.get(c.id)), new: isNewLaunch(c.createdAt), hiatus: c.status === 'HIATUS', suspended: c.status === 'SUSPENDED' } }))
+    .map((c) => ({ ...c, type: contentTypeOf(c), episodes: c._count.episodes, scheduled: scheduledById.get(c.id) || 0, nextScheduledAt: nextScheduledById.get(c.id) || null,
+      // 필터용: 언어·연재 요일·태그 (요일 7개 = 매일, 없으면 비정기)
+      locale: c.locale || 'ko', days: (() => { try { const d = JSON.parse(c.updateDays || '[]'); return Array.isArray(d) ? d : []; } catch { return []; } })(), tags: parseTags(c.tags), updateDays: undefined, lastEpisodeAt: latest.get(c.id) || null, badges: { up: isUpToday(latest.get(c.id)), new: isNewLaunch(c.createdAt), hiatus: c.status === 'HIATUS', suspended: c.status === 'SUSPENDED' } }))
     .filter((c) => !type || c.type === type);
   res.json({ works: list });
 });
@@ -135,12 +138,14 @@ router.patch('/admin/works/:id', async (req, res) => {
     if (!TYPES[b.contentType]) return res.status(400).json({ message: '유형이 올바르지 않습니다.' });
     data.contentType = TYPES[b.contentType];
   }
-  if (b.rating !== undefined) data.rating = ['19', 'ADULT'].includes(String(b.rating)) ? '19' : 'GENERAL';
+  // 이용등급: 전체(GENERAL) / 15세(15) / 19세(19). 사이트는 19만 성인 작품으로 본다
+  if (b.rating !== undefined) data.rating = ['19', 'ADULT'].includes(String(b.rating)) ? '19' : String(b.rating) === '15' ? '15' : 'GENERAL';
   if (b.status !== undefined) {
     if (!STATUSES.includes(b.status)) return res.status(400).json({ message: '연재 상태가 올바르지 않습니다.' });
     data.status = b.status;
   }
   if (b.resumeAt !== undefined) data.resumeAt = b.resumeAt ? new Date(b.resumeAt) : null;
+  if (b.locale !== undefined) { if (!['ko', 'en'].includes(b.locale)) return res.status(400).json({ message: '언어가 올바르지 않습니다.' }); data.locale = b.locale; }
   // 상태 안내 문구: 작품 상세 [작품 공지] 탭 상단 안내·자동 공지에 덧붙는다 (예전 [연재 상태] 화면 기능)
   if (b.statusNotice !== undefined) data.statusNotice = String(b.statusNotice || '').trim() || null;
   if (b.isPublished !== undefined) data.isPublished = Boolean(b.isPublished);

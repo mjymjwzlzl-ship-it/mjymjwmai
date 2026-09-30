@@ -70,7 +70,7 @@ export default function BenefitsPage() {
   return (
     <div className="min-h-screen bg-gray-900 p-6 text-white">
       <div className="mx-auto max-w-6xl space-y-8">
-        <section>
+        <section id="coupons" className="scroll-mt-32">
           <h1 className="flex items-center gap-2 text-2xl font-bold"><Ticket className="h-6 w-6" />쿠폰 · 이용권</h1>
           <p className="mt-1 text-sm text-gray-400">만든 쿠폰은 번호로 등록하게 하거나(쿠폰 번호), 아래 [선물 보내기]로 줄 수 있습니다. 회차 구매창에서 적용됩니다.</p>
           <form onSubmit={createCoupon} className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-gray-800 p-4 text-sm md:grid-cols-4">
@@ -104,8 +104,8 @@ export default function BenefitsPage() {
           </table>
         </section>
 
-        <section>
-          <h2 className="flex items-center gap-2 text-2xl font-bold"><Gift className="h-6 w-6" />선물 보내기</h2>
+        <section id="gifts" className="scroll-mt-32">
+          <h2 className="flex items-center gap-2 text-2xl font-bold"><Gift className="h-6 w-6" />선물함 지급 (선물 보내기)</h2>
           <form onSubmit={sendGift} className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-gray-800 p-4 text-sm md:grid-cols-4">
             <label>종류<select className={input} value={gf.type} onChange={(e) => setGf({ ...gf, type: e.target.value })}><option value="COIN">이벤트 코인</option><option value="COUPON">쿠폰·이용권</option></select></label>
             {gf.type === 'COIN' ? (

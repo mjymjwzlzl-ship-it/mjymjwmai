@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BadgePercent, Eye, Heart, PartyPopper, Sparkles, Trophy } from 'lucide-react';
 import EventCard, { type SiteEvent } from '@/components/events/EventCard';
@@ -181,6 +181,9 @@ const WEEKDAY_TABS = [
 type WeekdayKey = (typeof WEEKDAY_TABS)[number]['key'];
 const todayWeekdayKst = (): WeekdayKey => (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[new Date(Date.now() + KST_OFFSET).getUTCDay()];
 
+// 홈 섹션 기본 순서 (관리자 [노출 관리 > 홈 화면 섹션]에서 순서·노출을 바꾼다. 백엔드 lib/curation.js 와 같은 키)
+const DEFAULT_HOME_SECTIONS = ['recent', 'weekday', 'today', 'popular', 'realtime', 'newPicks', 'top', 'eventWorks', 'events'].map((key) => ({ key, visible: true }));
+
 export default function HomePage() {
   const { locale, t } = useLanguage();
   const [recentViewed, setRecentViewed] = useState<RecentViewedWebtoon[]>([]);
@@ -340,28 +343,34 @@ export default function HomePage() {
       .filter((item) => item.id && item.title);
   }, [comics, locale, recentViewed]);
 
-  // 추천 신작: 랭킹 API 의 런칭 최신순을 홈 카드 규격으로 (홈 작품 목록에서 이미지·장르 등을 가져온다)
+  // 노출 관리 설정 (/frontend/home 의 curation): 오늘의 추천작·추천 신작 직접 고른 작품, 홈 섹션 순서·노출
+  const curation = (homeData?.data?.curation || {}) as { todayPicks?: string[]; newPicks?: string[]; sections?: { key: string; visible: boolean }[] };
+  const homeSections = curation.sections && curation.sections.length ? curation.sections : DEFAULT_HOME_SECTIONS;
+  const pickFrom = (ids: string[] | undefined, pool: Map<string, (typeof comics)[number]>) =>
+    (ids || []).map((id) => pool.get(String(id))).filter((comic): comic is (typeof comics)[number] => Boolean(comic));
+
+  // 추천 신작: 노출 관리에서 고른 작품 먼저, 남는 자리는 런칭 최신순(랭킹 API)으로
   const newComics = useMemo(() => {
     const comicMap = new Map(comics.map((comic) => [String(comic.id), comic]));
-    return (rankingData?.rankings?.new?.items || [])
+    const picked = pickFrom(curation.newPicks, comicMap);
+    const seen = new Set(picked.map((comic) => String(comic.id)));
+    const auto = (rankingData?.rankings?.new?.items || [])
       .map((item) => comicMap.get(String(item.id)))
-      .filter((comic): comic is (typeof comics)[number] => Boolean(comic))
-      .slice(0, 6);
-  }, [comics, rankingData]);
+      .filter((comic): comic is (typeof comics)[number] => Boolean(comic) && !seen.has(String(comic!.id)));
+    return [...picked, ...auto].slice(0, 6);
+  }, [comics, rankingData, curation.newPicks]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 오늘의 추천작: 노출 관리에서 고른 작품 먼저, 남는 자리는 인기 작품 순으로
   const recommendedComics = useMemo(() => {
-    const preferredIds = [FORMER_BULLY_ID, RED_DRAGON_ID, SAMAK_COMIC_ID, WORLD_END_GENERAL_ID];
     const comicMap = new Map(comics.map((comic) => [String(comic.id), comic]));
-    const preferred = preferredIds
-      .map((id) => comicMap.get(id))
-      .filter((comic): comic is (typeof comics)[number] => Boolean(comic));
-    const selectedIds = new Set(preferred.map((comic) => String(comic.id)));
-    const fallback = comics.filter(
-      (comic) => String(comic.id) !== DICE_GAME_ID && !selectedIds.has(String(comic.id)),
-    );
-
-    return [...preferred, ...fallback].slice(0, 6);
-  }, [comics]);
+    const picked = pickFrom(curation.todayPicks, comicMap);
+    const seen = new Set(picked.map((comic) => String(comic.id)));
+    const popular = (rankingData?.rankings?.popular?.items || [])
+      .map((item) => comicMap.get(String(item.id)))
+      .filter((comic): comic is (typeof comics)[number] => Boolean(comic) && !seen.has(String(comic!.id)));
+    const rest = comics.filter((comic) => !seen.has(String(comic.id)) && !popular.some((p) => p.id === comic.id));
+    return [...picked, ...popular, ...rest].slice(0, 6);
+  }, [comics, rankingData, curation.todayPicks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 홈 공통 작품 카드 (요일별 연재·오늘의 추천작·추천 신작 모두 같은 규격: 모바일 2열 × 3행 = 6개)
   const renderHomeCard = (comic: (typeof comics)[number]) => (
@@ -406,11 +415,10 @@ export default function HomePage() {
   );
   const homeGrid = 'grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3';
 
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
-      <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-6">
-        <MainBannerRail items={banners} />
-
+  // 홈 섹션: 관리자 [노출 관리 > 홈 화면 섹션]의 순서·노출 여부대로 그린다 (대배너는 항상 맨 위)
+  const sectionNodes: Record<string, React.ReactNode> = {
+      recent: (
+        <>
         <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-black">
@@ -460,7 +468,10 @@ export default function HomePage() {
               </div>
             )}
           </section>
-
+        </>
+      ),
+      weekday: (
+        <>
         <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
           <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
             <h1 className="flex items-center gap-2 text-xl font-black">
@@ -525,7 +536,10 @@ export default function HomePage() {
             })}
           </div>
         </section>
-
+        </>
+      ),
+      today: (
+        <>
         <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
           <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
             <div>
@@ -542,9 +556,20 @@ export default function HomePage() {
             {recommendedComics.map((comic) => renderHomeCard(comic))}
           </div>
         </section>
-
+        </>
+      ),
+      popular: (
+        <>
         <RankingSection title="인기 작품" icon={<Trophy className="h-5 w-5 text-[#00dc64]" />} kinds={['popular']} data={rankingData} />
+        </>
+      ),
+      realtime: (
+        <>
         <RankingSection title="실시간 랭킹" icon={<Trophy className="h-5 w-5 text-red-500" />} kinds={['realtime']} data={rankingData} />
+        </>
+      ),
+      newPicks: (
+        <>
         <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
           <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
             <div>
@@ -557,8 +582,15 @@ export default function HomePage() {
             {newComics.map((comic) => renderHomeCard(comic))}
           </div>
         </section>
+        </>
+      ),
+      top: (
+        <>
         <RankingSection title={`TOP ${(rankingData?.rankings?.webtoon?.top || 0) > 20 ? rankingData?.rankings?.webtoon?.top : 20}`} icon={<Trophy className="h-5 w-5 text-yellow-500" />} kinds={['webtoon', 'book', 'novel']} data={rankingData} />
-
+        </>
+      ),
+      eventWorks: (
+        <>
         {(promoData || []).length > 0 && (
           <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
             <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
@@ -596,7 +628,10 @@ export default function HomePage() {
             )}
           </section>
         )}
-
+        </>
+      ),
+      events: (
+        <>
         {homeEvents.length > 0 && (
           <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
             <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
@@ -613,6 +648,17 @@ export default function HomePage() {
             </div>
           </section>
         )}
+        </>
+      ),
+    };
+
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
+      <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-6">
+        <MainBannerRail items={banners} />
+        {homeSections.filter((section) => section.visible && sectionNodes[section.key]).map((section) => (
+          <React.Fragment key={section.key}>{sectionNodes[section.key]}</React.Fragment>
+        ))}
       </div>
     </div>
   );
