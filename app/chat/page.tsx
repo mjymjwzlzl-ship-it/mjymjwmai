@@ -360,6 +360,31 @@ export default function ChatHomePage() {
 
         {/* 메인 영역 */}
         <main className="min-w-0 flex-1">
+          {/* 모바일: PC 왼쪽 사이드바와 같은 메뉴를 가로 칩으로 (탐색·랭킹·내 채팅·즐겨찾기·출석 체크·설정·이벤트) */}
+          <nav className="no-scrollbar -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 lg:hidden" aria-label="캐릭터 채팅 메뉴">
+            {sideMenu.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.labelKey}
+                  href={item.href === '#ranking' ? '#ranking-mobile' : item.href}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-black transition ${
+                    item.active
+                      ? 'border-[#00dc64] bg-[#00dc64]/10 text-[#00a84c] dark:text-[#00dc64]'
+                      : 'border-gray-200 bg-white text-gray-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {t(item.labelKey)}
+                </Link>
+              );
+            })}
+            <Link href="/register" className="flex shrink-0 items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-3.5 py-2 text-xs font-black text-orange-600 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300">
+              <Flame className="h-4 w-4" />
+              {t('chat.event')} · {t('chat.subscriptionSale')}
+            </Link>
+          </nav>
+
           {/* 히어로 캐러셀 */}
           {loading && comics.length === 0 ? (
             <div className="h-[300px] animate-pulse rounded-2xl bg-gray-200 dark:bg-white/5 sm:h-[380px]" />
@@ -475,6 +500,34 @@ export default function ChatHomePage() {
             </p>
             <img src="/uploads/promo/arata-launch-mascot.svg" alt="" className="h-10 w-10 shrink-0" loading="lazy" />
           </Link>
+
+          {/* 모바일: 실시간 캐릭터 랭킹 (PC는 왼쪽 사이드바) */}
+          <section id="ranking-mobile" className="mt-6 scroll-mt-24 rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-white/5 lg:hidden">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-base font-black">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#00dc64]" />
+                {t('chat.ranking')}
+              </h2>
+              <a href="#all-characters" className="text-xs font-bold text-gray-500 dark:text-gray-400">{t('chat.viewAll')} →</a>
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-white/5">
+              {rankingCharacters.slice(0, 5).map((character, index) => (
+                <Link key={character.key} href={character.href} className="flex items-center gap-3 py-2">
+                  <span className={`w-5 text-center text-sm font-black italic ${index < 3 ? 'text-[#00a84c] dark:text-[#00dc64]' : 'text-gray-400'}`}>{index + 1}</span>
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+                    {character.image ? <img src={getImageUrl(character.image, { width: 96 })} alt="" className="h-full w-full object-cover" loading="lazy" /> : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black">{character.name}</p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">{cardTags(character)}</p>
+                  </div>
+                  {character.views > 0 && (
+                    <span className="flex items-center gap-1 text-xs font-black text-red-500"><Flame className="h-3 w-3 fill-current" />{character.views.toLocaleString()}</span>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </section>
 
           {/* 인기 캐릭터 */}
           <section id="popular" className="mt-7">

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BadgePercent, Eye, Gift, Heart, Sparkles, Trophy } from 'lucide-react';
 import EventCard, { type SiteEvent } from '@/components/events/EventCard';
+import HorizontalRail from '@/components/ui/HorizontalRail';
 import PromoCard, { PROMO_TABS, type PromoComic, type PromoTab } from '@/components/promotions/PromoCard';
 import { RankingSection, type RankingResponse } from '@/components/ranking/rankingShared';
 import MainBannerRail, { MainBannerItem } from '@/components/ui/MainBannerRail';
@@ -424,12 +425,12 @@ export default function HomePage() {
             </div>
 
             {recentComics.length > 0 ? (
-              <div className="no-scrollbar flex gap-2 overflow-x-auto pb-2">
+              <HorizontalRail label="최근에 본 웹툰" arrowTop="100px">
                 {recentComics.map((comic) => (
                   <Link
                     key={comic.id}
                     href={`/webtoons/${comic.id}`}
-                    className="group w-[150px] shrink-0 rounded-lg border border-gray-200 bg-white p-2 shadow-sm transition hover:border-gray-300 hover:shadow-md md:w-[168px] dark:border-gray-700 dark:bg-[#181818] dark:shadow-none"
+                    className="group w-[150px] shrink-0 snap-start rounded-lg border border-gray-200 bg-white p-2 shadow-sm transition hover:border-gray-300 hover:shadow-md md:w-[168px] dark:border-gray-700 dark:bg-[#181818] dark:shadow-none"
                   >
                     <div className="relative aspect-[3/4] overflow-hidden rounded-md bg-gray-200 shadow-sm transition duration-300 group-hover:-translate-y-0.5 dark:bg-gray-800">
                       {comic.image ? (
@@ -457,7 +458,7 @@ export default function HomePage() {
                     </div>
                   </Link>
                 ))}
-              </div>
+              </HorizontalRail>
             ) : (
               <div className="rounded-md border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
                 {t('home.noRecentWebtoons')}
@@ -652,9 +653,12 @@ export default function HomePage() {
             {promoItems.length === 0 ? (
               <p className="rounded-lg border border-dashed border-gray-200 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">해당 이벤트 작품이 없습니다.</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
-                {promoItems.slice(0, 6).map((item) => <PromoCard key={item.id} item={item} />)}
-              </div>
+              // 홈에서는 가로 목록으로 5개까지, 나머지는 [전체보기]
+              <HorizontalRail label="이벤트 작품" arrowTop="38%">
+                {promoItems.slice(0, 5).map((item) => (
+                  <div key={item.id} role="listitem" className="w-[140px] shrink-0 snap-start sm:w-[180px]"><PromoCard item={item} /></div>
+                ))}
+              </HorizontalRail>
             )}
           </section>
         )}

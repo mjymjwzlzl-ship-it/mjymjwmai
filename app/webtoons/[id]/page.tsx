@@ -7,6 +7,7 @@ import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy 
 import CheerModal from '@/components/ui/CheerModal';
 import ComicCommentsSection from '@/components/ui/ComicCommentsSection';
 import { REASON_LABEL } from '@/components/ui/SimilarWorksRail';
+import HorizontalRail from '@/components/ui/HorizontalRail';
 import { getImageUrl } from '@/lib/config';
 import { api } from '@/lib/api';
 import dynamic from 'next/dynamic';
@@ -326,7 +327,7 @@ const WebtoonDetailPage = () => {
 
   const fetchSimilarComics = async () => {
     try {
-      const response = await api.get(`/frontend/comics/${params.id}/similar?limit=6`);
+      const response = await api.get(`/frontend/comics/${params.id}/similar?limit=10`);
       if (response.data) {
         setSimilarComics(response.data.comics || []);
       }
@@ -892,13 +893,41 @@ const WebtoonDetailPage = () => {
           <aside className="lg:w-80 flex-shrink-0">
             <div className="lg:sticky lg:top-20">
               <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800 shadow-sm">
-                <h3 className="text-lg font-bold text-gray-950 dark:text-white mb-4">{t('detail.similar')}</h3>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-gray-950 dark:text-white">{t('detail.similar')}</h3>
+                  {similarComics.length > 0 && (
+                    <Link href={`/webtoons/${params.id}/similar`} className="text-sm font-bold text-gray-500 hover:text-[#00a84c] dark:text-gray-400">전체보기 →</Link>
+                  )}
+                </div>
 
                 {similarComics.length === 0 ? (
                   <p className="text-gray-500 text-sm text-center py-8">{t('detail.noSimilar')}</p>
                 ) : (
-                  <div className="space-y-3">
+                  <>
+                  {/* 모바일: 가로 카드 목록(스와이프) */}
+                  <HorizontalRail label={t('detail.similar')} arrowTop="72px" className="lg:hidden">
                     {similarComics.map((comic) => (
+                      <Link key={comic.id} href={`/webtoons/${comic.id}`} role="listitem" className="w-[108px] shrink-0 snap-start">
+                        <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-800">
+                          <img
+                            src={getImageUrl(getSamakAwareImage(comic, comic.thumbnailUrl, 'poster'))}
+                            alt={localizeComicTitle(comic, locale, comic.title)}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            draggable={false}
+                          />
+                          {comic.reason && REASON_LABEL[comic.reason] && (
+                            <span className="absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[10px] font-bold text-white">{REASON_LABEL[comic.reason]}</span>
+                          )}
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs font-bold text-gray-900 dark:text-gray-100">{localizeComicTitle(comic, locale, safeText(comic.title, t('detail.recommended')))}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400">{t('detail.episodeCount', { count: comic.totalEpisodes })}</p>
+                      </Link>
+                    ))}
+                  </HorizontalRail>
+                  {/* PC: 오른쪽 세로 목록(6개) */}
+                  <div className="hidden space-y-3 lg:block">
+                    {similarComics.slice(0, 6).map((comic) => (
                       <Link
                         key={comic.id}
                         href={`/webtoons/${comic.id}`}
@@ -927,6 +956,7 @@ const WebtoonDetailPage = () => {
                       </Link>
                     ))}
                   </div>
+                  </>
                 )}
               </div>
             </div>
