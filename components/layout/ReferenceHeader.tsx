@@ -317,6 +317,11 @@ export default function ReferenceHeader() {
     window.setTimeout(() => setComingSoonOpen(false), 2200);
   };
 
+  // 회차 뷰어(웹툰 이미지·웹소설 텍스트)는 전용 상단 바를 쓰므로 사이트 헤더를 숨긴다
+  // (예전엔 헤더가 뷰어 첫 화면과 웹소설 1쪽 제목을 가렸다)
+  const isViewerPage = Boolean(pathname?.includes('/episode/'));
+  if (isViewerPage) return null;
+
   return (
     <header
       data-reference-header="true"
