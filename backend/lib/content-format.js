@@ -7,8 +7,12 @@ const MONOCHROME_COMIC_IDS = new Set([
   'cmrcokbhd000013p03boxrp10', // 기억을 가지고 5년 전으로 돌아갈 기회가 생겼다
 ]);
 
+// Comic.contentType(WEBTOON|BOOK|NOVEL)이 정답, 예전 흑백 목록은 보조
 function contentTypeOf(comic) {
-  return MONOCHROME_COMIC_IDS.has(String(comic?.id || '')) ? 'book' : 'webtoon';
+  const type = String(comic?.contentType || '').toUpperCase();
+  if (type === 'NOVEL') return 'novel';
+  if (type === 'BOOK' || MONOCHROME_COMIC_IDS.has(String(comic?.id || ''))) return 'book';
+  return 'webtoon';
 }
 
 module.exports = { contentTypeOf, MONOCHROME_COMIC_IDS };

@@ -100,6 +100,7 @@ model Comic {
   genre       String     // JSON string으로 저장
   isPublished Boolean    @default(true) // soft-hide: 공개목록 노출여부
   isOfficial  Boolean    @default(false) // 정식연재 여부
+  contentType String     @default("WEBTOON") // WEBTOON | BOOK(단행본) | NOVEL(웹소설)
   status      String     @default("ONGOING") // ONGOING(연재중), HIATUS(휴재), COMPLETED(완결), SUSPENDED(판매중지: 새 구매 불가, 보유 회차는 열람), HIDDEN
   statusNotice String?   // 작품 상세 [공지사항] 탭 안내 (휴재 사유·판매중지 안내 등)
   resumeAt    DateTime?  // 휴재 작품 연재 재개 예정일
@@ -143,7 +144,8 @@ model Episode {
   title       String   // 에피소드 제목 (줄거리)
   episodeNumber Int
   thumbnail   String?  // 에피소드 썸네일
-  images      String   // JSON string으로 저장
+  images      String   // JSON string으로 저장 (웹소설은 "[]")
+  textContent String?  // 웹소설 회차 본문
   viewCount   Int      @default(0)
   rating      Float    @default(0)  // 평균 평점
 

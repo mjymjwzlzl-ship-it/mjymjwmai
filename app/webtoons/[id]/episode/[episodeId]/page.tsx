@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, Share2, Settings, Eye, EyeOff, Coins, Lock, X, AlertTriangle, RotateCcw } from 'lucide-react';
 import FastImage from '@/components/ui/FastImage';
+import NovelReader from '@/components/viewer/NovelReader';
 import CommentSection from '@/components/ui/CommentSection';
 import RatingSection from '@/components/ui/RatingSection';
 import SimilarWorksRail from '@/components/ui/SimilarWorksRail';
@@ -53,6 +54,8 @@ interface Episode {
   expiresAt?: string | null;
   rentalExpired?: boolean;
   saleSuspended?: boolean;
+  contentType?: string;
+  text?: string | null;
   canView?: boolean;
   needsPurchase?: boolean;
   needsLogin?: boolean;
@@ -260,6 +263,8 @@ export default function EpisodePage() {
           expiresAt: episodeData.expiresAt,
           rentalExpired: episodeData.rentalExpired,
           saleSuspended: episodeData.saleSuspended,
+          contentType: episodeData.contentType,
+          text: episodeData.text,
           canView: episodeData.canView,
           needsPurchase: episodeData.needsPurchase,
           needsLogin: episodeData.needsLogin,
@@ -624,6 +629,7 @@ export default function EpisodePage() {
           setEpisode(prev => prev ? {
             ...prev,
             images: response.data.episode.images,
+            text: response.data.episode.text ?? prev.text,
             canView: true,
             needsPurchase: false,
             purchaseDate: response.data.episode.purchaseDate,
@@ -872,7 +878,10 @@ export default function EpisodePage() {
       >
         {/* 웹툰 이미지들 또는 유료 콘텐츠 안내 */}
         <div className="flex flex-col items-center">
-          {episode.canView && episode.images && episode.images.length > 0 ? (
+          {episode.canView && episode.contentType === 'NOVEL' ? (
+            // 웹소설: 텍스트 뷰어 (보기 방식·글자·배경·밝기·글꼴 설정)
+            <NovelReader text={episode.text || ''} title={`${episode.episodeNumber}화 ${episode.title && episode.title !== `${episode.episodeNumber}화` ? episode.title : ''}`.trim()} />
+          ) : episode.canView && episode.images && episode.images.length > 0 ? (
             // 구매했거나 무료 에피소드인 경우 이미지 표시
             episode.images.map((imageUrl, index) => (
               <FastImage
@@ -983,7 +992,7 @@ export default function EpisodePage() {
           )}
           
           {/* 웹툰 이미지가 끝난 후 댓글 섹션 (네이버 웹툰 스타일) */}
-          {episode?.canView && episode?.images && episode.images.length > 0 && (
+          {episode?.canView && ((episode?.images && episode.images.length > 0) || episode?.contentType === 'NOVEL') && (
             <div ref={endSectionRef} className="w-full bg-gray-50 mt-8 border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800">
               <EpisodeEndMembershipBanner />
               {/* 다음화/이전화 네비게이션 */}

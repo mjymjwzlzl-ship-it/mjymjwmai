@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { BookmarkCheck, Clock, Heart, Library, Play } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
-import { isMonochromeComic } from '@/lib/comic-content-format';
+import { comicContentType } from '@/lib/comic-content-format';
 import { useLoginModalStore } from '@/store/loginModal';
 
 type Tab = 'viewed' | 'liked' | 'purchased';
@@ -62,8 +62,8 @@ function parseTab(value: string | null): Tab {
   return 'viewed'; // 예전 링크(tab=recent)도 열람한 작품으로
 }
 
-function contentTypeOf(comicId: string): LibraryItem['contentType'] {
-  return isMonochromeComic({ id: comicId }) ? 'book' : 'webtoon';
+function contentTypeOf(comicId: string, contentType?: string): LibraryItem['contentType'] {
+  return comicContentType({ id: comicId, contentType });
 }
 
 function formatDate(value?: string) {
@@ -135,7 +135,7 @@ function fromServer(item: any, at: string | undefined): LibraryItem {
     updatedAt: item.lastUpdatedAt,
     status: item.comic?.status,
     at,
-    contentType: contentTypeOf(comicId),
+    contentType: contentTypeOf(comicId, item.comic?.contentType),
   };
 }
 

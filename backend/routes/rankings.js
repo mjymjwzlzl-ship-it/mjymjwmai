@@ -18,7 +18,7 @@ const topSize = (count) => (count > 50 ? 100 : count > 20 ? 50 : 20);
 async function buildRankings() {
   const comics = await prisma.comic.findMany({
     where: { isPublished: true, status: { not: 'HIDDEN' }, locale: 'ko', ...generalComicWhere() },
-    select: { id: true, title: true, authorName: true, thumbnail: true, genre: true, status: true, viewCount: true, createdAt: true, _count: { select: { episodes: true, likes: true } } },
+    select: { id: true, title: true, authorName: true, thumbnail: true, genre: true, status: true, contentType: true, viewCount: true, createdAt: true, _count: { select: { episodes: true, likes: true } } },
   });
   const ids = comics.map((comic) => comic.id);
   const since = new Date(Date.now() - REALTIME_HOURS * 60 * 60 * 1000);
@@ -64,7 +64,7 @@ async function buildRankings() {
   const realtime = items.filter((item) => item.recentViews > 0).sort((a, b) => b.recentViews - a.recentViews || byPopular(a, b));
   const ofType = (type) => popular.filter((item) => item.contentType === type);
   const newest = [...items].sort((a, b) => new Date(b.launchedAt).getTime() - new Date(a.launchedAt).getTime() || byPopular(a, b));
-  return { popular, realtime, new: newest, webtoon: ofType('webtoon'), book: ofType('book'), novel: [] };
+  return { popular, realtime, new: newest, webtoon: ofType('webtoon'), book: ofType('book'), novel: ofType('novel') };
 }
 
 // 집계는 1분 캐시 (홈에서 자주 불린다)

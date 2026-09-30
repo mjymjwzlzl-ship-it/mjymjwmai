@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BadgePercent, Eye, Gift, Heart, Sparkles, Trophy } from 'lucide-react';
 import EventCard, { type SiteEvent } from '@/components/events/EventCard';
 import HorizontalRail from '@/components/ui/HorizontalRail';
+import { isNovelComic } from '@/lib/comic-content-format';
 import PromoCard, { PROMO_TABS, type PromoComic, type PromoTab } from '@/components/promotions/PromoCard';
 import { RankingSection, type RankingResponse } from '@/components/ranking/rankingShared';
 import MainBannerRail, { MainBannerItem } from '@/components/ui/MainBannerRail';
@@ -315,7 +316,8 @@ export default function HomePage() {
     const latestIds = new Set(latestList.map((comic: Comic) => String(comic.id)));
     const latestSource = [...latestList, ...allComics.filter((comic: Comic) => !latestIds.has(String(comic.id)))];
     const latest = latestSource
-      .filter((comic) => !isAdultComic(comic))
+      // 웹소설은 웹툰 카드 영역(요일별·추천)에서 빼고 TOP 20 웹소설 탭·웹소설 메뉴에서 보여준다
+      .filter((comic) => !isAdultComic(comic) && !isNovelComic(comic))
       .map((comic) => normalizeComic(comic, locale, t('list.defaultSynopsis')));
     const promoBanners: MainBannerItem[] = [
       { ...promoCopy[locale], showTitle: false },

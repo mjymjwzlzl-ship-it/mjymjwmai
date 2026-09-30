@@ -58,6 +58,7 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
         title: true,
         episodeNumber: true,
         images: true,
+        textContent: true,
         viewCount: true,
         createdAt: true,
         comicId: true,
@@ -67,6 +68,7 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
             authorName: true,
             rating: true,
             status: true,
+            contentType: true,
             paidStartEpisode: true,
             episodeCoinPrice: true,
             rentalCoinPrice: true,
@@ -260,9 +262,13 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
       }
     }
 
+    // 웹소설: 본문은 볼 수 있을 때만 내려준다 (이미지 대신 text)
+    episodeInfo.contentType = episode.comic.contentType || 'WEBTOON';
+    const { textContent, ...rest } = episodeInfo;
+    const payload = { ...rest, text: episodeInfo.canView && episode.comic.contentType === 'NOVEL' ? (textContent || '') : null };
     res.json({
       success: true,
-      episode: episodeInfo
+      episode: payload
     });
   } catch (error) {
     console.error('Episode view count error:', error);
@@ -498,6 +504,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
             title: true,
             rating: true,
             status: true,
+            contentType: true,
             paidStartEpisode: true,
             episodeCoinPrice: true,
             rentalCoinPrice: true,
@@ -576,6 +583,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
       id: episode.id,
       title: episode.title,
       images: parseEpisodeImages(),
+      text: episode.comic.contentType === 'NOVEL' ? (episode.textContent || '') : null,
       purchaseDate: purchase.createdAt,
       purchaseType: purchase.type || 'OWN',
       expiresAt: purchase.expiresAt,

@@ -481,6 +481,7 @@ const LIBRARY_COMIC_SELECT = {
   genre: true,
   rating: true,
   status: true,
+  contentType: true,
   updatedAt: true,
   _count: { select: { episodes: true } },
 };
