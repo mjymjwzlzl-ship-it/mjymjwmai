@@ -367,22 +367,22 @@ export default function ChatHomePage() {
         {/* 메인 영역 */}
         <main className="min-w-0 flex-1">
           {/* 모바일: PC 왼쪽 사이드바와 같은 메뉴를 가로 칩으로 (탐색·랭킹·내 채팅·즐겨찾기·출석 체크·설정·이벤트) */}
-          <nav className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden" aria-label="캐릭터 채팅 메뉴">
-            {/* 모바일은 핵심 기능만: 채팅 홈·탐색·내 채팅·즐겨찾기·설정 (랭킹은 아래 랭킹 영역, 출석 체크·이벤트는 사이드 메뉴). 한 줄 가로 스와이프 */}
+          <nav className="mb-4 grid grid-cols-5 gap-1.5 lg:hidden" aria-label="캐릭터 채팅 메뉴">
+            {/* 모바일은 핵심 기능만: 채팅 홈·탐색·내 채팅·즐겨찾기·설정 (랭킹은 아래 랭킹 영역, 출석 체크·이벤트는 사이드 메뉴). 5칸 한 줄, 아이콘 위·글자 아래 */}
             {sideMenu.filter((item) => MOBILE_CHAT_MENU.includes(item.labelKey)).map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.labelKey}
                   href={item.href}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-black transition ${
+                  className={`flex min-w-0 flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[11px] font-black leading-none transition ${
                     item.active
                       ? 'border-[#00dc64] bg-[#00dc64]/10 text-[#00a84c] dark:text-[#00dc64]'
                       : 'border-gray-200 bg-white text-gray-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-300'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {t(item.labelKey)}
+                  <span className="whitespace-nowrap">{t(item.labelKey)}</span>
                 </Link>
               );
             })}
