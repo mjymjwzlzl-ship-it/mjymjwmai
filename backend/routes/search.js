@@ -1,6 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { prisma } = require('../lib/prisma');
+const { optionalAuth } = require('../middleware/auth');
+const { adultComicWhere, generalComicWhere, isAdultModeRequest } = require('../services/adult-access');
+
+// 성인 작품: 19 ON(adultMode=true) + 로그인 + 성인 인증일 때만 일반 작품과 함께 검색된다.
+// 그 밖에는 빼고, 제목·작가·태그가 맞는 성인 작품 수만 hiddenAdult 로 알려 준다(목록·제목은 보내지 않음).
+router.use(optionalAuth);
 
 // 검색 API
 router.get('/', async (req, res) => {
@@ -13,9 +19,12 @@ router.get('/', async (req, res) => {
       return res.json({ results: [] });
     }
 
-    const searchTerm = (q || '').trim();
-    const isAdultMode = adult === 'true' || adult === '1';
-    console.log('검색어:', searchTerm, '성인모드:', isAdultMode);
+    // '#회귀' 처럼 샵을 붙여 검색하면 태그 검색
+    let searchTerm = (q || '').trim();
+    let hashTag = '';
+    if (/^#\S/.test(searchTerm)) { hashTag = searchTerm.slice(1).trim(); searchTerm = ''; }
+    const isAdultMode = isAdultModeRequest(req) && !!req.user?.adultVerified;
+    if (isAdultModeRequest(req)) { res.set('Cache-Control', 'private, no-store'); res.set('Vary', 'Authorization'); }
 
     // 웹툰 검색 조건
     const webtoonWhere = {
@@ -49,33 +58,16 @@ router.get('/', async (req, res) => {
     };
     if (!searchTerm) webtoonWhere.AND.shift();
     if (tag) webtoonWhere.AND.push({ tags: { contains: JSON.stringify(tag) } });
+    if (hashTag) webtoonWhere.AND.push({ tags: { contains: hashTag } });
 
     // soft-hide: 공개 검색에는 isPublished=true만 노출
     webtoonWhere.AND.push({ isPublished: true });
 
-    // 성인 모드에 따라 필터링
-    if (isAdultMode) {
-      // 성인 모드: 성인 웹툰만
-      webtoonWhere.AND.push({
-        OR: [
-          { rating: '19' },
-          { rating: 'ADULT' },
-          { rating: 'adult' },
-          { genre: { contains: 'adult' } }
-        ]
-      });
-    } else {
-      // 일반 모드: 성인 웹툰 제외
-      webtoonWhere.AND.push({
-        NOT: {
-          OR: [
-            { rating: '19' },
-            { rating: 'ADULT' },
-            { rating: 'adult' },
-            { genre: { contains: 'adult' } }
-          ]
-        }
-      });
+    // 성인 작품: 19 ON + 성인 인증이면 일반 작품과 함께, 아니면 제외(몇 개가 가려졌는지만 센다)
+    let hiddenAdult = 0;
+    if (!isAdultMode) {
+      hiddenAdult = await prisma.comic.count({ where: { AND: [...webtoonWhere.AND, adultComicWhere()] } });
+      webtoonWhere.AND.push(generalComicWhere());
     }
 
     // 웹툰 검색 (Comic 모델 사용)
@@ -131,7 +123,7 @@ router.get('/', async (req, res) => {
             ]
           },
           { isBlocked: false }, // 차단된 소설 제외
-          { isAdult: isAdultMode } // 성인 모드에 따라 필터링
+          ...(isAdultMode ? [] : [{ isAdult: false }]) // 19 ON + 성인 인증이면 성인 소설도 함께
         ]
       },
       select: {
@@ -174,12 +166,16 @@ router.get('/', async (req, res) => {
       type: 'novel'
     }));
 
-    // 조회수 순으로 정렬
+    // 제목 정확히 일치 → 제목이 검색어로 시작 → 조회수 순
+    const titleRank = (item) => {
+      const title = String(item.title || '').trim();
+      if (!searchTerm) return 2;
+      if (title === searchTerm) return 0;
+      return title.startsWith(searchTerm) ? 1 : 2;
+    };
     const allResults = [...webtoonResults, ...novelResults].sort((a, b) =>
-      (b.viewCount || 0) - (a.viewCount || 0)
+      titleRank(a) - titleRank(b) || (b.viewCount || 0) - (a.viewCount || 0)
     );
-
-    console.log(`검색 결과: 웹툰 ${webtoons.length}개, 소설 ${novels.length}개, 총 ${allResults.length}개`);
 
     res.json({
       results: allResults,
@@ -187,7 +183,9 @@ router.get('/', async (req, res) => {
         webtoons: webtoons.length,
         novels: novels.length,
         total: allResults.length
-      }
+      },
+      adultMode: isAdultMode,
+      hiddenAdult,
     });
 
   } catch (error) {

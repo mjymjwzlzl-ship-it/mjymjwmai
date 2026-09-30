@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, Search } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -9,6 +9,7 @@ import { localizeComicAuthor, localizeComicTitle } from '@/lib/comic-localizatio
 import { getImageUrl } from '@/lib/utils';
 import { removeHiddenComicDuplicates } from '@/lib/comic-deduplication';
 import { useLanguage } from '@/components/providers/LanguageProvider';
+import { useAdultModeStore } from '@/store/adultMode';
 
 interface SearchResult {
   id: string;
@@ -25,7 +26,6 @@ interface SearchResult {
 function SearchResults() {
   const { locale, t } = useLanguage();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const query = searchParams.get('q') || '';
   // 태그로 찾기: /search?tag=회귀 (작품 상세 태그·인기 태그에서 들어온다)
   const tag = searchParams.get('tag') || '';
@@ -37,25 +37,35 @@ function SearchResults() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(query);
 
-  const isAdultMode = pathname.startsWith('/adult') ||
-    (typeof window !== 'undefined' && localStorage.getItem('adult') === 'on');
+  // 19 ON/OFF: 헤더와 같은 저장값(arata-adult-mode). 켜고 끄면 바로 다시 검색한다.
+  // 서버는 19 ON + 로그인 + 성인 인증일 때만 성인 작품을 함께 돌려주고, 아니면 가려진 수(hiddenAdult)만 준다.
+  const adultEnabled = useAdultModeStore((state) => state.enabled);
+  const [hydrated, setHydrated] = useState(false);
+  const [hiddenAdult, setHiddenAdult] = useState(0);
+  const [adultIncluded, setAdultIncluded] = useState(false);
+  useEffect(() => { useAdultModeStore.getState().hydrate(); setHydrated(true); }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     if (query || tag) {
       performSearch(query);
     } else {
       setLoading(false);
     }
-  }, [query, tag]);
+  }, [query, tag, adultEnabled, hydrated]);
 
   const performSearch = async (searchTerm: string) => {
     try {
       setLoading(true);
-      const response = await api.get(`/search?q=${encodeURIComponent(searchTerm)}&adult=${isAdultMode}${tag ? `&tag=${encodeURIComponent(tag)}` : ''}`);
+      // adultMode 는 api 클라이언트가 붙인다
+      const response = await api.get(`/search?q=${encodeURIComponent(searchTerm)}${tag ? `&tag=${encodeURIComponent(tag)}` : ''}`);
       setResults(removeHiddenComicDuplicates(response.data.results || []));
+      setHiddenAdult(Number(response.data.hiddenAdult) || 0);
+      setAdultIncluded(!!response.data.adultMode);
     } catch (error) {
       console.error('검색 실패:', error);
       setResults([]);
+      setHiddenAdult(0);
     } finally {
       setLoading(false);
     }
@@ -104,7 +114,17 @@ function SearchResults() {
         {(query || tag) && (
           <div className="mb-6">
             <h1 className="mb-2 text-2xl font-black">{tag && !query ? `#${tag} 태그 작품` : t('search.resultsTitle', { query })}</h1>
-            {!loading && <p className="text-gray-500 dark:text-gray-400">{t('search.resultCount', { count: results.length })}</p>}
+            {!loading && (
+              <p className="flex flex-wrap items-center gap-2 text-gray-500 dark:text-gray-400">
+                {t('search.resultCount', { count: results.length })}
+                {adultIncluded && <span className="rounded bg-red-600/10 px-1.5 py-0.5 text-xs font-bold text-red-600 dark:text-red-400">19 ON · 성인 작품 포함</span>}
+              </p>
+            )}
+            {!loading && hiddenAdult > 0 && (
+              <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
+                성인 작품 {hiddenAdult}개는 검색 결과에서 제외했어요. 성인 인증 후 19 ON 상태에서 볼 수 있어요.
+              </p>
+            )}
           </div>
         )}
 
@@ -120,7 +140,7 @@ function SearchResults() {
               {results.map((item) => {
                 const imageUrl = getImageUrl(item.thumbnailUrl || item.thumbnail || '');
                 const author = localizeComicAuthor(item, locale, 'ARATA');
-                const is19Plus = item.rating === '19' || item.ageRating === '19';
+                const is19Plus = ['19', '19+', 'ADULT'].includes(String(item.rating || item.ageRating || '').toUpperCase());
                 const displayTitle = item.type === 'webtoon'
                   ? localizeComicTitle(item, locale, item.title)
                   : item.title;

@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { goBackOr } from '@/lib/nav-history';
 import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy, CalendarDays } from 'lucide-react';
@@ -67,6 +67,18 @@ const NOTICE_TYPE: Record<string, { label: string; className: string }> = {
 };
 // isImportant = [중요] 배지, isPinned = 상단 고정 (관리자 작품 관리에서 작품별로 작성, 쌓이는 게시판)
 interface ComicNotice { id: string; type: string; title: string; content: string; isPinned: boolean; isImportant?: boolean; createdAt: string }
+
+// 작품 공지 읽음 기록 (이 기기): { [작품 id]: 본 공지 id[] }
+const NOTICE_SEEN_KEY = 'arata_notice_seen_v1';
+const readSeenNotices = (): Record<string, string[]> => {
+  try { return JSON.parse(localStorage.getItem(NOTICE_SEEN_KEY) || '{}') || {}; } catch { return {}; }
+};
+const writeSeenNotices = (comicId: string, ids: string[]) => {
+  try { const all = readSeenNotices(); all[comicId] = ids.slice(-100); localStorage.setItem(NOTICE_SEEN_KEY, JSON.stringify(all)); } catch {}
+};
+// 새 공지: 최근 14일 안에 쓴 공지, 또는 중요·고정 공지 (오래된 일반 공지로 점이 켜지지 않게)
+const isNewNotice = (notice: { createdAt: string; isPinned?: boolean; isImportant?: boolean }) =>
+  !!notice.isPinned || !!notice.isImportant || Date.now() - new Date(notice.createdAt).getTime() < 14 * 86400000;
 
 // 태그를 누르면 가는 같은 유형 목록
 const TAG_LIST_PATH: Record<string, string> = { WEBTOON: '/daily', BOOK: '/books', NOVEL: '/novel' };
@@ -221,6 +233,38 @@ const WebtoonDetailPage = () => {
     if (!params.id) return;
     api.get(`/frontend/comics/${params.id}/notices`).then(({ data }) => setNotices(data?.notices || [])).catch(() => {});
   }, [params.id]);
+  // 작품 공지 읽음: 공지 줄이 화면에 60% 이상 보이거나 펼쳐 본 순간 읽음 (이 기기 localStorage, 작품별 공지 id).
+  // 빨간 점 = 아직 안 본 새 공지(최근 14일 안에 쓴 공지 또는 중요·고정 공지)가 있을 때만. 새 공지가 올라오면 다시 켜진다.
+  const [seenNoticeIds, setSeenNoticeIds] = useState<Set<string>>(new Set());
+  const [freshNoticeIds, setFreshNoticeIds] = useState<Set<string>>(new Set()); // 들어왔을 때 새 공지였던 것(목록 N 표시용, 이번 방문 동안 유지)
+  useEffect(() => {
+    if (!params.id) return;
+    const seen = new Set(readSeenNotices()[String(params.id)] || []);
+    setSeenNoticeIds(seen);
+    setFreshNoticeIds(new Set(notices.filter((notice) => isNewNotice(notice) && !seen.has(notice.id)).map((notice) => notice.id)));
+  }, [params.id, notices]);
+  const markNoticeSeen = useCallback((ids: string[]) => {
+    if (!params.id || !ids.length) return;
+    setSeenNoticeIds((prev) => {
+      if (ids.every((id) => prev.has(id))) return prev;
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      writeSeenNotices(String(params.id), [...next]);
+      return next;
+    });
+  }, [params.id]);
+  useEffect(() => { if (openNoticeId) markNoticeSeen([openNoticeId]); }, [openNoticeId, markNoticeSeen]);
+  const hasUnseenNotice = notices.some((notice) => isNewNotice(notice) && !seenNoticeIds.has(notice.id));
+  // [작품 공지] 탭에서 공지 줄이 실제로 화면에 보이면 읽음
+  useEffect(() => {
+    if (mainTab !== 'notice' || !notices.length || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      const ids = entries.filter((entry) => entry.isIntersecting).map((entry) => (entry.target as HTMLElement).dataset.noticeId || '').filter(Boolean);
+      if (ids.length) markNoticeSeen(ids);
+    }, { threshold: 0.6 });
+    document.querySelectorAll<HTMLElement>('li[data-notice-id]').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [mainTab, notices, markNoticeSeen]);
   // 상태 배지를 누르면 [작품 공지] 탭의 관련 공지(휴재·판매중지)를 열어 보여준다
   const showStatusNotice = (status?: string) => {
     setMainTab('notice');
@@ -767,7 +811,7 @@ const WebtoonDetailPage = () => {
               <div className="mb-6 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
                 <div className="flex gap-1" role="tablist">
                   {([['episodes', t('detail.allEpisodes')], ['notice', '작품 공지']] as const).map(([key, label]) => {
-                    const hasNotice = key === 'notice' && (notices.some((notice) => notice.isPinned || notice.isImportant) || webtoon.status === 'HIATUS' || webtoon.status === 'SUSPENDED');
+                    const hasNotice = key === 'notice' && hasUnseenNotice;
                     return (
                       <button
                         key={key}
@@ -778,7 +822,7 @@ const WebtoonDetailPage = () => {
                         className={`-mb-px border-b-2 px-2 pb-3 text-lg font-bold transition sm:text-xl ${mainTab === key ? 'border-[#00dc64] text-gray-950 dark:text-white' : 'border-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                       >
                         {label}
-                        {hasNotice && <span className="ml-1 inline-block h-2 w-2 rounded-full bg-red-600 align-top" aria-label="공지 있음" />}
+                        {hasNotice && <span className="ml-1 inline-block h-2 w-2 rounded-full bg-red-600 align-top" aria-label="새 공지 있음" />}
                       </button>
                     );
                   })}
@@ -822,8 +866,9 @@ const WebtoonDetailPage = () => {
                         const meta = NOTICE_TYPE[notice.type] || NOTICE_TYPE.GENERAL;
                         const opened = openNoticeId === notice.id;
                         return (
-                          <li key={notice.id} id={`notice-${notice.id}`} className={`scroll-mt-24 ${notice.isPinned ? 'bg-gray-50 dark:bg-white/5' : ''}`}>
+                          <li key={notice.id} id={`notice-${notice.id}`} data-notice-id={notice.id} className={`scroll-mt-24 ${notice.isPinned ? 'bg-gray-50 dark:bg-white/5' : ''}`}>
                             <button type="button" onClick={() => setOpenNoticeId(opened ? null : notice.id)} aria-expanded={opened} className="flex w-full items-center gap-2 px-4 py-3 text-left">
+                              {freshNoticeIds.has(notice.id) && <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white" aria-label="새 공지">N</span>}
                               {notice.isPinned && <span className="shrink-0 text-[11px] font-black text-gray-500 dark:text-gray-400" aria-label="상단 고정">📌</span>}
                               {notice.isImportant && <span className="shrink-0 rounded bg-red-600 px-1.5 py-0.5 text-[11px] font-black text-white">중요</span>}
                               <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-black ${meta.className}`}>{meta.label}</span>
