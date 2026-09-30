@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { goBackOr } from '@/lib/nav-history';
-import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy } from 'lucide-react';
+import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy, CalendarDays } from 'lucide-react';
 import CheerModal from '@/components/ui/CheerModal';
 import ComicCommentsSection from '@/components/ui/ComicCommentsSection';
 import { REASON_LABEL } from '@/components/ui/SimilarWorksRail';
@@ -67,6 +67,18 @@ const NOTICE_TYPE: Record<string, { label: string; className: string }> = {
 };
 interface ComicNotice { id: string; type: string; title: string; content: string; isPinned: boolean; createdAt: string }
 
+const DAY_LABEL: Record<string, string> = { mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일' };
+// "매주 수요일 연재" / "매주 월·목요일 연재" / 휴재·완결은 상태를 함께
+const serialLine = (webtoon: { serialDays?: string[]; status?: string }) => {
+  const days = (webtoon.serialDays || []).filter((day) => DAY_LABEL[day]);
+  if (webtoon.status === 'COMPLETED') return days.length ? `완결 · ${days.map((d) => DAY_LABEL[d]).join('·')}요일 연재였어요` : '';
+  if (!days.length) return '';
+  const text = days.length === 7 ? '매일 연재' : `매주 ${days.map((d) => DAY_LABEL[d]).join('·')}요일 연재`;
+  if (webtoon.status === 'HIATUS') return `${text} · 지금은 휴재 중`;
+  if (webtoon.status === 'SUSPENDED') return '';
+  return text;
+};
+
 const formatKstDate = (value?: string | null) =>
   value ? new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' }) : '';
 
@@ -75,6 +87,7 @@ interface WebtoonDetail {
   title: string;
   status?: 'ONGOING' | 'HIATUS' | 'COMPLETED' | 'SUSPENDED' | string;
   tags?: string[];
+  serialDays?: string[];
   createdAt?: string;
   lastEpisodeAt?: string | null;
   statusNotice?: string | null;
@@ -547,6 +560,13 @@ const WebtoonDetailPage = () => {
                     <User className="w-4 h-4" />
                     <span>{displayAuthor}</span>
                   </div>
+                  {/* 연재 요일 (관리자 [작품 관리] 연재 요일과 연동, 배지 대신 한 줄) */}
+                  {serialLine(webtoon) && (
+                    <div className="mt-1 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                      <CalendarDays className="h-4 w-4" />
+                      <span>{serialLine(webtoon)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* ?λⅤ 諛??깃툒 */}

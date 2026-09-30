@@ -20,6 +20,19 @@ router.param('id', guardComicParam);
 const CATEGORY_SETTINGS_PATH = path.join(__dirname, '..', 'data', 'category-settings.json');
 
 // 카테고리 설정 불러오기
+const WEEK_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const WEEK_FULL = { monday: 'mon', tuesday: 'tue', wednesday: 'wed', thursday: 'thu', friday: 'fri', saturday: 'sat', sunday: 'sun' };
+async function serialDaysOf(comic) {
+  const days = new Set();
+  try { for (const day of JSON.parse(comic.updateDays || '[]') || []) if (WEEK_ORDER.includes(day)) days.add(day); } catch {}
+  try {
+    const settings = await loadCategorySettings();
+    const week = settings.week && typeof settings.week === 'object' && !Array.isArray(settings.week) ? settings.week : {};
+    for (const [full, key] of Object.entries(WEEK_FULL)) if (Array.isArray(week[full]) && week[full].includes(comic.id)) days.add(key);
+  } catch {}
+  return WEEK_ORDER.filter((day) => days.has(day));
+}
+
 async function loadCategorySettings() {
   try {
     const data = await fs.readFile(CATEGORY_SETTINGS_PATH, 'utf-8');
@@ -903,6 +916,8 @@ router.get('/comics/:id', async (req, res) => {
       id: comic.id,
       title: comic.title,
       tags: parseTags(comic.tags),
+      // 연재 요일: 홈 [요일별 연재]와 같은 기준 (관리자 작품 관리의 연재 요일 + 카테고리 요일 편성)
+      serialDays: await serialDaysOf(comic),
       // UP/NEW 배지: 런칭일·마지막 공개 회차 시각
       createdAt: comic.createdAt,
       lastEpisodeAt: (comic.episodes || []).reduce((max, ep) => (!max || ep.createdAt > max ? ep.createdAt : max), null),
