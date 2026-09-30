@@ -23,6 +23,7 @@ import { referenceComics } from '@/components/ui/referenceContent';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import { localizeComicAuthor, localizeComicSynopsis, localizeComicTitle } from '@/lib/comic-localization';
 import { removeHiddenComicDuplicates } from '@/lib/comic-deduplication';
+import { isNovelComic } from '@/lib/comic-content-format';
 
 type Comic = any;
 
@@ -147,7 +148,8 @@ export default function ChatHomePage() {
     const allComics = (categories.allComics || data.allComics || data.comics || []) as Comic[];
     const source = removeHiddenComicDuplicates(allComics.length > 0 ? allComics : categories.latest || []);
     const normalized = source
-      .filter((comic: Comic) => comic?.id && !isAdultComic(comic))
+      // 웹소설은 캐릭터 채팅 대상이 아니다 (캐릭터·말투 데이터 없음)
+      .filter((comic: Comic) => comic?.id && !isAdultComic(comic) && !isNovelComic(comic))
       .map((comic: Comic) => normalizeComic(comic, locale));
 
     if (normalized.length > 0) return normalized;
