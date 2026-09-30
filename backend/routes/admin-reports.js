@@ -17,7 +17,7 @@ const include = {
   reporter: { select: { id: true, nickname: true, email: true } },
   targetUser: { select: { id: true, nickname: true, email: true } },
   comic: { select: { id: true, title: true } },
-  episode: { select: { id: true, episodeNumber: true, title: true } },
+  episode: { select: { id: true, episodeNumber: true, title: true, comic: { select: { id: true, title: true } } } },
   comment: { select: { id: true, content: true, isSpoiler: true, hiddenAt: true, userId: true, createdAt: true } },
 };
 const who = (u) => (u ? u.nickname || String(u.email || '').split('@')[0] : null);
@@ -25,7 +25,8 @@ const shape = (r) => ({
   id: r.id, type: r.type, typeLabel: TYPE_LABEL[r.type] || r.type, reason: r.reason, reasonLabel: reasonLabel(r.type, r.reason),
   description: r.description, status: r.status, statusLabel: STATUS_LABEL[r.status] || r.status, resolution: r.resolution,
   createdAt: r.createdAt, updatedAt: r.updatedAt, resolvedAt: r.resolvedAt, hasImage: !!r.imageUrl,
-  comic: r.comic, episode: r.episode, comment: r.comment, reporter: r.reporter ? { id: r.reporter.id, name: who(r.reporter) } : null,
+  // 예전 회차 신고는 comicId 가 비어 있어 회차의 작품으로 채운다
+  comic: r.comic || r.episode?.comic || null, episode: r.episode ? { id: r.episode.id, episodeNumber: r.episode.episodeNumber, title: r.episode.title } : null, comment: r.comment, reporter: r.reporter ? { id: r.reporter.id, name: who(r.reporter) } : null,
   targetUser: r.targetUser ? { id: r.targetUser.id, name: who(r.targetUser) } : null,
 });
 // 같은 대상: 댓글 > 회차 > 작품(회차 없는 작품 신고) > 사용자
