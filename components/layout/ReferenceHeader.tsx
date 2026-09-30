@@ -9,6 +9,8 @@ import {
   BookOpen,
   Clock,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Bell,
   Gamepad2,
   Gift,
@@ -149,6 +151,25 @@ export default function ReferenceHeader() {
       rail.scrollTo({ left: rail.scrollLeft + itemRect.left - railRect.left - (rail.clientWidth - itemRect.width) / 2, behavior: 'auto' });
     }
   }, [activeSubnav, contentPath, categoryNavScrollRef]);
+
+  // 장르 탭 좌우 이동(PC 〈 〉 버튼): 가려진 쪽이 있을 때만 버튼을 보인다. 모바일은 터치 스와이프, PC 는 휠·드래그도 된다(useDragScroll)
+  const [categoryEdges, setCategoryEdges] = useState({ left: false, right: false });
+  useEffect(() => {
+    const rail = categoryNavScrollRef.current;
+    if (!rail) return;
+    const update = () => {
+      const max = rail.scrollWidth - rail.clientWidth;
+      setCategoryEdges({ left: rail.scrollLeft > 4, right: rail.scrollLeft < max - 4 });
+    };
+    update();
+    rail.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => { rail.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
+  }, [contentPath, contentSubnavItems.length, categoryNavScrollRef]);
+  const scrollCategories = (direction: 1 | -1) => {
+    const rail = categoryNavScrollRef.current;
+    if (rail) rail.scrollBy({ left: direction * rail.clientWidth * 0.7, behavior: 'smooth' });
+  };
 
   useEffect(() => { setCategoriesExpanded(false); }, [pathname]);
 
@@ -502,7 +523,18 @@ export default function ReferenceHeader() {
           className="relative h-12 border-t border-gray-200 bg-[#f8f9fa] dark:border-gray-800 dark:bg-[#1b1b1b]"
         >
           <div className="mx-auto flex h-full max-w-7xl">
-          <div ref={categoryNavScrollRef} className="flex h-full min-w-0 flex-1 cursor-grab touch-auto items-center gap-1 overflow-x-auto overscroll-x-contain px-2 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2 sm:px-4 md:px-6 lg:px-8">
+          <div className="relative flex h-full min-w-0 flex-1">
+          {categoryEdges.left && (
+            <button
+              type="button"
+              aria-label="이전 장르"
+              onClick={() => scrollCategories(-1)}
+              className="absolute left-0 top-0 z-10 hidden h-full w-14 items-center justify-start bg-gradient-to-r from-[#f8f9fa] via-[#f8f9fa]/90 to-transparent pl-2 text-gray-700 dark:from-[#1b1b1b] dark:via-[#1b1b1b]/90 dark:text-gray-200 md:flex"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-[#262626] dark:hover:bg-[#333]"><ChevronLeft aria-hidden="true" className="h-4 w-4" /></span>
+            </button>
+          )}
+          <div ref={categoryNavScrollRef} className="flex h-full min-w-0 flex-1 cursor-grab touch-auto items-center gap-1 overflow-x-auto overscroll-x-contain px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2 sm:px-4 md:px-6 lg:px-8">
             {contentSubnavItems.map((item) => {
               const active = activeSubnav === item.value;
               const href = item.value === 'all' ? contentPath : `${contentPath}?category=${item.value}`;
@@ -525,6 +557,17 @@ export default function ReferenceHeader() {
                 </Link>
               );
             })}
+          </div>
+          {categoryEdges.right && (
+            <button
+              type="button"
+              aria-label="다음 장르"
+              onClick={() => scrollCategories(1)}
+              className="absolute right-0 top-0 z-10 hidden h-full w-14 items-center justify-end bg-gradient-to-l from-[#f8f9fa] via-[#f8f9fa]/90 to-transparent pr-2 text-gray-700 dark:from-[#1b1b1b] dark:via-[#1b1b1b]/90 dark:text-gray-200 md:flex"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-[#262626] dark:hover:bg-[#333]"><ChevronRight aria-hidden="true" className="h-4 w-4" /></span>
+            </button>
+          )}
           </div>
           <button
             ref={categoryToggleRef}

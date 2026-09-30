@@ -109,7 +109,7 @@ const sideMenu = [
   { labelKey: 'chat.settings', href: '/settings', icon: Settings },
 ];
 
-const MOBILE_CHAT_MENU = ['chat.home', 'chat.explore', 'chat.myChat', 'chat.favorites'];
+const MOBILE_CHAT_MENU = ['chat.home', 'chat.explore', 'chat.myChat', 'chat.favorites', 'chat.settings'];
 
 export default function ChatHomePage() {
   const { locale, t } = useLanguage();
@@ -367,8 +367,8 @@ export default function ChatHomePage() {
         {/* 메인 영역 */}
         <main className="min-w-0 flex-1">
           {/* 모바일: PC 왼쪽 사이드바와 같은 메뉴를 가로 칩으로 (탐색·랭킹·내 채팅·즐겨찾기·출석 체크·설정·이벤트) */}
-          <nav className="mb-4 flex flex-wrap gap-2 lg:hidden" aria-label="캐릭터 채팅 메뉴">
-            {/* 모바일은 핵심 기능만: 랭킹은 아래 랭킹 영역, 출석 체크·설정·이벤트는 사이드 메뉴에서 */}
+          <nav className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden" aria-label="캐릭터 채팅 메뉴">
+            {/* 모바일은 핵심 기능만: 채팅 홈·탐색·내 채팅·즐겨찾기·설정 (랭킹은 아래 랭킹 영역, 출석 체크·이벤트는 사이드 메뉴). 한 줄 가로 스와이프 */}
             {sideMenu.filter((item) => MOBILE_CHAT_MENU.includes(item.labelKey)).map((item) => {
               const Icon = item.icon;
               return (
