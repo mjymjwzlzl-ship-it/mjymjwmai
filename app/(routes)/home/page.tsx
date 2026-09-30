@@ -279,7 +279,7 @@ export default function HomePage() {
   // 홈 랭킹 코너: 탭마다 5개만, 나머지는 [전체 랭킹 보기]
   const { data: rankingData } = useQuery({
     queryKey: ['rankings', 'home'],
-    queryFn: async () => (await api.get('/frontend/rankings', { params: { limit: 6 } })).data as RankingResponse,
+    queryFn: async () => (await api.get('/frontend/rankings', { params: { limit: 12 } })).data as RankingResponse,
     retry: false,
   });
 
