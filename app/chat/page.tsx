@@ -263,7 +263,8 @@ export default function ChatHomePage() {
     <div className="min-h-dvh bg-gray-50 text-gray-950 transition-colors dark:bg-[#0f0f10] dark:text-white">
       {/* 페이지 헤더 (전역 헤더 아래) */}
       <div className="mx-auto flex max-w-[1400px] items-center gap-4 px-4 pt-6 sm:px-6">
-        <label className="ml-auto flex h-10 w-full max-w-[360px] items-center gap-2.5 rounded-full border border-gray-200 bg-white px-4 text-gray-400 transition focus-within:border-[#00dc64] focus-within:ring-2 focus-within:ring-[#00dc64]/15 dark:border-white/10 dark:bg-white/5">
+        {/* 검색창: 모바일은 본문과 같은 좌우 여백으로 꽉 차게, 넓은 화면은 가운데 정렬 */}
+        <label className="mx-auto flex h-10 w-full items-center sm:max-w-[560px] gap-2.5 rounded-full border border-gray-200 bg-white px-4 text-gray-400 transition focus-within:border-[#00dc64] focus-within:ring-2 focus-within:ring-[#00dc64]/15 dark:border-white/10 dark:bg-white/5">
           <Search className="h-4 w-4 shrink-0" />
           <input
             value={searchQuery}

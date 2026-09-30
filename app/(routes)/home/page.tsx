@@ -397,6 +397,15 @@ export default function HomePage() {
       .filter((item) => item.id && item.title);
   }, [comics, locale, recentViewed]);
 
+  // 추천 신작: 랭킹 API 의 런칭 최신순을 홈 카드 규격으로 (홈 작품 목록에서 이미지·장르 등을 가져온다)
+  const newComics = useMemo(() => {
+    const comicMap = new Map(comics.map((comic) => [String(comic.id), comic]));
+    return (rankingData?.rankings?.new?.items || [])
+      .map((item) => comicMap.get(String(item.id)))
+      .filter((comic): comic is (typeof comics)[number] => Boolean(comic))
+      .slice(0, 6);
+  }, [comics, rankingData]);
+
   const recommendedComics = useMemo(() => {
     const preferredIds = [FORMER_BULLY_ID, RED_DRAGON_ID, SAMAK_COMIC_ID, WORLD_END_GENERAL_ID];
     const comicMap = new Map(comics.map((comic) => [String(comic.id), comic]));
@@ -408,8 +417,56 @@ export default function HomePage() {
       (comic) => String(comic.id) !== DICE_GAME_ID && !selectedIds.has(String(comic.id)),
     );
 
-    return [...preferred, ...fallback].slice(0, 4);
+    return [...preferred, ...fallback].slice(0, 6);
   }, [comics]);
+
+  // 홈 공통 작품 카드 (요일별 연재·오늘의 추천작·추천 신작 모두 같은 규격: 모바일 2열 × 3행 = 6개)
+  const renderHomeCard = (comic: (typeof comics)[number]) => (
+    <Link
+      key={comic.id}
+                href={`/webtoons/${comic.id}`}
+                className="group min-w-0 rounded-lg border border-gray-200 bg-white p-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-[#181818] dark:shadow-none dark:hover:border-gray-600"
+              >
+                <div className="relative aspect-[16/9] overflow-hidden rounded-md border border-gray-200 bg-gray-200 dark:border-gray-700 dark:bg-gray-800">
+                  {comic.image ? (
+                    <img
+                      src={getImageUrl(comic.image, { width: 700 })}
+                      alt={comic.title}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : null}
+                  {(comic.isUp || comic.isNew) && (
+                    <span className="absolute left-2 top-2 flex gap-1">
+                      {comic.isUp && <span className="rounded-sm bg-red-600 px-2 py-1 text-[10px] font-black text-white">UP</span>}
+                      {comic.isNew && <span className="rounded-sm bg-[#00dc64] px-2 py-1 text-[10px] font-black text-black">NEW</span>}
+                    </span>
+                  )}
+                  <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white">
+                    <Heart className="h-4 w-4" />
+                  </span>
+                  <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-bold text-white shadow-sm">
+                    <Eye className="h-3.5 w-3.5" />
+                    {formatViews(comic.views, locale)}
+                  </span>
+                </div>
+
+                <div className="mt-2 px-0.5 pb-0.5">
+                  <h2 className="line-clamp-2 min-h-[2.75em] break-words text-sm font-black leading-snug sm:text-base group-hover:text-[#00dc64]">
+                    {comic.title}
+                  </h2>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className="min-w-0 break-words text-xs text-gray-500 dark:text-gray-400">
+                      {comic.author}
+                    </span>
+                    <span className="rounded border border-gray-200 px-1.5 py-0.5 text-[11px] font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-300">
+                      {comic.genre}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+  );
+  const homeGrid = 'grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3';
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
@@ -472,12 +529,12 @@ export default function HomePage() {
               <span className="h-7 w-1 rounded-full bg-[#00dc64]" />
               {t('home.latest')}
             </h1>
-            <Link href="/week" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-medium text-gray-500 hover:text-[#00dc64]">
-              {t('common.more')}
+            <Link href={`/week?day=${activeWeekday}`} className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">
+              전체보기 →
             </Link>
           </div>
 
-          <div className="no-scrollbar -mt-2 mb-4 flex gap-1.5 overflow-x-auto" role="tablist" aria-label="연재 요일">
+          <div className="-mt-2 mb-4 grid grid-cols-8 gap-1 sm:flex sm:gap-1.5" role="tablist" aria-label="연재 요일">
             {WEEKDAY_TABS.map((tab) => {
               const active = activeWeekday === tab.key;
               const isToday = tab.key === todayWeekdayKst();
@@ -488,14 +545,15 @@ export default function HomePage() {
                   role="tab"
                   aria-selected={active}
                   onClick={() => setWeekday(tab.key)}
-                  className={`relative shrink-0 rounded-full px-3.5 py-1.5 text-sm font-black transition ${
+                  className={`relative min-w-0 rounded-full px-0 py-1.5 text-center text-sm font-black transition sm:shrink-0 sm:px-3.5 ${
                     active
                       ? 'bg-[#00dc64] text-black'
                       : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-400 dark:border-gray-700 dark:bg-[#181818] dark:text-gray-300'
                   }`}
                 >
                   {tab.label}
-                  {isToday && <span className="ml-1 text-[10px] font-bold opacity-70">오늘</span>}
+                  {isToday && <span className="ml-1 hidden text-[10px] font-bold opacity-70 sm:inline">오늘</span>}
+                  {isToday && <span className="absolute -top-0.5 right-1 h-1.5 w-1.5 rounded-full bg-red-500 sm:hidden" aria-label="오늘" />}
                 </button>
               );
             })}
@@ -504,7 +562,7 @@ export default function HomePage() {
             {activeWeekday === 'all' ? '최근 회차가 올라온 순서입니다.' : `${WEEKDAY_TABS.find((tab) => tab.key === activeWeekday)?.label}요일 연재 작품 · 최근 업데이트 순`}
           </p>
 
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <div className={homeGrid}>
             {!isLoading && comics.length > 0 && updateComics.length === 0 && (
               <div role="status" className="col-span-full py-12 text-center text-sm text-gray-500 dark:text-gray-400">
                 이 요일에 연재하는 작품이 없습니다.
@@ -517,59 +575,15 @@ export default function HomePage() {
               </div>
             )}
             {isLoading && comics.length === 0 &&
-              Array.from({ length: 8 }).map((_, index) => (
+              Array.from({ length: 6 }).map((_, index) => (
                 <div key={index}>
                   <Skeleton className="aspect-[16/9] w-full rounded-md dark:bg-gray-800" />
                   <Skeleton className="mt-3 h-5 w-2/3 dark:bg-gray-800" />
                 </div>
               ))}
-            {updateComics.slice(0, 8).map((listed, index) => {
+            {updateComics.slice(0, 6).map((listed, index) => {
               const comic = badgeTest && index < 3 ? { ...listed, isUp: index !== 1, isNew: index !== 0 } : listed;
-              return (
-              <Link
-                key={comic.id}
-                href={`/webtoons/${comic.id}`}
-                className="group min-w-0 rounded-lg border border-gray-200 bg-white p-2 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-[#181818] dark:shadow-none dark:hover:border-gray-600"
-              >
-                <div className="relative aspect-[16/9] overflow-hidden rounded-md border border-gray-200 bg-gray-200 dark:border-gray-700 dark:bg-gray-800">
-                  {comic.image ? (
-                    <img
-                      src={getImageUrl(comic.image, { width: 700 })}
-                      alt={comic.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : null}
-                  {(comic.isUp || comic.isNew) && (
-                    <span className="absolute left-2 top-2 flex gap-1">
-                      {comic.isUp && <span className="rounded-sm bg-red-600 px-2 py-1 text-[10px] font-black text-white">UP</span>}
-                      {comic.isNew && <span className="rounded-sm bg-[#00dc64] px-2 py-1 text-[10px] font-black text-black">NEW</span>}
-                    </span>
-                  )}
-                  <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white">
-                    <Heart className="h-4 w-4" />
-                  </span>
-                  <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-bold text-white shadow-sm">
-                    <Eye className="h-3.5 w-3.5" />
-                    {formatViews(comic.views, locale)}
-                  </span>
-                </div>
-
-                <div className="mt-2 px-0.5 pb-0.5">
-                  <h2 className="line-clamp-2 min-h-[2.75em] break-words text-sm font-black leading-snug sm:text-base group-hover:text-[#00dc64]">
-                    {comic.title}
-                  </h2>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <span className="min-w-0 break-words text-xs text-gray-500 dark:text-gray-400">
-                      {comic.author}
-                    </span>
-                    <span className="rounded border border-gray-200 px-1.5 py-0.5 text-[11px] font-semibold text-gray-600 dark:border-gray-700 dark:text-gray-300">
-                      {comic.genre}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-              );
+              return renderHomeCard(comic);
             })}
           </div>
         </section>
@@ -583,46 +597,28 @@ export default function HomePage() {
               </h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('home.recommendSub')}</p>
             </div>
+            <Link href="/daily" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">전체보기 →</Link>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
-            {recommendedComics.map((comic) => (
-              <Link
-                key={comic.id}
-                href={`/webtoons/${comic.id}`}
-                className="group min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md dark:border-gray-700 dark:bg-[#181818] dark:shadow-none"
-              >
-                <div className="relative aspect-[16/9] overflow-hidden bg-gray-200 dark:bg-gray-800">
-                  {comic.image ? (
-                    <img
-                      src={getImageUrl(comic.image, { width: 640 })}
-                      alt={comic.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : null}
-                  <span className="absolute bottom-2 left-2 rounded bg-[#00dc64] px-2 py-1 text-[10px] font-black text-black shadow-sm">
-                    {comic.genre}
-                  </span>
-                </div>
-                <div className="p-3">
-                  <h3 className="line-clamp-2 min-h-[2.75em] break-words text-sm font-black leading-snug sm:text-base group-hover:text-[#00dc64]">
-                    {comic.title}
-                  </h3>
-                  {'synopsis' in comic && comic.synopsis ? (
-                    <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                      {comic.synopsis}
-                    </p>
-                  ) : null}
-                </div>
-              </Link>
-            ))}
+          <div className={homeGrid}>
+            {recommendedComics.map((comic) => renderHomeCard(comic))}
           </div>
         </section>
 
         <RankingSection title="인기 작품" icon={<Trophy className="h-5 w-5 text-[#00dc64]" />} kinds={['popular']} data={rankingData} />
         <RankingSection title="실시간 랭킹" icon={<Trophy className="h-5 w-5 text-red-500" />} kinds={['realtime']} data={rankingData} />
-        <RankingSection title="추천 신작" icon={<Sparkles className="h-5 w-5 text-[#00dc64]" />} kinds={['new']} data={rankingData} />
+        <section className="mt-4 rounded-xl border border-gray-300 bg-white p-3 shadow-md shadow-gray-200/70 transition-colors sm:mt-8 sm:p-5 dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+          <div className="mb-5 flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-black"><Sparkles className="h-5 w-5 text-[#00dc64]" />추천 신작</h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">최근 런칭한 작품이에요.</p>
+            </div>
+            <Link href="/ranking?tab=new" className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-bold text-gray-500 hover:text-[#00dc64]">전체보기 →</Link>
+          </div>
+          <div className={homeGrid}>
+            {newComics.map((comic) => renderHomeCard(comic))}
+          </div>
+        </section>
         <RankingSection title={`TOP ${(rankingData?.rankings?.webtoon?.top || 0) > 20 ? rankingData?.rankings?.webtoon?.top : 20}`} icon={<Trophy className="h-5 w-5 text-yellow-500" />} kinds={['webtoon', 'book', 'novel']} data={rankingData} />
 
         {(promoData || []).length > 0 && (

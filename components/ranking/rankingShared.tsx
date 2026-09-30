@@ -120,7 +120,10 @@ export function RankingSection({ title, icon, kinds, data, limit = 6 }: { title:
         data ? <RankingEmpty kind={kind} /> : <div className="h-40 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
       ) : (
         <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
-          {list.items.slice(0, limit).map((item) => <RankingCard key={item.id} item={item} kind={kind} />)}
+          {/* 모바일은 1~5위까지만 (6위부터는 [전체보기]), PC는 3열 두 줄로 6위까지 */}
+          {list.items.slice(0, limit).map((item, index) => (
+            <div key={item.id} className={index >= 5 ? 'hidden sm:block' : ''}><RankingCard item={item} kind={kind} /></div>
+          ))}
         </div>
       )}
     </section>

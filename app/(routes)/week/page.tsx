@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import GeneralComicListPage from '@/components/ui/GeneralComicListPage';
 
 const WEEKDAYS = [
@@ -16,6 +16,11 @@ const WEEKDAYS = [
 
 export default function WeekPage() {
   const [selectedDay, setSelectedDay] = useState('all');
+  // 홈 [요일별 연재] 전체보기: /week?day=mon
+  useEffect(() => {
+    const day = new URLSearchParams(window.location.search).get('day');
+    if (day && WEEKDAYS.some((item) => item.id === day)) setSelectedDay(day);
+  }, []);
 
   return (
     <GeneralComicListPage
