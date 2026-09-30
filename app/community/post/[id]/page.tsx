@@ -10,7 +10,7 @@ import { api } from '@/lib/api';
 const ReportModal = dynamic(() => import('@/components/ui/ReportModal'), { ssr: false, loading: () => null });
 
 // 게시글 상세: 스포일러 본문 가림, 작품·회차 링크, 추천·저장, 신고·차단, 댓글·대댓글·좋아요 (/api/board)
-interface C { id: string; parentId?: string | null; deleted?: boolean; content: string; author: string; authorId: string; isMine: boolean; isBlocked: boolean; likeCount: number; isLiked: boolean; createdAt: string; replies?: C[] }
+interface C { id: string; parentId?: string | null; deleted?: boolean; hidden?: boolean; content: string; author: string; authorId: string; isMine: boolean; isBlocked: boolean; likeCount: number; isLiked: boolean; createdAt: string; replies?: C[] }
 interface Post {
   id: string; title: string; content: string; category: string; categoryName: string; author: string; authorId: string; isMine: boolean; viewCount: number; likeCount: number; commentCount: number;
   isBest: boolean; isSpoiler: boolean; noticeType?: string | null; pinned: boolean; isLiked: boolean; isBookmarked: boolean; authorBlocked: boolean; createdAt: string; updatedAt: string; status: string;
@@ -85,7 +85,7 @@ export default function PostPage() {
     const collapsed = c.isBlocked && !revealed.has(c.id);
     return (
       <div key={c.id} id={`c-${c.id}`} className={`scroll-mt-24 ${isReply ? 'ml-6 border-l-2 border-gray-100 pl-3 dark:border-gray-800' : ''} py-3`}>
-        {c.deleted ? <p className="text-sm text-gray-400">삭제된 댓글입니다.</p> : (
+        {c.deleted || c.hidden ? <p className="text-sm text-gray-400">{c.hidden ? '운영 정책에 따라 숨겨진 댓글입니다.' : '삭제된 댓글입니다.'}</p> : (
           <>
             <div className="flex items-center justify-between gap-2 text-xs">
               <span className="font-bold text-gray-800 dark:text-gray-200">{c.author}{c.isMine && <span className="ml-1 text-[#00a84c]">(나)</span>}<span className="ml-2 font-normal text-gray-400">{fmt(c.createdAt)}</span></span>

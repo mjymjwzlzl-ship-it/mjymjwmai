@@ -132,18 +132,19 @@ router.get('/posts/:id', async (req, res) => {
   const [liked, bookmarked, comments] = await Promise.all([
     req.user ? prisma.postLike.findUnique({ where: { userId_postId: { userId: req.user.id, postId: post.id } } }) : null,
     req.user ? prisma.postBookmark.findUnique({ where: { userId_postId: { userId: req.user.id, postId: post.id } } }) : null,
-    prisma.postComment.findMany({ where: { postId: post.id, status: { not: 'HIDDEN' } }, include: { author: { select: { id: true, nickname: true, email: true } } }, orderBy: { createdAt: 'asc' } }),
+    prisma.postComment.findMany({ where: { postId: post.id }, include: { author: { select: { id: true, nickname: true, email: true } } }, orderBy: { createdAt: 'asc' } }),
   ]);
   const myLikes = req.user ? new Set((await prisma.postCommentLike.findMany({ where: { userId: req.user.id, commentId: { in: comments.map((c) => c.id) } }, select: { commentId: true } })).map((l) => l.commentId)) : new Set();
   const shapeC = (c) => ({
-    id: c.id, parentId: c.parentId, deleted: c.status === 'DELETED', content: c.status === 'DELETED' ? '' : c.content,
-    author: c.status === 'DELETED' ? '' : who(c.author), authorId: c.authorId, isMine: !!req.user && req.user.id === c.authorId,
+    id: c.id, parentId: c.parentId, deleted: c.status === 'DELETED', hidden: c.status === 'HIDDEN', content: c.status === 'NORMAL' ? c.content : '',
+    author: c.status === 'NORMAL' ? who(c.author) : '', authorId: c.authorId, isMine: !!req.user && req.user.id === c.authorId,
     isBlocked: blocked.has(c.authorId), likeCount: c.likeCount, isLiked: myLikes.has(c.id), createdAt: c.createdAt,
   });
   // 원댓글 + 답글 (삭제된 원댓글은 답글이 있을 때만 "삭제된 댓글입니다"로 남김)
   const tops = comments.filter((c) => !c.parentId);
-  const tree = tops.map((c) => ({ ...shapeC(c), replies: comments.filter((r) => r.parentId === c.id && r.status !== 'DELETED').map(shapeC) }))
-    .filter((c) => !c.deleted || c.replies.length);
+  // 원댓글이 삭제·숨김이어도 답글이 있으면 자리만 남긴다 (답글은 정상인 것만)
+  const tree = tops.map((c) => ({ ...shapeC(c), replies: comments.filter((r) => r.parentId === c.id && r.status === 'NORMAL').map(shapeC) }))
+    .filter((c) => (!c.deleted && !c.hidden) || c.replies.length);
   res.json({
     post: { ...shapePost(post, ctx, { full: true }), status: post.status, isLiked: !!liked?.isUpvote, isBookmarked: !!bookmarked, authorBlocked: blocked.has(post.authorId) },
     comments: tree,
