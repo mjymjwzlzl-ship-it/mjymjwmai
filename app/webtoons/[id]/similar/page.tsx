@@ -10,7 +10,7 @@ import { REASON_LABEL } from '@/components/ui/SimilarWorksRail';
 import ComicBadges from '@/components/ui/ComicBadges';
 
 // 작품 상세 [이 작품과 비슷한 인기작품] 전체보기 (같은 기준 /frontend/comics/:id/similar, 최대 20개)
-interface SimilarComic { id: string; title: string; author?: string; thumbnailUrl: string; totalEpisodes: number; rating?: number; reason?: string; createdAt?: string; lastEpisodeAt?: string | null }
+interface SimilarComic { id: string; title: string; author?: string; thumbnailUrl: string; totalEpisodes: number; rating?: number; reason?: string; createdAt?: string; lastEpisodeAt?: string | null; status?: string }
 
 export default function SimilarListPage() {
   const params = useParams();
@@ -49,7 +49,7 @@ export default function SimilarListPage() {
                   <img src={getImageUrl(comic.thumbnailUrl, { width: 300 })} alt={comic.title} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
                   <span className="absolute left-1.5 top-1.5 flex flex-col items-start gap-1">
                     {comic.reason && REASON_LABEL[comic.reason] && <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">{REASON_LABEL[comic.reason]}</span>}
-                    <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} />
+                    <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} status={comic.status} />
                   </span>
                 </div>
                 <p className="mt-1.5 line-clamp-2 text-xs font-bold sm:text-sm">{comic.title}</p>

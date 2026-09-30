@@ -6,6 +6,7 @@ const express = require('express');
 const { prisma } = require('../lib/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 
+const { autoNotice, applyStatusNotice } = require('../services/status-notice');
 const router = express.Router();
 const adminOnly = [authenticate, requireAdmin];
 const STATUSES = ['ONGOING', 'HIATUS', 'COMPLETED', 'SUSPENDED', 'HIDDEN'];
@@ -31,21 +32,6 @@ router.get('/admin/comic-status', adminOnly, async (req, res) => {
   res.json({ comics: comics.map((comic) => ({ ...comic, noticeCount: countById.get(comic.id) || 0 })) });
 });
 
-// 상태 변경 시 자동 공지 내용
-function autoNotice(prev, next, { resumeAt, message }) {
-  const extra = message ? `\n\n${message}` : '';
-  if (next === 'HIATUS' && prev !== 'HIATUS') {
-    return { type: 'HIATUS', title: '휴재 안내', content: `작품이 잠시 휴재합니다. ${resumeAt ? `연재 재개 예정일은 ${kstDate(resumeAt)}입니다.` : '연재 재개 일정이 정해지면 다시 안내해 드릴게요.'} 지금까지 공개된 회차는 그대로 볼 수 있어요.${extra}` };
-  }
-  if (next === 'ONGOING' && prev === 'HIATUS') {
-    return { type: 'RESUME', title: '연재 재개 안내', content: `휴재를 마치고 연재를 다시 시작합니다. 기다려 주셔서 감사합니다.${extra}` };
-  }
-  if (next === 'SUSPENDED' && prev !== 'SUSPENDED') {
-    return { type: 'SUSPENDED', title: '판매중지 안내', content: `이 작품은 판매가 중지되어 유료 회차를 새로 대여·소장할 수 없습니다. 이미 소장한 회차와 대여 기간이 남은 회차, 무료 회차는 계속 볼 수 있어요.${extra}` };
-  }
-  return null;
-}
-
 router.put('/admin/comic-status/:comicId', adminOnly, async (req, res) => {
   const { status, statusNotice, resumeAt, createNotice = true } = req.body || {};
   if (status !== undefined && !STATUSES.includes(status)) return res.status(400).json({ message: '연재 상태 값이 올바르지 않습니다.' });
@@ -59,13 +45,9 @@ router.put('/admin/comic-status/:comicId', adminOnly, async (req, res) => {
     if (data.resumeAt && Number.isNaN(data.resumeAt.getTime())) return res.status(400).json({ message: '재개 예정일 형식이 올바르지 않습니다.' });
   }
   const comic = await prisma.comic.update({ where: { id: current.id }, data, select: { id: true, status: true, statusNotice: true, resumeAt: true } });
-  let notice = null;
-  const auto = status !== undefined && createNotice !== false && autoNotice(current.status, status, { resumeAt: comic.resumeAt, message: comic.statusNotice });
-  if (auto) {
-    // 이전 휴재·판매중지 공지는 고정 해제 (지난 안내가 맨 위에 남지 않게)
-    await prisma.comicNotice.updateMany({ where: { comicId: current.id, isPinned: true, type: { in: ['HIATUS', 'SUSPENDED'] } }, data: { isPinned: false } });
-    notice = await prisma.comicNotice.create({ data: { comicId: current.id, ...auto, isPinned: auto.type !== 'RESUME' } });
-  }
+  const notice = status !== undefined && createNotice !== false
+    ? await applyStatusNotice(current.id, current.status, status, { resumeAt: comic.resumeAt, message: comic.statusNotice })
+    : null;
   res.json({ comic, notice });
 });
 

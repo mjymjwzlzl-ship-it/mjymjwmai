@@ -335,11 +335,7 @@ function LibraryContent() {
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                       />
                     ) : null}
-                    {(item.status === 'HIATUS' || item.status === 'SUSPENDED') && (
-                      <span className={`absolute bottom-2 left-1.5 rounded px-1.5 py-0.5 text-[10px] font-black ${item.status === 'SUSPENDED' ? 'bg-red-600 text-white' : 'bg-amber-400 text-black'}`}>
-                        {item.status === 'SUSPENDED' ? '판매중지' : '휴재'}
-                      </span>
-                    )}
+                    <ComicBadges status={item.status} className="absolute bottom-2 left-1.5" />
                     {item.contentType === 'book' && (
                       <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">단행본</span>
                     )}

@@ -18,6 +18,7 @@ export interface RankingItem {
   recentViews: number;
   launchedAt?: string;
   lastEpisodeAt?: string | null;
+  status?: string;
   isNew?: boolean;
 }
 export interface RankingList { total: number; top: number; items: RankingItem[] }
@@ -62,7 +63,7 @@ export function RankingCard({ item, kind }: { item: RankingItem; kind: RankingKi
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-1 text-sm font-black group-hover:text-[#00a84c] dark:group-hover:text-[#00dc64]">
           <span className="line-clamp-1">{item.title}</span>
-          <ComicBadges lastEpisodeAt={item.lastEpisodeAt} createdAt={item.launchedAt} size="xs" className="shrink-0" />
+          <ComicBadges lastEpisodeAt={item.lastEpisodeAt} createdAt={item.launchedAt} status={item.status} size="xs" className="shrink-0" />
         </p>
         <p className="mt-0.5 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">{[item.author, `${item.totalEpisodes}화`].filter(Boolean).join(' · ')}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] font-bold text-gray-500 dark:text-gray-400">

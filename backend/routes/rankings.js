@@ -8,6 +8,7 @@ const express = require('express');
 const { prisma } = require('../lib/prisma');
 const { generalComicWhere } = require('../services/adult-access');
 const { contentTypeOf } = require('../lib/content-format');
+const { isNewLaunch } = require('../lib/badges');
 
 const router = express.Router();
 const KINDS = ['popular', 'realtime', 'new', 'webtoon', 'book', 'novel'];
@@ -58,7 +59,7 @@ async function buildRankings() {
       popularScore: comic.viewCount + likes * 10 + rating.sum,
       launchedAt: comic.createdAt,
       lastEpisodeAt: lastEpisodeById.get(comic.id) || null,
-      isNew: Date.now() - new Date(comic.createdAt).getTime() <= 7 * 24 * 60 * 60 * 1000,
+      isNew: isNewLaunch(comic.createdAt),
     };
   });
 

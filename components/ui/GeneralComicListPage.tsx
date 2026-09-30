@@ -35,6 +35,7 @@ import { useLanguage, type Locale } from '@/components/providers/LanguageProvide
 import { removeHiddenComicDuplicates } from '@/lib/comic-deduplication';
 import { isMonochromeComic } from '@/lib/comic-content-format';
 import { comicTimestamp, getComicFreeAccess, sortCatalog, type CatalogSort } from '@/lib/catalog-list';
+import ComicBadges, { isNewLaunch, isUpToday } from '@/components/ui/ComicBadges';
 
 type Comic = any;
 
@@ -228,12 +229,6 @@ const resolveAudience = (comic: Comic, searchableText: string): 'male' | 'female
 
 // 홈 [요일별 연재]와 같은 기준: [UP] 오늘(KST) 새 회차, [NEW] 런칭 7일 이내
 const KST_OFFSET = 9 * 60 * 60 * 1000;
-const kstDay = (value: string | number) => new Date(new Date(value).getTime() + KST_OFFSET).toISOString().slice(0, 10);
-const isTodayKst = (value?: string) => Boolean(value) && !Number.isNaN(new Date(value as string).getTime()) && kstDay(value as string) === kstDay(Date.now());
-const isWithin7Days = (value?: string) => {
-  const time = value ? new Date(value).getTime() : NaN;
-  return !Number.isNaN(time) && Date.now() - time <= 7 * 24 * 60 * 60 * 1000;
-};
 const WEEKDAY_TABS = [
   { key: 'all', label: '전체' }, { key: 'mon', label: '월' }, { key: 'tue', label: '화' }, { key: 'wed', label: '수' },
   { key: 'thu', label: '목' }, { key: 'fri', label: '금' }, { key: 'sat', label: '토' }, { key: 'sun', label: '일' },
@@ -261,8 +256,8 @@ const normalizeComic = (
 
   return {
     id: String(comic.id),
-    isUp: isTodayKst(comic.lastEpisodeAt),
-    isNew: isWithin7Days(comic.createdAt),
+    isUp: isUpToday(comic.lastEpisodeAt),
+    isNew: isNewLaunch(comic.createdAt),
     title: localizedTitle,
     author: localizeComicAuthor(comic, locale, 'ARATA'),
     image: getSpecialComicThumbnail(comic, comic.thumbnailUrl || comic.thumbnail || comic.image || ''),
@@ -694,11 +689,8 @@ export default function GeneralComicListPage({
                     <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white">
                       <Heart className="h-4 w-4" />
                     </span>
-                    {(comic.status === 'HIATUS' || comic.status === 'SUSPENDED') && (
-                      <span className={`absolute bottom-2 left-2 rounded px-1.5 py-0.5 text-[11px] font-black ${comic.status === 'SUSPENDED' ? 'bg-red-600 text-white' : 'bg-amber-400 text-black'}`}>
-                        {comic.status === 'SUSPENDED' ? '판매중지' : '휴재'}
-                      </span>
-                    )}
+                    {/* 휴재·판매중지: 상태를 풀면 자동으로 사라진다 (ComicBadges 와 같은 모양) */}
+                    <ComicBadges status={comic.status} className="absolute bottom-2 left-2" />
                   </div>
 
                   <div className={viewMode === 'grid' ? 'min-w-0 p-2 sm:p-3' : 'min-w-0 flex-1 py-0.5'}>

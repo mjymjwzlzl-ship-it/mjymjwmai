@@ -27,10 +27,8 @@ const upload = multer({
   fileFilter: (req, file, cb) => (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype) ? cb(null, true) : cb(new Error('이미지 파일만 올릴 수 있습니다.'))),
 });
 
-const KST = 9 * 60 * 60 * 1000;
-const kstDay = (value) => new Date(new Date(value).getTime() + KST).toISOString().slice(0, 10);
-const isUpToday = (lastEpisodeAt) => Boolean(lastEpisodeAt) && kstDay(lastEpisodeAt) === kstDay(Date.now());
-const isNewLaunch = (createdAt) => Date.now() - new Date(createdAt).getTime() <= 7 * 24 * 60 * 60 * 1000;
+const { isUpToday, isNewLaunch, newUntil, kstDay } = require('../lib/badges');
+const { applyStatusNotice } = require('../services/status-notice');
 const parseImages = (value) => {
   if (Array.isArray(value)) return value;
   try { const parsed = JSON.parse(value); if (Array.isArray(parsed)) return parsed; } catch {}
@@ -56,9 +54,11 @@ router.get('/admin/works', async (req, res) => {
     orderBy: { createdAt: 'desc' },
   });
   const latest = await latestPublished(comics.map((c) => c.id));
+  const scheduledRows = await prisma.episode.groupBy({ by: ['comicId'], where: { comicId: { in: comics.map((c) => c.id) }, createdAt: { gt: new Date() } }, _count: { _all: true } });
+  const scheduledById = new Map(scheduledRows.map((row) => [row.comicId, row._count._all]));
   const type = String(req.query.type || '');
   const list = comics
-    .map((c) => ({ ...c, type: contentTypeOf(c), episodes: c._count.episodes, lastEpisodeAt: latest.get(c.id) || null, badges: { up: isUpToday(latest.get(c.id)), new: isNewLaunch(c.createdAt) } }))
+    .map((c) => ({ ...c, type: contentTypeOf(c), episodes: c._count.episodes, scheduled: scheduledById.get(c.id) || 0, lastEpisodeAt: latest.get(c.id) || null, badges: { up: isUpToday(latest.get(c.id)), new: isNewLaunch(c.createdAt), hiatus: c.status === 'HIATUS', suspended: c.status === 'SUSPENDED' } }))
     .filter((c) => !type || c.type === type);
   res.json({ works: list });
 });
@@ -80,8 +80,11 @@ router.get('/admin/works/:id', async (req, res) => {
       ...comic,
       type: contentTypeOf(comic),
       episodes: undefined,
-      badges: { up: isUpToday(lastEpisodeAt), new: isNewLaunch(comic.createdAt) },
+      badges: { up: isUpToday(lastEpisodeAt), new: isNewLaunch(comic.createdAt), hiatus: comic.status === 'HIATUS', suspended: comic.status === 'SUSPENDED' },
+      newUntil: newUntil(comic.createdAt),
       lastEpisodeAt,
+      // 예약 공개 대기 회차 (공개 예정 시각 순)
+      upcoming: comic.episodes.filter((ep) => ep.createdAt > now).sort((a, b) => a.createdAt - b.createdAt).map((ep) => ({ id: ep.id, episodeNumber: ep.episodeNumber, title: ep.title, publishAt: ep.createdAt })),
     },
     episodes: comic.episodes.map((ep) => ({
       id: ep.id,
@@ -143,7 +146,10 @@ router.patch('/admin/works/:id', async (req, res) => {
     }
   }
   try {
+    const before = await prisma.comic.findUnique({ where: { id: req.params.id }, select: { status: true } });
     const comic = await prisma.comic.update({ where: { id: req.params.id }, data });
+    // 휴재·판매중지로 바꾸거나 풀면 [작품 공지] 자동 등록/고정 해제 (연재 상태 화면과 같은 규칙)
+    if (before && data.status && before.status !== data.status) await applyStatusNotice(comic.id, before.status, data.status, { resumeAt: comic.resumeAt, message: comic.statusNotice });
     await refreshPromotions();
     res.json({ work: { ...comic, type: contentTypeOf(comic) } });
   } catch (error) {

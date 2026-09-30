@@ -204,9 +204,14 @@ router.get('/home', async (req, res) => {
     for (const comic of allComics) comic.lastEpisodeAt = lastEpisodeAtById.get(comic.id) || null;
     const allComicById = new Map(allComics.map((comic) => [comic.id, comic]));
     const weekdayCategories = {};
+    // 요일 편성 = 관리자 [작품 관리]의 작품별 연재 요일(updateDays) + 예전 카테고리 요일 편성
+    const daysOf = (comic) => { try { const days = JSON.parse(comic.updateDays || '[]'); return Array.isArray(days) ? days : []; } catch { return []; } };
     for (const [day, key] of Object.entries(WEEKDAY_KEYS)) {
       const ids = Array.isArray(weekSchedule[day]) ? weekSchedule[day] : [];
-      weekdayCategories[`week_${key}`] = ids.map((id) => allComicById.get(id)).filter(Boolean);
+      const fromSchedule = ids.map((id) => allComicById.get(id)).filter(Boolean);
+      const seen = new Set(fromSchedule.map((comic) => comic.id));
+      const fromComic = allComics.filter((comic) => !seen.has(comic.id) && daysOf(comic).includes(key));
+      weekdayCategories[`week_${key}`] = [...fromSchedule, ...fromComic];
     }
 
     res.json({
@@ -1618,6 +1623,7 @@ router.get('/comics/:id/similar', async (req, res) => {
       thumbnailUrl: entry.comic.thumbnail ? entry.comic.thumbnail.replace(/\.(jpg|jpeg|png)$/i, '.webp') : '/api/placeholder/300/400',
       contentType: contentTypeOf(entry.comic),
       createdAt: entry.comic.createdAt,
+      status: entry.comic.status,
       lastEpisodeAt: lastEpisodeById.get(entry.comic.id) || null,
       viewCount: entry.comic.viewCount || 0,
       rating: Math.round(((ratingMap.get(entry.comic.id) || 0) / 2) * 10) / 10,

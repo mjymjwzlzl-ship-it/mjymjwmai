@@ -9,7 +9,7 @@ import { STATUS_LABEL, TYPE_LABEL, apiBase, authHeaders, img } from '@/lib/works
 interface Work {
   id: string; title: string; authorName?: string | null; thumbnail?: string | null; rating: string; status: string; type: 'webtoon' | 'book' | 'novel';
   isPublished: boolean; paidStartEpisode: number; episodeCoinPrice: number; viewCount: number; createdAt: string; episodes: number; lastEpisodeAt?: string | null;
-  badges: { up: boolean; new: boolean };
+  badges: { up: boolean; new: boolean; hiatus: boolean; suspended: boolean }; scheduled: number;
 }
 
 export default function WorksPage() {
@@ -62,6 +62,8 @@ export default function WorksPage() {
                             {w.title}
                             {w.badges.up && <span className="rounded bg-red-600 px-1 text-[10px]">UP</span>}
                             {w.badges.new && <span className="rounded bg-green-500 px-1 text-[10px] text-black">NEW</span>}
+                            {w.badges.hiatus && <span className="rounded bg-amber-400 px-1 text-[10px] text-black">휴재</span>}
+                            {w.badges.suspended && <span className="rounded bg-gray-950 px-1 text-[10px]">판매중지</span>}
                             {!w.isPublished && <span className="rounded bg-gray-600 px-1 text-[10px]">미공개</span>}
                             {['19', 'ADULT'].includes(w.rating) && <span className="rounded bg-red-800 px-1 text-[10px]">19</span>}
                           </span>
@@ -71,7 +73,7 @@ export default function WorksPage() {
                     </td>
                     <td className="p-3">{TYPE_LABEL[w.type]}</td>
                     <td className="p-3">{STATUS_LABEL[w.status] || w.status}</td>
-                    <td className="p-3">{w.episodes}</td>
+                    <td className="p-3">{w.episodes}{w.scheduled > 0 && <span className="ml-1 text-xs text-yellow-300">(예약 {w.scheduled})</span>}</td>
                     <td className="p-3 text-xs">{w.paidStartEpisode === 0 ? '전편 무료' : `${w.paidStartEpisode}화부터 ${w.episodeCoinPrice}코인`}</td>
                     <td className="p-3 text-xs">{new Date(w.createdAt).toLocaleDateString('ko-KR')}</td>
                     <td className="p-3 text-xs">{w.lastEpisodeAt ? new Date(w.lastEpisodeAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>

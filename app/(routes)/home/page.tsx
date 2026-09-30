@@ -23,6 +23,7 @@ import { getImageUrl } from '@/lib/utils';
 import { useLanguage, type Locale } from '@/components/providers/LanguageProvider';
 import { localizedPromoAsset } from '@/lib/promo-assets';
 import { removeHiddenComicDuplicates } from '@/lib/comic-deduplication';
+import ComicBadges from '@/components/ui/ComicBadges';
 
 type Comic = any;
 
@@ -192,19 +193,16 @@ const normalizeComic = (comic: Comic, locale: Locale, defaultSynopsis: string) =
     views: Number(comic.views || comic.viewCount || 0),
     synopsis: localizeComicSynopsis(comic, locale, defaultSynopsis),
     // [UP] 오늘(한국 시간) 새 회차가 올라온 작품, [NEW] 런칭 7일 이내 신작
-    isUp: isTodayKst(comic.lastEpisodeAt),
-    isNew: isWithinDays(comic.createdAt, 7),
     lastEpisodeAt: comic.lastEpisodeAt ? String(comic.lastEpisodeAt) : '',
+    createdAt: comic.createdAt ? String(comic.createdAt) : '',
+    status: String(comic.status || ''),
+    // 검수 미리보기(badgeTest)에서만 강제로 켠다. 평소에는 ComicBadges 가 날짜·상태로 계산
+    isUp: undefined as boolean | undefined,
+    isNew: undefined as boolean | undefined,
   };
 };
 
 const KST_OFFSET = 9 * 60 * 60 * 1000;
-const kstDateKey = (value: string | number | Date) => new Date(new Date(value).getTime() + KST_OFFSET).toISOString().slice(0, 10);
-const isTodayKst = (value?: string) => Boolean(value) && !Number.isNaN(new Date(value as string).getTime()) && kstDateKey(value as string) === kstDateKey(Date.now());
-const isWithinDays = (value: string | undefined, days: number) => {
-  const time = value ? new Date(value).getTime() : NaN;
-  return !Number.isNaN(time) && Date.now() - time <= days * 24 * 60 * 60 * 1000;
-};
 
 const WEEKDAY_TABS = [
   { key: 'all', label: '전체' },
@@ -438,12 +436,7 @@ export default function HomePage() {
                       loading="lazy"
                     />
                   ) : null}
-                  {(comic.isUp || comic.isNew) && (
-                    <span className="absolute left-2 top-2 flex gap-1">
-                      {comic.isUp && <span className="rounded-sm bg-red-600 px-2 py-1 text-[10px] font-black text-white">UP</span>}
-                      {comic.isNew && <span className="rounded-sm bg-[#00dc64] px-2 py-1 text-[10px] font-black text-black">NEW</span>}
-                    </span>
-                  )}
+                  <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} status={comic.status} up={comic.isUp} isNew={comic.isNew} className="absolute left-2 top-2" />
                   <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white">
                     <Heart className="h-4 w-4" />
                   </span>

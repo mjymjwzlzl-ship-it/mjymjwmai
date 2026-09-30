@@ -108,6 +108,7 @@ interface SimilarComic {
   reason?: string;
   createdAt?: string;
   lastEpisodeAt?: string | null;
+  status?: string;
 }
 
 interface UserProgress {
@@ -924,7 +925,7 @@ const WebtoonDetailPage = () => {
                           />
                           <span className="absolute left-1 top-1 flex flex-col items-start gap-0.5">
                             {comic.reason && REASON_LABEL[comic.reason] && <span className="rounded bg-black/70 px-1 py-0.5 text-[10px] font-bold text-white">{REASON_LABEL[comic.reason]}</span>}
-                            <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} size="xs" />
+                            <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} status={comic.status} size="xs" />
                           </span>
                         </div>
                         <p className="mt-1 line-clamp-2 text-xs font-bold text-gray-900 dark:text-gray-100">{localizeComicTitle(comic, locale, safeText(comic.title, t('detail.recommended')))}</p>
@@ -951,7 +952,7 @@ const WebtoonDetailPage = () => {
                         <div className="flex-1 min-w-0">
                           <h4 className="mb-1 flex min-w-0 items-center gap-1 text-sm font-medium text-gray-950 dark:text-white">
                             <span className="truncate">{localizeComicTitle(comic, locale, safeText(comic.title, t('detail.recommended')))}</span>
-                            <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} size="xs" className="shrink-0" />
+                            <ComicBadges lastEpisodeAt={comic.lastEpisodeAt} createdAt={comic.createdAt} status={comic.status} size="xs" className="shrink-0" />
                           </h4>
                           <p className="text-gray-400 text-xs truncate mb-1">{localizeComicAuthor(comic, locale, 'ARATA')}</p>
                           <div className="flex items-center space-x-2 text-xs">
