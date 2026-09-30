@@ -78,7 +78,7 @@ export default function HorizontalRail({
         onDragStart={(event) => event.preventDefault()}
         role="list"
         aria-label={label}
-        className="no-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain scroll-smooth pb-2 [touch-action:pan-x_pan-y] sm:gap-3 sm:snap-none"
+        className="no-scrollbar flex gap-2 overflow-x-auto overscroll-x-contain pb-2 [-webkit-overflow-scrolling:touch] sm:gap-3"
       >
         {children}
       </div>

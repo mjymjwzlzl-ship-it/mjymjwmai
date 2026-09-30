@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -318,6 +318,15 @@ export default function GeneralComicListPage({
   }, []);
   const labels = listLabels[locale];
   const [page, setPage] = useState(1);
+  const swipeStart = useRef<number | null>(null);
+  const [isWide, setIsWide] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 640px)');
+    const sync = () => setIsWide(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
   const adultEnabled = useAdultModeStore((state) => state.enabled);
   const hydrateAdultMode = useAdultModeStore((state) => state.hydrate);
 
@@ -461,6 +470,14 @@ export default function GeneralComicListPage({
   const itemsPerPage = viewMode === 'grid' ? GRID_ITEMS_PER_PAGE : ITEMS_PER_PAGE;
   const pageCount = Math.max(1, Math.ceil(items.length / itemsPerPage));
   const currentPage = Math.min(page, pageCount);
+  // 페이지 번호는 구간으로: 모바일 5개, PC 10개씩. 〈 〉(또는 번호 줄을 좌우로 밀기)로 이전·다음 구간
+  const groupSize = isWide ? 10 : 5;
+  const groupStart = Math.floor((currentPage - 1) / groupSize) * groupSize + 1;
+  const groupEnd = Math.min(groupStart + groupSize - 1, pageCount);
+  const goGroup = (direction: 1 | -1) => {
+    const next = groupStart + direction * groupSize;
+    if (next >= 1 && next <= pageCount) setPage(next);
+  };
   const pagedItems = items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
@@ -547,8 +564,9 @@ export default function GeneralComicListPage({
             </div>
 
             {/* 요일별 연재 (홈과 같은 탭) */}
-            <div className="no-scrollbar mt-3 flex items-center gap-1.5 overflow-x-auto border-t border-gray-100 pt-3 dark:border-gray-800" role="tablist" aria-label="연재 요일">
-              <span className="mr-1 shrink-0 text-xs font-black text-gray-400">요일</span>
+            {/* 모바일은 8칸을 화면 폭에 나눠 넘기지 않아도 다 보이게 */}
+            <div className="mt-3 grid grid-cols-8 gap-1 border-t border-gray-100 pt-3 sm:flex sm:items-center sm:gap-1.5 dark:border-gray-800" role="tablist" aria-label="연재 요일">
+              <span className="mr-1 hidden shrink-0 text-xs font-black text-gray-400 sm:inline">요일</span>
               {WEEKDAY_TABS.map((tab) => {
                 const active = weekday === tab.key;
                 return (
@@ -558,9 +576,10 @@ export default function GeneralComicListPage({
                     role="tab"
                     aria-selected={active}
                     onClick={() => { setWeekday(tab.key); setPage(1); }}
-                    className={`min-h-9 shrink-0 rounded-full px-3 text-xs font-black transition ${active ? 'bg-[#00dc64] text-black' : 'bg-gray-100 text-gray-500 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:text-white'}`}
+                    className={`relative min-h-9 min-w-0 rounded-full px-0 text-xs font-black transition sm:shrink-0 sm:px-3 ${active ? 'bg-[#00dc64] text-black' : 'bg-gray-100 text-gray-500 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:text-white'}`}
                   >
-                    {tab.label}{tab.key === todayWeekdayKst() && <span className="ml-0.5 text-[10px] opacity-70">오늘</span>}
+                    {tab.label}{tab.key === todayWeekdayKst() && <span className="ml-0.5 hidden text-[10px] opacity-70 sm:inline">오늘</span>}
+                    {tab.key === todayWeekdayKst() && <span className="absolute -top-0.5 right-1 h-1.5 w-1.5 rounded-full bg-red-500 sm:hidden" aria-label="오늘" />}
                   </button>
                 );
               })}
@@ -704,16 +723,28 @@ export default function GeneralComicListPage({
 
           {items.length > 0 && (
             <div className="flex flex-col items-center gap-3 border-t border-gray-100 p-6 dark:border-gray-800">
-              <div className="flex flex-wrap justify-center gap-2">
-                {Array.from({ length: pageCount }).map((_, index) => {
-                  const pageNumber = index + 1;
+              <div
+                className="flex touch-pan-y items-center justify-center gap-1 sm:gap-2"
+                onTouchStart={(event) => { swipeStart.current = event.touches[0].clientX; }}
+                onTouchEnd={(event) => {
+                  if (swipeStart.current === null) return;
+                  const dx = event.changedTouches[0].clientX - swipeStart.current;
+                  swipeStart.current = null;
+                  if (Math.abs(dx) > 40) goGroup(dx < 0 ? 1 : -1);
+                }}
+              >
+                {groupStart > 1 && (
+                  <button type="button" onClick={() => goGroup(-1)} aria-label={`이전 ${groupSize}페이지`} className="h-11 w-9 rounded-md text-xl font-black text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10">‹</button>
+                )}
+                {Array.from({ length: groupEnd - groupStart + 1 }).map((_, index) => {
+                  const pageNumber = groupStart + index;
                   return (
                     <button
                       key={pageNumber}
                       type="button"
                       onClick={() => setPage(pageNumber)}
                       aria-current={pageNumber === currentPage ? 'page' : undefined}
-                      className={`h-11 min-w-11 rounded-md px-2 text-sm font-black ${
+                      className={`h-11 min-w-10 rounded-md px-2 text-sm font-black sm:min-w-11 ${
                         pageNumber === currentPage
                           ? 'bg-[#00dc64] text-black shadow-md shadow-green-500/20'
                           : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10'
@@ -723,7 +754,11 @@ export default function GeneralComicListPage({
                     </button>
                   );
                 })}
+                {groupEnd < pageCount && (
+                  <button type="button" onClick={() => goGroup(1)} aria-label={`다음 ${groupSize}페이지`} className="h-11 w-9 rounded-md text-xl font-black text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10">›</button>
+                )}
               </div>
+              {pageCount > groupSize && <p className="text-xs text-gray-400">{currentPage} / {pageCount} 페이지</p>}
             </div>
           )}
         </section>
