@@ -159,6 +159,11 @@ const categories = [
   { query: 'sports', value: '스포츠' },
   { query: 'daily', value: '일상' },
   { query: 'adult', value: '성인' },
+  // 웹소설 장르
+  { query: 'modern', value: '현대물' },
+  { query: 'lightNovel', value: '라이트노벨' },
+  { query: 'bl', value: 'BL' },
+  { query: 'gl', value: 'GL' },
 ];
 
 const optionChips = [
@@ -182,6 +187,11 @@ const genreLabels: Record<string, string> = {
   sports: '스포츠',
   daily: '일상',
   'slice-of-life': '일상',
+  modern: '현대물',
+  lightnovel: '라이트노벨',
+  'light-novel': '라이트노벨',
+  bl: 'BL',
+  gl: 'GL',
 };
 
 const brokenTextPattern = /\uFFFD/;

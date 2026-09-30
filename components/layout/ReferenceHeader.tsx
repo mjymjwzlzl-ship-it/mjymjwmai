@@ -62,10 +62,9 @@ const comicSubnavItems = [
   { value: 'daily', labelKey: 'category.daily' },
 ];
 
+// 웹소설도 웹툰·단행본처럼 상단은 장르만. [신작]·[랭킹]은 목록 안 상태·정렬 줄에서 고른다
 const novelSubnavItems = [
   { value: 'all', labelKey: 'category.all' },
-  { value: 'new', labelKey: 'category.new' },
-  { value: 'ranking', labelKey: 'category.ranking' },
   { value: 'fantasy', labelKey: 'category.fantasy' },
   { value: 'martial', labelKey: 'category.martial' },
   { value: 'romance', labelKey: 'category.romance' },
