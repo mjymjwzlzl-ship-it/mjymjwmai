@@ -796,7 +796,8 @@ model ComicNotice {
   type      String   @default("GENERAL")
   title     String
   content   String
-  isPinned  Boolean  @default(false) // [중요] 상단 고정
+  isPinned  Boolean  @default(false) // 상단 고정 (목록 맨 위)
+  isImportant Boolean @default(false) // [중요] 배지
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

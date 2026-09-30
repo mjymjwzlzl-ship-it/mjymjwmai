@@ -2,14 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ListChecks, Save } from 'lucide-react';
+import ComicNoticeManager from '@/components/ComicNoticeManager';
 
 // 작품 연재 상태·공지. 사이트 작품 상세의 상태 배지와 [공지사항] 탭에 그대로 나간다.
 // 판매중지(SUSPENDED): 새 대여·소장 불가, 보유 회차·무료 회차는 계속 열람.
 
 type Status = 'ONGOING' | 'HIATUS' | 'COMPLETED' | 'SUSPENDED' | 'HIDDEN';
 interface Row { id: string; title: string; authorName?: string | null; rating: string; status: Status; statusNotice?: string | null; resumeAt?: string | null; noticeCount?: number }
-interface Notice { id: string; type: string; title: string; content: string; isPinned: boolean; createdAt: string }
-const NOTICE_LABEL: Record<string, string> = { HIATUS: '휴재 안내', RESUME: '연재 재개', SCHEDULE: '업로드 일정 변경', SUSPENDED: '판매중지 안내', GENERAL: '공지' };
 
 const LABEL: Record<Status, string> = { ONGOING: '연재중', HIATUS: '휴재중', COMPLETED: '완결', SUSPENDED: '판매중지', HIDDEN: '숨김' };
 const apiBase = () => (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname) ? 'http://localhost:8000/api' : 'https://api.arata.co.kr/api');
@@ -128,63 +127,17 @@ export default function ComicStatusPage() {
   );
 }
 
-// 작품 공지 관리: 사이트 작품 상세 [작품 공지] 탭. [중요]는 상단 고정.
+// 작품 공지 관리 (작품 관리 상세와 같은 컴포넌트)
 function NoticeManager({ row, onClose }: { row: Row; onClose: (count: number) => void }) {
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [editing, setEditing] = useState<Notice | null>(null);
-  const [form, setForm] = useState({ type: 'GENERAL', title: '', content: '', isPinned: false });
-  const base = `${apiBase()}/admin/comics/${row.id}/notices`;
-  const load = () => fetch(base, { headers: headers() }).then((r) => r.json()).then((d) => setNotices(d.notices || []));
-  useEffect(() => { void load(); }, []);
-  const reset = () => { setEditing(null); setForm({ type: 'GENERAL', title: '', content: '', isPinned: false }); };
-  const save = async () => {
-    const response = await fetch(editing ? `${base}/${editing.id}` : base, { method: editing ? 'PUT' : 'POST', headers: headers(), body: JSON.stringify(form) });
-    const data = await response.json();
-    if (!response.ok) { alert(data.message || '저장 실패'); return; }
-    reset();
-    await load();
-  };
-  const remove = async (notice: Notice) => {
-    if (!confirm(`'${notice.title}' 공지를 삭제할까요?`)) return;
-    await fetch(`${base}/${notice.id}`, { method: 'DELETE', headers: headers() });
-    await load();
-  };
-  const input = 'w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white';
+  const [count, setCount] = useState(row.noticeCount || 0);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-gray-800 p-6">
+      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-gray-800 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">작품 공지 · {row.title}</h2>
-          <button type="button" onClick={() => onClose(notices.length)} className="text-gray-400">닫기</button>
+          <button type="button" onClick={() => onClose(count)} className="text-gray-400">닫기</button>
         </div>
-        <ul className="mb-5 divide-y divide-gray-700 rounded border border-gray-700">
-          {notices.length === 0 && <li className="p-3 text-sm text-gray-400">등록된 공지가 없습니다.</li>}
-          {notices.map((notice) => (
-            <li key={notice.id} className="flex items-center gap-2 p-3 text-sm">
-              {notice.isPinned && <span className="rounded bg-red-600 px-1.5 text-xs font-bold">중요</span>}
-              <span className="rounded bg-gray-700 px-1.5 text-xs">{NOTICE_LABEL[notice.type] || notice.type}</span>
-              <span className="min-w-0 flex-1 truncate">{notice.title}</span>
-              <span className="text-xs text-gray-400">{new Date(notice.createdAt).toLocaleDateString('ko-KR')}</span>
-              <button type="button" className="text-xs text-blue-300" onClick={() => { setEditing(notice); setForm({ type: notice.type, title: notice.title, content: notice.content, isPinned: notice.isPinned }); }}>수정</button>
-              <button type="button" className="text-xs text-red-300" onClick={() => void remove(notice)}>삭제</button>
-            </li>
-          ))}
-        </ul>
-        <div className="space-y-2 rounded border border-gray-700 p-3">
-          <p className="text-sm font-bold">{editing ? '공지 수정' : '새 공지'}</p>
-          <div className="flex gap-2">
-            <select className={input} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-              {Object.entries(NOTICE_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-            </select>
-            <label className="flex shrink-0 items-center gap-1 text-sm"><input type="checkbox" checked={form.isPinned} onChange={(e) => setForm({ ...form, isPinned: e.target.checked })} />중요(상단 고정)</label>
-          </div>
-          <input className={input} placeholder="제목" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <textarea className={input} rows={4} placeholder="내용" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
-          <div className="flex justify-end gap-2">
-            {editing && <button type="button" onClick={reset} className="rounded bg-gray-700 px-3 py-1.5 text-sm">취소</button>}
-            <button type="button" onClick={() => void save()} className="rounded bg-purple-600 px-3 py-1.5 text-sm font-bold">{editing ? '수정 저장' : '등록'}</button>
-          </div>
-        </div>
+        <ComicNoticeManager comicId={row.id} onCount={setCount} />
       </div>
     </div>
   );

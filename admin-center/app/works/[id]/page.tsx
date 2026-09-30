@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ExternalLink, Plus, Save, Trash2, Upload } from 'lucide-react';
 import { STATUS_LABEL, TYPE_LABEL, adminApi, apiBase, authHeaders, img, siteBase } from '@/lib/works';
+import ComicNoticeManager from '@/components/ComicNoticeManager';
 
 // 작품 상세 관리 (MIB 관리자 작품 편집 + 회차 등록·예약 공개)
 interface Work {
@@ -257,7 +258,13 @@ export default function WorkDetailPage() {
             <Field label="대여가(코인)" hint="비우면 소장가-1, 0이면 대여 없음"><input type="number" min={0} className={input} value={form.rentalCoinPrice} onChange={(e) => set({ rentalCoinPrice: e.target.value })} /></Field>
             <Field label="대여 기간(일)"><input type="number" min={1} className={input} value={form.rentalDays} onChange={(e) => set({ rentalDays: e.target.value })} /></Field>
           </div>
-          <p className="mt-3 text-xs text-gray-400">할인·무료 이벤트는 [할인·무료], 휴재·판매중지 공지는 [연재 상태]에서 관리합니다.</p>
+          <p className="mt-3 text-xs text-gray-400">할인·무료 이벤트는 [할인·무료]에서 관리합니다. 연재 상태를 휴재·판매중지로 바꿔 저장하면 [중요] 공지가 아래 목록에 자동으로 추가됩니다.</p>
+        </section>
+
+        {/* 작품 공지: 사이트 작품 상세 [작품 공지] 탭 */}
+        <section id="notices" className="rounded-lg bg-gray-800 p-5">
+          <h2 className="mb-3 text-lg font-bold">작품 공지</h2>
+          <ComicNoticeManager comicId={id} />
         </section>
 
         <EpisodeSection workId={id} isNovel={isNovel} episodes={episodes} onChanged={load} paidStart={Number(form.paidStartEpisode)} />

@@ -13,6 +13,7 @@ const STATUSES = ['ONGOING', 'HIATUS', 'COMPLETED', 'SUSPENDED', 'HIDDEN'];
 const NOTICE_TYPES = ['HIATUS', 'RESUME', 'SCHEDULE', 'SUSPENDED', 'GENERAL'];
 
 const kstDate = (value) => new Date(value).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
+// 상단 고정 → 작성일 최신순. 새 공지를 써도 지난 공지는 그대로 쌓인다(게시판)
 const sortNotices = { orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }] };
 
 router.get('/frontend/comics/:comicId/notices', async (req, res) => {
@@ -57,6 +58,12 @@ function parseNotice(body) {
   if (body.title !== undefined) data.title = String(body.title).trim();
   if (body.content !== undefined) data.content = String(body.content).trim();
   if (body.isPinned !== undefined) data.isPinned = body.isPinned === true || body.isPinned === 'true';
+  if (body.isImportant !== undefined) data.isImportant = body.isImportant === true || body.isImportant === 'true';
+  // 작성일: 관리자가 지정(비우면 지금). 사용자 화면 목록 날짜·정렬 기준
+  if (body.createdAt) {
+    const date = new Date(body.createdAt);
+    if (Number.isNaN(date.getTime())) data.invalidDate = true; else data.createdAt = date;
+  }
   return data;
 }
 
@@ -66,6 +73,7 @@ router.get('/admin/comics/:comicId/notices', adminOnly, async (req, res) => {
 
 router.post('/admin/comics/:comicId/notices', adminOnly, async (req, res) => {
   const data = parseNotice(req.body || {});
+  if (data.invalidDate) return res.status(400).json({ message: '작성일이 올바르지 않습니다.' });
   if (!data.title || !data.content) return res.status(400).json({ message: '제목과 내용을 입력하세요.' });
   if (data.type && !NOTICE_TYPES.includes(data.type)) return res.status(400).json({ message: '공지 유형이 올바르지 않습니다.' });
   if (!(await prisma.comic.findUnique({ where: { id: req.params.comicId }, select: { id: true } }))) return res.status(404).json({ message: '작품을 찾을 수 없습니다.' });
@@ -74,6 +82,8 @@ router.post('/admin/comics/:comicId/notices', adminOnly, async (req, res) => {
 
 router.put('/admin/comics/:comicId/notices/:noticeId', adminOnly, async (req, res) => {
   const data = parseNotice(req.body || {});
+  if (data.invalidDate) return res.status(400).json({ message: '작성일이 올바르지 않습니다.' });
+  if (data.title === '' || data.content === '') return res.status(400).json({ message: '제목과 내용을 입력하세요.' });
   if (data.type && !NOTICE_TYPES.includes(data.type)) return res.status(400).json({ message: '공지 유형이 올바르지 않습니다.' });
   const result = await prisma.comicNotice.updateMany({ where: { id: req.params.noticeId, comicId: req.params.comicId }, data });
   if (!result.count) return res.status(404).json({ message: '공지를 찾을 수 없습니다.' });

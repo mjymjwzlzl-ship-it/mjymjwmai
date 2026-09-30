@@ -61,11 +61,12 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 const NOTICE_TYPE: Record<string, { label: string; className: string }> = {
   HIATUS: { label: '휴재 안내', className: 'bg-amber-400/20 text-amber-700 dark:text-amber-300' },
   RESUME: { label: '연재 재개', className: 'bg-[#00dc64]/15 text-[#00a84c] dark:text-[#00dc64]' },
-  SCHEDULE: { label: '업로드 일정 변경', className: 'bg-sky-500/15 text-sky-700 dark:text-sky-300' },
-  SUSPENDED: { label: '판매중지 안내', className: 'bg-red-600/15 text-red-600 dark:text-red-400' },
-  GENERAL: { label: '공지', className: 'bg-gray-200 text-gray-700 dark:bg-white/10 dark:text-gray-300' },
+  SCHEDULE: { label: '일정 변경', className: 'bg-sky-500/15 text-sky-700 dark:text-sky-300' },
+  SUSPENDED: { label: '판매중지', className: 'bg-red-600/15 text-red-600 dark:text-red-400' },
+  GENERAL: { label: '일반 공지', className: 'bg-gray-200 text-gray-700 dark:bg-white/10 dark:text-gray-300' },
 };
-interface ComicNotice { id: string; type: string; title: string; content: string; isPinned: boolean; createdAt: string }
+// isImportant = [중요] 배지, isPinned = 상단 고정 (관리자 작품 관리에서 작품별로 작성, 쌓이는 게시판)
+interface ComicNotice { id: string; type: string; title: string; content: string; isPinned: boolean; isImportant?: boolean; createdAt: string }
 
 const DAY_LABEL: Record<string, string> = { mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일' };
 // "매주 수요일 연재" / "매주 월·목요일 연재" / 휴재 "매주 월요일 연재 · 휴재" / 완결 "완결"
@@ -219,9 +220,13 @@ const WebtoonDetailPage = () => {
   // 상태 배지를 누르면 [작품 공지] 탭의 관련 공지(휴재·판매중지)를 열어 보여준다
   const showStatusNotice = (status?: string) => {
     setMainTab('notice');
-    const related = notices.find((notice) => notice.type === status) || notices[0];
-    if (related) setOpenNoticeId(related.id);
-    window.setTimeout(() => noticeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    // 같은 유형 중 고정 공지 → 최신 공지 순 (목록이 고정·최신순이라 첫 번째가 그것)
+    const related = notices.find((notice) => notice.type === status);
+    setOpenNoticeId(related ? related.id : null);
+    window.setTimeout(() => {
+      const target = related ? document.getElementById(`notice-${related.id}`) : null;
+      (target || noticeRef.current)?.scrollIntoView({ behavior: 'smooth', block: target ? 'center' : 'start' });
+    }, 80);
   };
   // 진행 중인 할인·무료 이벤트 (회차 목록 위에 안내)
   const [promotions, setPromotions] = useState<{ id: string; label: string; remaining: string; endAt: string }[]>([]);
@@ -758,7 +763,7 @@ const WebtoonDetailPage = () => {
               <div className="mb-6 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
                 <div className="flex gap-1" role="tablist">
                   {([['episodes', t('detail.allEpisodes')], ['notice', '작품 공지']] as const).map(([key, label]) => {
-                    const hasNotice = key === 'notice' && (notices.some((notice) => notice.isPinned) || webtoon.status === 'HIATUS' || webtoon.status === 'SUSPENDED');
+                    const hasNotice = key === 'notice' && (notices.some((notice) => notice.isPinned || notice.isImportant) || webtoon.status === 'HIATUS' || webtoon.status === 'SUSPENDED');
                     return (
                       <button
                         key={key}
@@ -813,9 +818,10 @@ const WebtoonDetailPage = () => {
                         const meta = NOTICE_TYPE[notice.type] || NOTICE_TYPE.GENERAL;
                         const opened = openNoticeId === notice.id;
                         return (
-                          <li key={notice.id} className={notice.isPinned ? 'bg-gray-50 dark:bg-white/5' : ''}>
+                          <li key={notice.id} id={`notice-${notice.id}`} className={`scroll-mt-24 ${notice.isPinned ? 'bg-gray-50 dark:bg-white/5' : ''}`}>
                             <button type="button" onClick={() => setOpenNoticeId(opened ? null : notice.id)} aria-expanded={opened} className="flex w-full items-center gap-2 px-4 py-3 text-left">
-                              {notice.isPinned && <span className="shrink-0 rounded bg-red-600 px-1.5 py-0.5 text-[11px] font-black text-white">중요</span>}
+                              {notice.isPinned && <span className="shrink-0 text-[11px] font-black text-gray-500 dark:text-gray-400" aria-label="상단 고정">📌</span>}
+                              {notice.isImportant && <span className="shrink-0 rounded bg-red-600 px-1.5 py-0.5 text-[11px] font-black text-white">중요</span>}
                               <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-black ${meta.className}`}>{meta.label}</span>
                               <span className="min-w-0 flex-1 truncate font-bold text-gray-900 dark:text-white">{notice.title}</span>
                               <span className="shrink-0 text-xs text-gray-500 dark:text-gray-400">{formatKstDate(notice.createdAt)}</span>

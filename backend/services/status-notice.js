@@ -23,10 +23,10 @@ function autoNotice(prev, next, { resumeAt, message }) {
 async function applyStatusNotice(comicId, prev, next, { resumeAt, message } = {}) {
   if (!next || prev === next) return null;
   // 상태가 바뀌면 지난 휴재·판매중지 고정 해제
-  await prisma.comicNotice.updateMany({ where: { comicId, isPinned: true, type: { in: ['HIATUS', 'SUSPENDED'] } }, data: { isPinned: false } });
+  await prisma.comicNotice.updateMany({ where: { comicId, isPinned: true, type: { in: ['HIATUS', 'SUSPENDED'] } }, data: { isPinned: false, isImportant: false } });
   const auto = autoNotice(prev, next, { resumeAt, message });
   if (!auto) return null;
-  return prisma.comicNotice.create({ data: { comicId, ...auto, isPinned: auto.type !== 'RESUME' } });
+  return prisma.comicNotice.create({ data: { comicId, ...auto, isPinned: auto.type !== 'RESUME', isImportant: auto.type !== 'RESUME' } });
 }
 
 module.exports = { autoNotice, applyStatusNotice };
