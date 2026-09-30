@@ -145,7 +145,8 @@ router.get('/items/:id', async (req, res) => {
     item: {
       ...card(item, me), description: raw.description, status: raw.status, visibility: raw.visibility, isOwner, rejectReason: isOwner ? raw.rejectReason : undefined,
       assets: access.allowed ? assets : assets.slice(0, Math.max(0, raw.previewCount)), previewCount: raw.previewCount, access,
-      chatLink: item.work && item.character?.id && item.character.chatReady ? `/chat/webtoon/${item.work.id}/character/${encodeURIComponent(item.character.id)}` : item.work && item.character ? `/chat/webtoon/${item.work.id}` : null,
+      // 캐릭터 채팅에 실제로 있는 캐릭터일 때만 [캐릭터와 채팅하기]
+      chatLink: item.work && item.character?.id && item.character.chatReady ? `/chat/webtoon/${item.work.id}/character/${encodeURIComponent(item.character.id)}` : null,
     },
     series: seriesItems,
   });

@@ -36,7 +36,8 @@ export default function ReportsPage() {
   const [status, setStatus] = useState<'' | Status>('');
   const [type, setType] = useState('');
   // 커뮤니티 관리에서 ?type=BOARD 로 넘어오면 게시판 글·댓글 신고만
-  useEffect(() => { try { const t = new URLSearchParams(window.location.search).get('type'); if (t) setType(t); } catch {} }, []);
+  const [ready, setReady] = useState(false);
+  useEffect(() => { try { const t = new URLSearchParams(window.location.search).get('type'); if (t) setType(t); } catch {} setReady(true); }, []);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export default function ReportsPage() {
       setReports(data.reports); setCounts(data.counts);
     } catch (e: any) { alert(e.message); } finally { setLoading(false); }
   }, [status, type, q]);
-  useEffect(() => { void load(); }, [status, type]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (ready) void load(); }, [status, type, ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   return (
