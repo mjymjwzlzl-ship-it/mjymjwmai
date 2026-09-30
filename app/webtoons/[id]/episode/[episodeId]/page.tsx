@@ -885,8 +885,6 @@ export default function EpisodePage() {
               text={episode.text || ''}
               episodeId={episodeKey}
               title={`${episode.episodeNumber}화 ${episode.title && episode.title !== `${episode.episodeNumber}화` ? episode.title : ''}`.trim()}
-              onNext={isLastEpisode ? undefined : () => { void goNextEpisode(); }}
-              nextLabel="다음 화 보기"
             />
           ) : episode.canView && episode.images && episode.images.length > 0 ? (
             // 구매했거나 무료 에피소드인 경우 이미지 표시
@@ -1032,8 +1030,8 @@ export default function EpisodePage() {
                         : 'bg-purple-600 hover:bg-purple-700 text-white'
                     }`}
                   >
-                    다음화
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    {isLastEpisode ? '다음 화 없음' : '다음화'}
+                    {!isLastEpisode && <ArrowRight className="w-4 h-4 ml-2" />}
                   </button>
                 </div>
                 
@@ -1142,8 +1140,8 @@ export default function EpisodePage() {
                 : 'bg-purple-600 hover:bg-purple-700 text-white'
             }`}
           >
-            <span>다음화</span>
-            <ArrowRight className="w-4 h-4 inline ml-2" />
+            <span>{isLastEpisode ? '다음 화 없음' : '다음화'}</span>
+            {!isLastEpisode && <ArrowRight className="w-4 h-4 inline ml-2" />}
           </button>
         </div>
       </div>

@@ -56,8 +56,8 @@ function writePos(episodeId: string | undefined, pos: Omit<NovelPos, 'at'>, prog
   } catch {}
 }
 
-export default function NovelReader({ text, title, episodeId, onReachEnd, onNext, nextLabel }: {
-  text: string; title?: string; episodeId?: string; onReachEnd?: () => void; onNext?: () => void; nextLabel?: string;
+export default function NovelReader({ text, title, episodeId, onReachEnd }: {
+  text: string; title?: string; episodeId?: string; onReachEnd?: () => void;
 }) {
   const [settings, setSettings] = useState<NovelSettings>(DEFAULTS);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -174,9 +174,6 @@ export default function NovelReader({ text, title, episodeId, onReachEnd, onNext
         <article ref={articleRef} className="mx-auto max-w-2xl px-5 py-10 sm:px-8" style={bodyStyle}>
           {title && <h2 className="mb-8 text-center font-bold" style={{ fontSize: settings.fontSize * 1.15 }}>{title}</h2>}
           {paragraphs.map((line, index) => <p key={index} data-para={index} className="mb-[0.9em] break-keep">{line}</p>)}
-          {onNext && (
-            <button type="button" onClick={(event) => { event.stopPropagation(); onNext(); }} className="mt-10 w-full rounded-xl bg-[#00dc64] py-3 text-base font-black text-black">{nextLabel || '다음 화 보기'} →</button>
-          )}
         </article>
       ) : (
         <div className="mx-auto max-w-2xl px-5 py-6 sm:px-8">
@@ -204,9 +201,6 @@ export default function NovelReader({ text, title, episodeId, onReachEnd, onNext
             <button type="button" aria-label="이전 쪽" className="absolute inset-y-0 left-0 w-1/4" onClick={(event) => { event.stopPropagation(); go(-1); }} />
             <button type="button" aria-label="다음 쪽" className="absolute inset-y-0 right-0 w-1/4" onClick={(event) => { event.stopPropagation(); go(1); }} />
           </div>
-          {onNext && page >= pageCount - 1 && (
-            <button type="button" onClick={(event) => { event.stopPropagation(); onNext(); }} className="mt-3 w-full rounded-xl bg-[#00dc64] py-3 text-base font-black text-black">{nextLabel || '다음 화 보기'} →</button>
-          )}
           <div className="mt-3 flex items-center justify-center gap-4 text-sm font-bold" style={{ color: theme.soft }} onClick={(event) => event.stopPropagation()}>
             <button type="button" onClick={() => go(-1)} disabled={page === 0} className="disabled:opacity-30" aria-label="이전 쪽"><ChevronLeft className="h-5 w-5" /></button>
             <span>{page + 1} / {pageCount}</span>
