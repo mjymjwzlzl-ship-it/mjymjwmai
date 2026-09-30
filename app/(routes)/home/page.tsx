@@ -484,7 +484,7 @@ export default function HomePage() {
             </div>
 
             {recentComics.length > 0 ? (
-              <HorizontalRail label="최근에 본 웹툰" arrowTop="100px">
+              <HorizontalRail label="최근에 본 작품" arrowTop="100px">
                 {recentComics.map((comic) => (
                   <Link
                     key={comic.id}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   CalendarCheck,
@@ -112,6 +112,7 @@ export default function ChatHomePage() {
   const { locale, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
+  const heroSwipe = useRef<number | null>(null);
   // 한 화면에 카드 4~5개가 보이도록 슬라이드 폭(%)을 화면 크기에 따라 조절
   const [slidePct, setSlidePct] = useState(30);
 
@@ -362,7 +363,7 @@ export default function ChatHomePage() {
         {/* 메인 영역 */}
         <main className="min-w-0 flex-1">
           {/* 모바일: PC 왼쪽 사이드바와 같은 메뉴를 가로 칩으로 (탐색·랭킹·내 채팅·즐겨찾기·출석 체크·설정·이벤트) */}
-          <nav className="no-scrollbar -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 lg:hidden" aria-label="캐릭터 채팅 메뉴">
+          <nav className="mb-4 flex flex-wrap gap-2 lg:hidden" aria-label="캐릭터 채팅 메뉴">
             {sideMenu.map((item) => {
               const Icon = item.icon;
               return (
@@ -390,7 +391,18 @@ export default function ChatHomePage() {
           {loading && comics.length === 0 ? (
             <div className="h-[300px] animate-pulse rounded-2xl bg-gray-200 dark:bg-white/5 sm:h-[380px]" />
           ) : heroCharacter ? (
-            <section className="relative overflow-hidden">
+            <section
+              className="relative touch-pan-y overflow-hidden"
+              // 모바일: 좌우로 밀어서 다음/이전 캐릭터 (PC는 양옆 화살표·점)
+              onTouchStart={(event) => { heroSwipe.current = event.touches[0].clientX; }}
+              onTouchEnd={(event) => {
+                if (heroSwipe.current === null || heroCharacters.length === 0) return;
+                const dx = event.changedTouches[0].clientX - heroSwipe.current;
+                heroSwipe.current = null;
+                if (Math.abs(dx) < 40) return;
+                setHeroIndex((index) => (index + (dx < 0 ? 1 : -1) + heroCharacters.length) % heroCharacters.length);
+              }}
+            >
               {/* 탑툰 스타일 멀티 카드 캐러셀: 가운데 활성 카드 + 양옆 카드 4~5개 동시 노출 */}
               <div
                 className="flex transition-transform duration-500 ease-out"
