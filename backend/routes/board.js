@@ -237,7 +237,9 @@ router.post('/posts/:id/comments', authenticate, async (req, res) => {
     if (!parent || parent.postId !== post.id) return res.status(400).json({ message: '답글을 달 댓글을 찾을 수 없습니다.' });
   }
   const comment = await prisma.postComment.create({ data: { content, postId: post.id, authorId: req.user.id, parentId: parent ? parent.parentId || parent.id : null } });
-  const name = who(req.user);
+  // 로그인 미들웨어의 user 에는 닉네임이 없을 수 있어 다시 읽는다
+  const me = await prisma.user.findUnique({ where: { id: req.user.id }, select: { nickname: true, email: true } });
+  const name = who(me);
   const link = `/community/post/${post.id}#c-${comment.id}`;
   if (post.authorId !== req.user.id) await notify(post.authorId, { title: `내 글 「${post.title.slice(0, 30)}」에 댓글이 달렸어요`, body: `${name}: ${content.slice(0, 60)}`, link, dedupeKey: `pc:${comment.id}:post` });
   // 답글: 답을 단 댓글의 작성자에게 (글 작성자와 같으면 위의 댓글 알림으로 충분)
