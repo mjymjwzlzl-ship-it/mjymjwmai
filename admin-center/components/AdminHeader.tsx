@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Home, BarChart3, FileText, Users, Shield, TrendingUp, Edit, Mail, Book, AlertTriangle, CalendarDays, BadgePercent, ListChecks, Ticket, Library } from 'lucide-react';
+import { LogOut, Home, BarChart3, FileText, Users, Shield, TrendingUp, Edit, Mail, AlertTriangle, CalendarDays, BadgePercent, Ticket, Library } from 'lucide-react';
 
 export default function AdminHeader() {
   const router = useRouter();
@@ -60,10 +60,6 @@ export default function AdminHeader() {
                 <BadgePercent className="w-4 h-4" />
                 <span className="text-sm font-medium">할인·무료</span>
               </Link>
-              <Link href="/comic-status" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <ListChecks className="w-4 h-4" />
-                <span className="text-sm font-medium">연재 상태</span>
-              </Link>
               <Link href="/benefits" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
                 <Ticket className="w-4 h-4" />
                 <span className="text-sm font-medium">쿠폰·선물</span>
@@ -79,10 +75,6 @@ export default function AdminHeader() {
               <Link href="/adult-settings" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
                 <Shield className="w-4 h-4" />
                 <span className="text-sm font-medium">성인 설정</span>
-              </Link>
-              <Link href="/novels" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
-                <Book className="w-4 h-4" />
-                <span className="text-sm font-medium">소설 관리</span>
               </Link>
               <Link href="/reports" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors">
                 <AlertTriangle className="w-4 h-4" />

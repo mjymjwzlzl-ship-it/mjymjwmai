@@ -21,7 +21,6 @@ import {
 } from '@/lib/comic-localization';
 import { getImageUrl } from '@/lib/utils';
 import { useLanguage, type Locale } from '@/components/providers/LanguageProvider';
-import { localizedPromoAsset } from '@/lib/promo-assets';
 import { removeHiddenComicDuplicates } from '@/lib/comic-deduplication';
 import ComicBadges from '@/components/ui/ComicBadges';
 
@@ -114,41 +113,6 @@ const getComicImage = (comic: Comic, fallback: string, variant: 'thumbnail' | 'b
 
   const title = String(comic?.title || comic?.titleKo || comic?.name || '');
   return SPECIAL_COMIC_IMAGES_BY_TITLE[title]?.[variant] || fallback;
-};
-
-const promoCopy: Record<Locale, MainBannerItem> = {
-  ko: {
-    id: 'app-complete-download',
-    title: 'ARATA 완전판 앱 다운로드',
-    subtitle: '광고와 검열 없는 19+ 버전',
-    badge: 'APP ONLY',
-    imageUrl: localizedPromoAsset('ko', 'arata-complete-app-download-banner.png'),
-    href: '/download',
-  },
-  en: {
-    id: 'app-complete-download',
-    title: 'Download ARATA Full Edition',
-    subtitle: '19+ version with no ads or censorship',
-    badge: 'APP ONLY',
-    imageUrl: localizedPromoAsset('en', 'arata-complete-app-download-banner.png'),
-    href: '/download',
-  },
-  ja: {
-    id: 'app-complete-download',
-    title: 'ARATA完全版アプリ',
-    subtitle: '広告・検閲なしの19+版',
-    badge: 'アプリ専用',
-    imageUrl: localizedPromoAsset('ja', 'arata-complete-app-download-banner.png'),
-    href: '/download',
-  },
-  fr: {
-    id: 'app-complete-download',
-    title: 'Télécharger ARATA complète',
-    subtitle: 'Version 19+ sans pub ni censure',
-    badge: 'APP ONLY',
-    imageUrl: localizedPromoAsset('fr', 'arata-complete-app-download-banner.png'),
-    href: '/download',
-  },
 };
 
 const membershipPromoCopy = {
@@ -317,40 +281,19 @@ export default function HomePage() {
       // 웹소설은 웹툰 카드 영역(요일별·추천)에서 빼고 TOP 20 웹소설 탭·웹소설 메뉴에서 보여준다
       .filter((comic) => !isAdultComic(comic) && !isNovelComic(comic))
       .map((comic) => normalizeComic(comic, locale, t('list.defaultSynopsis')));
-    const promoBanners: MainBannerItem[] = [
-      { ...promoCopy[locale], showTitle: false },
-      {
-        id: 'membership-basic-yearly',
-        title: membershipPromoCopy[locale].title,
-        subtitle: membershipPromoCopy[locale].subtitle,
-        imageUrl: localizedPromoAsset(locale, 'arata-founder-signup-banner.png'),
-        href: '/subscribe?plan=BASIC&billing=YEARLY',
-        description: membershipPromoCopy[locale].subtitle,
-        showTitle: false,
-      },
-    ];
-
-    const comicBanners: MainBannerItem[] = latest
-      .filter((comic) => comic.id !== DICE_GAME_ID)
-      .slice(0, 7)
-      .map((comic) => ({
-      id: `comic-${comic.id}`,
-      title: comic.title,
-      subtitle: comic.author,
-      imageUrl: comic.bannerImage || comic.image,
-      href: `/webtoons/${comic.id}`,
-      badge: comic.genre,
-      description: comic.synopsis,
-      showTitle: true,
+    // 홈 대배너: 관리자 [배너 관리]에 등록·켜짐·기간 안인 배너만 (백엔드 lib/banners.js). 코드에 박아 둔 배너·작품 자동 배너는 쓰지 않는다.
+    // 번들 프로모 이미지(/images/promo/i18n/ko/…)는 화면 언어에 맞는 이미지로 바꿔 보여 준다.
+    const localizeAsset = (url: string) => url.replace(/^\/images\/promo\/i18n\/ko\//, `/images/promo/i18n/${['ko', 'en', 'ja', 'fr'].includes(locale) ? locale : 'ko'}/`);
+    const mergedBanners: MainBannerItem[] = ((data.banners || []) as { id: string; title: string; subtitle?: string; description?: string; imageUrl: string; link: string; showText?: boolean }[])
+      .map((banner) => ({
+        id: banner.id,
+        title: banner.title,
+        subtitle: banner.subtitle || undefined,
+        description: banner.description || banner.subtitle || undefined,
+        imageUrl: localizeAsset(banner.imageUrl),
+        href: banner.link,
+        showTitle: banner.showText !== false,
       }));
-
-    const seenBannerIds = new Set<string>();
-    const mergedBanners = [...promoBanners, ...comicBanners].filter((banner) => {
-      const key = `${banner.id}-${banner.imageUrl}`;
-      if (seenBannerIds.has(key)) return false;
-      seenBannerIds.add(key);
-      return true;
-    });
 
     const weekdayIds: Record<string, string[]> = {};
     for (const tab of WEEKDAY_TABS) {

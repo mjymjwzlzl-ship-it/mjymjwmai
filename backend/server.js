@@ -326,6 +326,7 @@ app.use('/api', require('./routes/promotions')); // 할인·무료 이벤트 작
 app.use('/api', require('./routes/comic-status')); // 관리자: 연재 상태·공지
 app.use('/api', require('./routes/admin-works')); // 관리자: 작품 관리(작품별 상세·회차·예약 공개)
 app.use('/api', require('./routes/admin-reports')); // 관리자: 신고 관리(상태·이력·메모·첨부)
+app.use('/api', require('./routes/admin-banners')); // 관리자: 배너 관리(홈 대배너 기준, 이벤트→대배너)
 app.use('/api/frontend', frontendRouter);
 app.use('/api/episodes', episodesRouter);
 app.use('/api/payment', paymentRouter);

@@ -419,9 +419,14 @@ model Banner {
   subtitle    String?
   description String?
   imageUrl    String
-  ctaText     String   // Call to Action 버튼 텍스트
-  ctaLink     String   // 클릭 시 이동할 링크
-  type        String   // event, best, serialized, adult 등
+  ctaText     String   @default("") // Call to Action 버튼 텍스트 (선택)
+  ctaLink     String   @default("") // 클릭 시 이동할 링크
+  type        String   @default("event") // event, best, serialized 등 (분류 표시용)
+  placement   String   @default("HOME_MAIN") // 노출 위치: HOME_MAIN = 메인 홈 > 대배너 (지금은 이것만 사용자 화면에 연결)
+  showText    Boolean  @default(true) // 배너 위에 제목·부제 글자 표시 (글자가 이미지에 들어 있으면 끔)
+  startAt     DateTime? // 노출 시작 (비우면 바로)
+  endAt       DateTime? // 노출 종료 (비우면 계속)
+  eventId     String?  // [이벤트 관리 > 대배너에 추가]로 만든 배너면 그 이벤트
   order       Int      @default(0) // 표시 순서
   isActive    Boolean  @default(true)
   rating      Float?   // 별점

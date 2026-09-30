@@ -6,6 +6,7 @@ const { isPromoFreeEpisode, activePromotions, describePromotion } = require('../
 const { optionalAuth } = require('../middleware/auth');
 const { guardComicParam, requireVerifiedAdultMode, generalComicWhere } = require('../services/adult-access');
 const { parseCredits } = require('../lib/credits');
+const { homeMainBanners } = require('../lib/banners');
 const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const { prisma } = require('../lib/prisma');
@@ -232,16 +233,8 @@ router.get('/home', async (req, res) => {
     res.json({
       success: true,
       data: {
-        banners: generalBanners.map(banner => ({
-          id: banner.id,
-          title: banner.webtoon?.title || banner.title,  // 웹툰 제목 우선 사용
-          subtitle: banner.subtitle,
-          description: banner.description,
-          imageUrl: banner.imageUrl,
-          link: banner.ctaLink,
-          webtoonId: banner.webtoon?.id,
-          webtoon: banner.webtoon
-        })),
+        // 홈 대배너: [배너 관리]에 등록된 것만 (lib/banners.js)
+        banners: await homeMainBanners(),
         categories: {
           realtime: realtimeComics,
           daily: dailyComics.length > 0 ? dailyComics : allComics.filter(c => c.status === 'ONGOING').slice(0, 10),

@@ -10,7 +10,7 @@ import ComicNoticeManager from '@/components/ComicNoticeManager';
 // 작품 상세 관리 (MIB 관리자 작품 편집 + 회차 등록·예약 공개)
 interface Work {
   id: string; title: string; authorName?: string | null; genre: string; description?: string | null; thumbnail?: string | null; rating: string;
-  status: string; resumeAt?: string | null; contentType: string; type: 'webtoon' | 'book' | 'novel'; isPublished: boolean; isOfficial: boolean;
+  status: string; resumeAt?: string | null; statusNotice?: string | null; contentType: string; type: 'webtoon' | 'book' | 'novel'; isPublished: boolean; isOfficial: boolean;
   paidStartEpisode: number; episodeCoinPrice: number; rentalCoinPrice: number | null; rentalDays: number; updateDays?: string | null;
   viewCount: number; createdAt: string; lastEpisodeAt?: string | null; newUntil?: string | null; tags?: string[]; credits?: { role: string; name: string }[];
   badges: { up: boolean; new: boolean; hiatus: boolean; suspended: boolean };
@@ -87,7 +87,7 @@ export default function WorkDetailPage() {
     setForm({
       title: data.work.title, authorName: data.work.authorName || '', genre: data.work.genre || '', description: data.work.description || '',
       contentType: data.work.contentType || 'WEBTOON', rating: ['19', 'ADULT'].includes(data.work.rating) ? '19' : 'GENERAL', status: data.work.status,
-      resumeAt: toLocal(data.work.resumeAt), isPublished: data.work.isPublished, isOfficial: data.work.isOfficial, launchedAt: toLocal(data.work.createdAt),
+      resumeAt: toLocal(data.work.resumeAt), statusNotice: data.work.statusNotice || '', isPublished: data.work.isPublished, isOfficial: data.work.isOfficial, launchedAt: toLocal(data.work.createdAt),
       paidStartEpisode: data.work.paidStartEpisode, episodeCoinPrice: data.work.episodeCoinPrice,
       rentalCoinPrice: data.work.rentalCoinPrice === null || data.work.rentalCoinPrice === undefined ? '' : String(data.work.rentalCoinPrice), rentalDays: data.work.rentalDays || 3,
       updateDays: days,
@@ -221,6 +221,11 @@ export default function WorkDetailPage() {
               <select className={input} value={form.status} onChange={(e) => set({ status: e.target.value })}>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
             </Field>
             {form.status === 'HIATUS' && <Field label="연재 재개 예정일"><input type="datetime-local" className={input} value={form.resumeAt} onChange={(e) => set({ resumeAt: e.target.value })} /></Field>}
+            {['HIATUS', 'SUSPENDED'].includes(form.status) && (
+              <div className="md:col-span-2">
+                <Field label="상태 안내 문구" hint="휴재·판매중지 사유 등. 상태를 바꿔 저장할 때 자동 [중요] 공지에 덧붙습니다"><textarea rows={2} className={input} value={form.statusNotice} onChange={(e) => set({ statusNotice: e.target.value })} /></Field>
+              </div>
+            )}
             <Field label="런칭일" hint="NEW = 런칭일 포함 7일 (예: 9/25 → 10/1까지)"><input type="datetime-local" className={input} value={form.launchedAt} onChange={(e) => set({ launchedAt: e.target.value })} /></Field>
             <div className="md:col-span-2">
               <Field label="소개"><textarea rows={3} className={input} value={form.description} onChange={(e) => set({ description: e.target.value })} /></Field>

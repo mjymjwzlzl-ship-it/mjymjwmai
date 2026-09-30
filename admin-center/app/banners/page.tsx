@@ -1,725 +1,180 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Plus, Edit, Trash2, Eye, EyeOff, ArrowUp, ArrowDown, Upload, Search, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { adminApi, apiBase, authHeaders, img, siteBase } from '@/lib/works';
 
+// 배너 관리 = 홈 대배너의 유일한 기준 (/api/admin/banner-center)
+// 등록·켜짐·노출 기간 안 → 사용자 화면 [메인 홈 > 대배너] 노출 / 삭제·끄기·기간 끝 → 대배너에서 빠짐.
+// 목록 순서(위→아래) = 대배너 왼쪽→오른쪽. [이벤트 관리 > 대배너에 추가]로 만든 배너도 여기서 관리한다.
 interface Banner {
-  id: number;
-  title: string;
-  subtitle: string;
-  description: string;
-  imageUrl: string;
-  ctaText: string;
-  ctaLink: string;
-  webtoonId?: string;
-  webtoonTitle?: string;
-  type: string;
-  rating: number;
-  isActive: boolean;
-  order: number;
+  id: string; title: string; subtitle?: string | null; description?: string | null; imageUrl: string; ctaText: string; ctaLink: string;
+  placement: string; placementLabel: string; showText: boolean; isActive: boolean; startAt?: string | null; endAt?: string | null; order: number;
+  webtoonId?: string | null; webtoonTitle?: string | null; state: 'LIVE' | 'SCHEDULED' | 'ENDED' | 'OFF';
+  event?: { id: string; title: string; endAt?: string | null; ended: boolean } | null;
 }
+const STATE: Record<Banner['state'], { label: string; className: string }> = {
+  LIVE: { label: '노출 중', className: 'bg-green-500/20 text-green-300' },
+  SCHEDULED: { label: '노출 예정', className: 'bg-sky-500/20 text-sky-300' },
+  ENDED: { label: '기간 종료', className: 'bg-gray-500/30 text-gray-300' },
+  OFF: { label: '꺼짐', className: 'bg-gray-700 text-gray-400' },
+};
+const toLocal = (v?: string | null) => { if (!v) return ''; const d = new Date(v); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
+const input = 'w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none';
 
-interface Webtoon {
-  id: string;
-  title: string;
-  authorName: string;
-  genre: string;
-  thumbnail: string;
-  viewCount: number;
-  likeCount: number;
-  status: string;
-}
-
-function BannerManagePageContent() {
-  const searchParams = useSearchParams();
-  const type = searchParams.get('type');
-  const isAdultMode = type === 'adult';
+export default function BannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    subtitle: '',
-    description: '',
-    imageUrl: '',
-    ctaText: '',
-    ctaLink: '',
-    webtoonId: '',
-    webtoonTitle: '',
-    type: 'event',
-    rating: 4.5
-  });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Webtoon[]>([]);
-  const [showWebtoonSearch, setShowWebtoonSearch] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [editing, setEditing] = useState<Banner | 'new' | null>(null);
 
-  useEffect(() => {
-    fetchBanners();
-  }, [isAdultMode]);
+  const load = useCallback(async () => {
+    try { setBanners((await adminApi<{ banners: Banner[] }>('/admin/banner-center')).banners); } catch (e: any) { alert(e.message); } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
 
-  const fetchBanners = async () => {
-    try {
-      const response = await fetch('/api/proxy/banners?admin=true', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        // 타입에 따라 필터링
-        const filteredBanners = isAdultMode 
-          ? (data.banners || []).filter((b: Banner) => b.type === 'adult')
-          : (data.banners || []).filter((b: Banner) => b.type !== 'adult');
-        setBanners(filteredBanners);
-      }
-    } catch (error) {
-      console.error('배너 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
+  const move = async (index: number, dir: -1 | 1) => {
+    const next = [...banners];
+    const j = index + dir;
+    if (j < 0 || j >= next.length) return;
+    [next[index], next[j]] = [next[j], next[index]];
+    setBanners(next);
+    try { await adminApi('/admin/banner-center/reorder', { method: 'POST', json: { ids: next.map((b) => b.id) } }); } catch (e: any) { alert(e.message); await load(); }
   };
-
-  const handleImageUpload = async (file: File) => {
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      // 이미지 파일을 저장하여 나중에 폼 제출 시 함께 전송
-      setImageFile(file);
-      
-      // 미리보기를 위해 Data URL로 변환
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      alert('이미지 처리에 실패했습니다.');
-      setUploading(false);
-    }
+  const toggle = async (b: Banner) => {
+    try { await adminApi(`/admin/banner-center/${b.id}`, { method: 'PUT', json: { isActive: !b.isActive } }); await load(); } catch (e: any) { alert(e.message); }
   };
-
-  const searchWebtoons = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    setSearchLoading(true);
-    try {
-      // 성인/일반 모드에 따라 다른 API 호출
-      const apiUrl = `/api/proxy/comics?adult=${isAdultMode}`;
-      
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const comics = data.comics || [];
-        // 검색어로 필터링
-        const filtered = comics.filter((comic: any) => 
-          comic.title.toLowerCase().includes(query.toLowerCase()) ||
-          comic.authorName.toLowerCase().includes(query.toLowerCase())
-        ).slice(0, 10);
-        setSearchResults(filtered);
-      }
-    } catch (error) {
-      console.error('웹툰 검색 실패:', error);
-    } finally {
-      setSearchLoading(false);
-    }
+  const remove = async (b: Banner) => {
+    if (!confirm(`'${b.title}' 배너를 삭제할까요?\n홈 대배너에서도 바로 빠집니다.`)) return;
+    try { await adminApi(`/admin/banner-center/${b.id}`, { method: 'DELETE' }); await load(); } catch (e: any) { alert(e.message); }
   };
-
-  const selectWebtoon = (webtoon: Webtoon) => {
-    setFormData(prev => ({
-      ...prev,
-      webtoonId: webtoon.id,
-      webtoonTitle: webtoon.title,
-      ctaLink: `/webtoons/${webtoon.id}`
-    }));
-    setShowWebtoonSearch(false);
-    setSearchQuery('');
-    setSearchResults([]);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      // 이미지 파일인지 확인
-      if (file.type.startsWith('image/')) {
-        handleImageUpload(file);
-      } else {
-        alert('이미지 파일만 업로드 가능합니다.');
-      }
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const formDataToSend = new FormData();
-      
-      // 기본 데이터 추가 (imageUrl 제외)
-      Object.keys(formData).forEach(key => {
-        if (key !== 'imageUrl' && key !== 'webtoonTitle' && formData[key as keyof typeof formData] !== '') {
-          formDataToSend.append(key, String(formData[key as keyof typeof formData]));
-        }
-      });
-      
-      // 이미지 파일 추가
-      if (imageFile) {
-        formDataToSend.append('image', imageFile);
-      } else if (formData.imageUrl && !formData.imageUrl.startsWith('data:')) {
-        // 기존 이미지 URL이 있고 Data URL이 아닌 경우
-        formDataToSend.append('imageUrl', formData.imageUrl);
-      }
-      
-      // 성인 모드인 경우 type을 adult로 강제 설정
-      if (isAdultMode) {
-        formDataToSend.set('type', 'adult');
-      }
-      
-      const url = editingBanner
-        ? `/api/proxy/banners?id=${editingBanner.id}`
-        : '/api/proxy/banners';
-      
-      const method = editingBanner ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        body: formDataToSend
-      });
-      
-      if (response.ok) {
-        await fetchBanners();
-        setShowModal(false);
-        setEditingBanner(null);
-        setFormData({
-          title: '',
-          subtitle: '',
-          description: '',
-          imageUrl: '',
-          ctaText: '',
-          ctaLink: '',
-          webtoonId: '',
-          webtoonTitle: '',
-          type: isAdultMode ? 'adult' : 'event',
-          rating: 4.5
-        });
-        setImageFile(null);
-        alert(editingBanner ? '배너가 수정되었습니다.' : '배너가 추가되었습니다.');
-      }
-    } catch (error) {
-      alert('배너 저장에 실패했습니다.');
-    }
-  };
-
-  const handleEdit = (banner: Banner) => {
-    setEditingBanner(banner);
-    setFormData({
-      title: banner.title,
-      subtitle: banner.subtitle,
-      description: banner.description,
-      imageUrl: banner.imageUrl,
-      ctaText: banner.ctaText,
-      ctaLink: banner.ctaLink,
-      webtoonId: banner.webtoonId || '',
-      webtoonTitle: banner.webtoonTitle || '',
-      type: banner.type,
-      rating: banner.rating
-    });
-    setShowModal(true);
-  };
-
-  const handleDelete = async (bannerId: number) => {
-    if (!confirm('정말 이 배너를 삭제하시겠습니까?')) return;
-    
-    try {
-      const response = await fetch(`/api/proxy/banners?id=${bannerId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      });
-      
-      if (response.ok) {
-        await fetchBanners();
-        alert('배너가 삭제되었습니다.');
-      }
-    } catch (error) {
-      alert('배너 삭제에 실패했습니다.');
-    }
-  };
-
-  const toggleActive = async (banner: Banner) => {
-    try {
-      const response = await fetch(`/api/proxy/banners?id=${banner.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ isActive: !banner.isActive })
-      });
-      
-      if (response.ok) {
-        await fetchBanners();
-      }
-    } catch (error) {
-    }
-  };
+  const live = banners.filter((b) => b.state === 'LIVE');
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-2">{isAdultMode ? '성인 배너 관리' : '메인 배너 관리'}</h1>
-          <p className="text-gray-400">{isAdultMode ? '성인 사용자에게 표시될 배너를 관리합니다' : '메인 페이지 상단 슬라이드 배너를 관리합니다'}</p>
-          <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-            <p className="text-sm text-blue-400">
-              📏 <strong>썸네일 권장 크기:</strong> 1200x600px (2:1 비율) - 현재 800x400px에서 더 큰 크기로 변경을 권장합니다
+    <div className="min-h-screen bg-gray-900 p-6 text-white">
+      <div className="mx-auto max-w-6xl">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">배너 관리</h1>
+            <p className="mt-1 text-sm text-gray-400">
+              여기 등록된 배너만 <b className="text-white">사용자 화면 · 메인 홈 &gt; 대배너</b>에 나옵니다. 켜져 있고 노출 기간 안이면 노출, 삭제·끄기·기간 종료면 대배너에서 빠집니다.
+              목록 순서(위→아래)가 대배너 왼쪽→오른쪽 순서입니다. 이벤트는 [이벤트 관리 &gt; 대배너에 추가]로도 올릴 수 있습니다.
             </p>
           </div>
+          <div className="flex gap-2">
+            <a href={`${siteBase()}/home`} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded bg-gray-700 px-3 py-2 text-sm hover:bg-gray-600"><ExternalLink className="h-4 w-4" />홈에서 보기</a>
+            <button type="button" onClick={() => setEditing('new')} className="flex items-center gap-1 rounded bg-purple-600 px-4 py-2 text-sm font-bold hover:bg-purple-700"><Plus className="h-4 w-4" />배너 추가</button>
+          </div>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-        >
-          <Plus className="w-4 h-4" />
-          <span>배너 추가</span>
-        </button>
-      </div>
+        <p className="mt-3 rounded bg-gray-800 px-3 py-2 text-sm">지금 홈 대배너에 <b className="text-green-300">{live.length}개</b> 노출 중{live.length === 0 && ' — 노출할 배너가 없으면 대배너 영역이 숨겨집니다.'}</p>
 
-      {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-          <span className="ml-3 text-gray-400">배너를 불러오는 중...</span>
-        </div>
-      ) : (
-        <div className="grid gap-6">
-          {banners.map((banner) => (
-            <div key={banner.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <div className="flex items-start space-x-4">
-                <img
-                  src={banner.imageUrl}
-                  alt={banner.title}
-                  className="w-32 h-16 object-cover rounded-lg"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="text-lg font-semibold text-white">{banner.title}</h3>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      banner.type === 'event' ? 'bg-red-500 text-white' :
-                      banner.type === 'best' ? 'bg-yellow-500 text-black' :
-                      'bg-purple-500 text-white'
-                    }`}>
-                      {banner.type === 'event' ? 'EVENT' : 
-                       banner.type === 'best' ? 'BEST' : 'OFFICIAL'}
-                    </span>
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      banner.isActive ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'
-                    }`}>
-                      {banner.isActive ? '활성' : '비활성'}
-                    </span>
-                  </div>
-                  <p className="text-purple-400 text-sm mb-1">{banner.subtitle}</p>
-                  <p className="text-gray-300 text-sm mb-2">{banner.description}</p>
-                  <div className="flex items-center space-x-4 text-sm text-gray-400">
-                    <span>⭐ {banner.rating}</span>
-                    {banner.webtoonTitle ? (
-                      <span>📖 {banner.webtoonTitle}</span>
-                    ) : (
-                      <span>→ {banner.ctaLink}</span>
-                    )}
-                    <span>순서: {banner.order}</span>
-                  </div>
+        {loading ? <p className="py-20 text-center text-gray-400">불러오는 중...</p> : banners.length === 0 ? (
+          <p className="mt-4 rounded-lg border border-dashed border-gray-700 py-16 text-center text-gray-400">등록된 배너가 없습니다. [배너 추가]로 올리세요.</p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {banners.map((b, index) => (
+              <li key={b.id} className={`flex flex-wrap items-center gap-4 rounded-lg border p-3 ${b.state === 'LIVE' ? 'border-green-500/30 bg-gray-800' : 'border-gray-700 bg-gray-800/60'}`}>
+                <div className="flex flex-col gap-1">
+                  <button type="button" aria-label="위로" disabled={index === 0} onClick={() => void move(index, -1)} className="rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                  <button type="button" aria-label="아래로" disabled={index === banners.length - 1} onClick={() => void move(index, 1)} className="rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
                 </div>
-                <div className="flex flex-col space-y-2">
-                  <button
-                    onClick={() => toggleActive(banner)}
-                    className={`p-2 rounded ${
-                      banner.isActive ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'
-                    } text-white`}
-                    title={banner.isActive ? '비활성화' : '활성화'}
-                  >
-                    {banner.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => handleEdit(banner)}
-                    className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
-                    title="수정"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(banner.id)}
-                    className="p-2 bg-red-600 hover:bg-red-700 text-white rounded"
-                    title="삭제"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <img src={img(b.imageUrl)} alt="" className="h-20 w-40 shrink-0 rounded bg-gray-700 object-cover" />
+                <div className="min-w-0 flex-1 text-sm">
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded px-2 py-0.5 text-xs font-bold ${STATE[b.state].className}`}>{STATE[b.state].label}</span>
+                    <span className="rounded bg-purple-500/20 px-2 py-0.5 text-xs text-purple-200">노출 위치: {b.placementLabel}</span>
+                    <b className="truncate">{b.title}</b>
+                  </p>
+                  {b.subtitle && <p className="mt-0.5 truncate text-gray-400">{b.subtitle}</p>}
+                  <p className="mt-1 text-xs text-gray-400">
+                    이동: {b.ctaLink || (b.webtoonId ? `/webtoons/${b.webtoonId}` : '-')}{b.webtoonTitle && ` (작품: ${b.webtoonTitle})`}
+                    {' · '}기간: {b.startAt || b.endAt ? `${fmt(b.startAt) || '바로'} ~ ${fmt(b.endAt) || '계속'}` : '제한 없음'}
+                    {!b.showText && ' · 글자 없이 이미지만'}
+                  </p>
+                  {b.event && (
+                    <p className={`mt-1 text-xs ${b.event.ended ? 'text-amber-300' : 'text-sky-300'}`}>
+                      이벤트로 만든 배너: {b.event.title}{b.event.ended ? ' — 이벤트가 끝났습니다. 대배너에 계속 둘지 확인하세요.' : b.event.endAt ? ` (이벤트 종료 ${fmt(b.event.endAt)})` : ''}
+                    </p>
+                  )}
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 배너 추가/편집 모달 */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">
-                {editingBanner ? '배너 편집' : '새 배너 추가'}
-              </h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">제목</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">부제목</label>
-                  <input
-                    type="text"
-                    value={formData.subtitle}
-                    onChange={(e) => setFormData({...formData, subtitle: e.target.value})}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">설명</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white h-20 resize-none"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    배너 이미지 (권장: 1200x600px)
+                <div className="flex items-center gap-2">
+                  <label className="flex cursor-pointer items-center gap-1 text-xs">
+                    <input type="checkbox" checked={b.isActive} onChange={() => void toggle(b)} />노출
                   </label>
-                  <div className="space-y-3">
-                    {/* 이미지 업로드 */}
-                    <div 
-                      className={`border-2 border-dashed rounded-lg p-4 transition-all duration-200 ${
-                        isDragOver 
-                          ? 'border-purple-500 bg-purple-500/10' 
-                          : 'border-gray-600 hover:border-gray-500'
-                      } ${uploading ? 'opacity-50' : ''}`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleImageUpload(file);
-                        }}
-                        className="hidden"
-                        id="image-upload"
-                        disabled={uploading}
-                      />
-                      <label
-                        htmlFor="image-upload"
-                        className={`cursor-pointer flex flex-col items-center justify-center py-6 ${
-                          uploading ? 'cursor-not-allowed' : ''
-                        }`}
-                      >
-                        <Upload className={`w-8 h-8 mb-2 transition-colors ${
-                          isDragOver ? 'text-purple-400' : 'text-gray-400'
-                        } ${uploading ? 'animate-spin' : ''}`} />
-                        <span className={`text-sm mb-1 transition-colors ${
-                          isDragOver ? 'text-purple-300' : 'text-gray-400'
-                        }`}>
-                          {uploading ? '업로드 중...' : 
-                           isDragOver ? '이미지를 여기에 놓으세요' : 
-                           '클릭하거나 이미지를 드래그하여 업로드'}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          JPG, PNG, WebP (최대 5MB)
-                        </span>
-                      </label>
-                    </div>
-                    
-                    {/* 이미지 미리보기 */}
-                    {formData.imageUrl && (
-                      <div className="relative">
-                        <img
-                          src={formData.imageUrl.startsWith('/') ? `/uploads${formData.imageUrl}` : formData.imageUrl}
-                          alt="배너 미리보기"
-                          className="w-full h-32 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
-                          className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <button type="button" onClick={() => setEditing(b)} className="flex items-center gap-1 rounded bg-gray-700 px-2 py-1 text-xs"><Pencil className="h-3 w-3" />수정</button>
+                  <button type="button" onClick={() => void remove(b)} className="flex items-center gap-1 rounded bg-red-600/80 px-2 py-1 text-xs"><Trash2 className="h-3 w-3" />삭제</button>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">버튼 텍스트</label>
-                    <input
-                      type="text"
-                      value={formData.ctaText}
-                      onChange={(e) => setFormData({...formData, ctaText: e.target.value})}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">연결할 웹툰</label>
-                    <div className="space-y-2">
-                      {/* 선택된 웹툰 표시 */}
-                      {formData.webtoonTitle ? (
-                        <div className="flex items-center justify-between bg-gray-600 rounded px-3 py-2">
-                          <span className="text-white text-sm">{formData.webtoonTitle}</span>
-                          <button
-                            type="button"
-                            onClick={() => setFormData(prev => ({ 
-                              ...prev, 
-                              webtoonId: '', 
-                              webtoonTitle: '', 
-                              ctaLink: '' 
-                            }))}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setShowWebtoonSearch(true)}
-                          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-left text-gray-400 hover:bg-gray-600 transition-colors"
-                        >
-                          웹툰 검색 및 선택...
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">타입</label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) => setFormData({...formData, type: e.target.value})}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                    >
-                      {isAdultMode ? (
-                        <option value="adult">성인</option>
-                      ) : (
-                        <>
-                          <option value="event">이벤트</option>
-                          <option value="best">베스트</option>
-                          <option value="serialized">정식연재</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">평점</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="5"
-                      value={formData.rating}
-                      onChange={(e) => setFormData({...formData, rating: parseFloat(e.target.value)})}
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowModal(false);
-                      setEditingBanner(null);
-                      setFormData({
-                        title: '',
-                        subtitle: '',
-                        description: '',
-                        imageUrl: '',
-                        ctaText: '',
-                        ctaLink: '',
-                        webtoonId: '',
-                        webtoonTitle: '',
-                        type: 'event',
-                        rating: 4.5
-                      });
-                    }}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded"
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded"
-                  >
-                    {editingBanner ? '수정' : '추가'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 웹툰 검색 모달 */}
-      {showWebtoonSearch && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-white">웹툰 검색</h3>
-                <button
-                  onClick={() => {
-                    setShowWebtoonSearch(false);
-                    setSearchQuery('');
-                    setSearchResults([]);
-                  }}
-                  className="text-gray-400 hover:text-white"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* 검색 입력 */}
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      searchWebtoons(e.target.value);
-                    }}
-                    placeholder="웹툰 제목 또는 작가명으로 검색..."
-                    className="w-full bg-gray-700 border border-gray-600 rounded pl-10 pr-3 py-2 text-white"
-                  />
-                </div>
-              </div>
-
-              {/* 검색 결과 */}
-              <div className="max-h-96 overflow-y-auto">
-                {searchLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400"></div>
-                    <span className="ml-2 text-gray-400">검색 중...</span>
-                  </div>
-                ) : searchResults.length > 0 ? (
-                  <div className="space-y-2">
-                    {searchResults.map((webtoon) => (
-                      <div
-                        key={webtoon.id}
-                        onClick={() => selectWebtoon(webtoon)}
-                        className="flex items-center space-x-3 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg cursor-pointer transition-colors"
-                      >
-                        <img
-                          src={webtoon.thumbnail.startsWith('/') ? webtoon.thumbnail : `/uploads/${webtoon.thumbnail}`}
-                          alt={webtoon.title}
-                          className="w-12 h-16 object-cover rounded"
-                        />
-                        <div className="flex-1">
-                          <h4 className="text-white font-medium">{webtoon.title}</h4>
-                          <p className="text-sm text-gray-400">{webtoon.authorName}</p>
-                          <div className="flex items-center space-x-2 text-xs text-gray-500">
-                            <span>{webtoon.genre}</span>
-                            <span>•</span>
-                            <span>조회 {webtoon.viewCount?.toLocaleString()}</span>
-                            <span>•</span>
-                            <span>좋아요 {webtoon.likeCount?.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : searchQuery.trim() ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">검색 결과가 없습니다.</p>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400">웹툰을 검색해보세요.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {editing && <BannerForm banner={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />}
     </div>
   );
 }
 
-export default function BannerManagePage() {
+function BannerForm({ banner, onClose, onSaved }: { banner: Banner | null; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [form, setForm] = useState({
+    title: banner?.title || '', subtitle: banner?.subtitle || '', ctaLink: banner?.ctaLink || '', ctaText: banner?.ctaText || '',
+    webtoonId: banner?.webtoonId || '', showText: banner?.showText ?? true, isActive: banner?.isActive ?? true,
+    startAt: toLocal(banner?.startAt), endAt: toLocal(banner?.endAt),
+  });
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState(banner ? img(banner.imageUrl) : '');
+  const [busy, setBusy] = useState(false);
+  const set = (patch: Partial<typeof form>) => setForm({ ...form, ...patch });
+  useEffect(() => { if (!file) return; const url = URL.createObjectURL(file); setPreview(url); return () => URL.revokeObjectURL(url); }, [file]);
+
+  const save = async () => {
+    if (!form.title.trim()) { alert('배너 제목을 입력하세요.'); return; }
+    if (!banner && !file) { alert('배너 이미지를 올리세요.'); return; }
+    if (!form.ctaLink.trim() && !form.webtoonId.trim()) { alert('누르면 이동할 링크를 넣거나 작품 ID를 연결하세요.'); return; }
+    setBusy(true);
+    try {
+      const body = new FormData();
+      body.append('title', form.title); body.append('subtitle', form.subtitle); body.append('ctaLink', form.ctaLink); body.append('ctaText', form.ctaText);
+      body.append('webtoonId', form.webtoonId); body.append('showText', String(form.showText)); body.append('isActive', String(form.isActive)); body.append('placement', 'HOME_MAIN');
+      body.append('startAt', form.startAt ? new Date(form.startAt).toISOString() : ''); body.append('endAt', form.endAt ? new Date(form.endAt).toISOString() : '');
+      if (file) body.append('image', file);
+      const r = await fetch(`${apiBase()}/admin/banner-center${banner ? `/${banner.id}` : ''}`, { method: banner ? 'PUT' : 'POST', headers: authHeaders(), body });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.message || '저장하지 못했습니다.');
+      await onSaved();
+    } catch (e: any) { alert(e.message); } finally { setBusy(false); }
+  };
+
   return (
-    <Suspense fallback={
-      <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-        <span className="ml-3 text-gray-400">로딩 중...</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label="배너 편집">
+      <div className="max-h-[92vh] w-full max-w-2xl space-y-3 overflow-y-auto rounded-xl bg-gray-800 p-6 text-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">{banner ? '배너 수정' : '배너 추가'}</h2>
+          <button type="button" onClick={onClose} aria-label="닫기" className="rounded p-1 text-gray-400 hover:bg-gray-700"><X className="h-5 w-5" /></button>
+        </div>
+        <p className="rounded bg-purple-500/10 px-3 py-2 text-purple-200">노출 위치: <b>메인 홈 &gt; 대배너</b></p>
+        <label className="block"><span className="mb-1 block text-gray-300">배너 이미지 {banner ? '(바꿀 때만)' : '*'} <span className="text-xs text-gray-500">가로형 권장(약 2:1), 10MB 이하 · 자르지 않고 폭 1600px로 줄여 저장</span></span>
+          {preview && <img src={preview} alt="배너 미리보기" className="mb-2 max-h-48 rounded border border-gray-600" />}
+          <span className="flex cursor-pointer items-center gap-2 rounded border border-dashed border-gray-600 px-3 py-3 text-gray-300 hover:bg-gray-700"><ImagePlus className="h-4 w-4" />{file ? file.name : '이미지 선택'}
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          </span>
+        </label>
+        <label className="block"><span className="mb-1 block text-gray-300">제목 *</span><input className={input} value={form.title} maxLength={60} onChange={(e) => set({ title: e.target.value })} /></label>
+        <label className="block"><span className="mb-1 block text-gray-300">부제</span><input className={input} value={form.subtitle} maxLength={80} onChange={(e) => set({ subtitle: e.target.value })} /></label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="block"><span className="mb-1 block text-gray-300">누르면 이동할 링크 <span className="text-xs text-gray-500">예) /events, /webtoons/작품ID</span></span><input className={input} value={form.ctaLink} onChange={(e) => set({ ctaLink: e.target.value })} /></label>
+          <label className="block"><span className="mb-1 block text-gray-300">작품 연결(작품 ID) <span className="text-xs text-gray-500">링크가 비면 이 작품으로</span></span><input className={input} value={form.webtoonId} onChange={(e) => set({ webtoonId: e.target.value })} /></label>
+          <label className="block"><span className="mb-1 block text-gray-300">노출 시작 <span className="text-xs text-gray-500">비우면 바로</span></span><input type="datetime-local" className={input} value={form.startAt} onChange={(e) => set({ startAt: e.target.value })} /></label>
+          <label className="block"><span className="mb-1 block text-gray-300">노출 종료 <span className="text-xs text-gray-500">비우면 계속</span></span><input type="datetime-local" className={input} value={form.endAt} onChange={(e) => set({ endAt: e.target.value })} /></label>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={form.showText} onChange={(e) => set({ showText: e.target.checked })} />배너 위에 제목·부제 글자 표시 <span className="text-xs text-gray-500">(이미지에 글자가 있으면 끄기)</span></label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={form.isActive} onChange={(e) => set({ isActive: e.target.checked })} />노출 켜기</label>
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="rounded bg-gray-700 px-4 py-2">취소</button>
+          <button type="button" disabled={busy} onClick={() => void save()} className="rounded bg-purple-600 px-4 py-2 font-bold disabled:opacity-50">{busy ? '저장 중...' : '저장'}</button>
+        </div>
       </div>
-    }>
-      <BannerManagePageContent />
-    </Suspense>
+    </div>
   );
 }

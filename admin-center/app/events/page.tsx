@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
+import { CalendarDays, GalleryHorizontal, Pencil, Plus, Trash2, Upload, X } from 'lucide-react';
 
 // 이벤트 관리: 사이트 /events 페이지와 홈 이벤트 코너에 나가는 이벤트를 등록·수정한다.
 // 상태(진행 중·예정·종료)는 기간으로 자동 계산된다.
+// [대배너에 추가]: 이벤트로 배너를 만들어 [배너 관리]에 등록 → 홈 대배너 노출 (노출 종료 기본값 = 이벤트 종료일, 배너 관리에서 조정).
 
 type EventStatus = 'ONGOING' | 'UPCOMING' | 'ENDED';
 interface EventItem {
@@ -55,6 +56,24 @@ export default function EventsAdminPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState('');
   const [saving, setSaving] = useState(false);
+  // 대배너에 이미 올린 이벤트 (배너 관리 기준)
+  const [bannerEventIds, setBannerEventIds] = useState<Set<string>>(new Set());
+  const [addBannerOnSave, setAddBannerOnSave] = useState(false);
+  const loadBanners = async () => {
+    try {
+      const response = await fetch(`${apiBase()}/admin/banner-center`, { headers: authHeader() });
+      const data = await response.json();
+      if (response.ok) setBannerEventIds(new Set((data.banners || []).map((b: { eventId?: string | null }) => b.eventId).filter(Boolean)));
+    } catch { /* 목록 표시만 못 할 뿐 */ }
+  };
+  const addToMainBanner = async (eventId: string, title: string) => {
+    const response = await fetch(`${apiBase()}/admin/banner-center/from-event/${eventId}`, { method: 'POST', headers: authHeader() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) { alert(data.message || '대배너에 추가하지 못했습니다.'); return false; }
+    alert(`'${title}'을(를) 홈 대배너에 추가했습니다.\n[배너 관리]에서 순서·노출 기간(기본: 이벤트 종료일까지)을 조정할 수 있어요.`);
+    await loadBanners();
+    return true;
+  };
 
   const load = async () => {
     setLoading(true);
@@ -63,6 +82,7 @@ export default function EventsAdminPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || '불러오기 실패');
       setEvents(data.events || []);
+      void loadBanners();
     } catch (error: any) {
       alert(error.message || '이벤트를 불러오지 못했습니다.');
     } finally {
@@ -113,6 +133,8 @@ export default function EventsAdminPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || '저장 실패');
+      if (addBannerOnSave && data.event?.id && !bannerEventIds.has(data.event.id)) await addToMainBanner(data.event.id, data.event.title);
+      setAddBannerOnSave(false);
       setOpen(false);
       await load();
     } catch (error: any) {
@@ -179,6 +201,11 @@ export default function EventsAdminPage() {
                     <td className="p-3 text-gray-300">{event.order}</td>
                     <td className="p-3">
                       <div className="flex justify-end gap-2">
+                        {bannerEventIds.has(event.id) ? (
+                          <a href="/banners" className="flex items-center gap-1 rounded bg-green-600/20 px-2 py-1 text-xs text-green-300" title="배너 관리에서 보기"><GalleryHorizontal className="h-3.5 w-3.5" />대배너 등록됨</a>
+                        ) : (
+                          <button type="button" onClick={() => void addToMainBanner(event.id, event.title)} className="flex items-center gap-1 rounded bg-purple-600/80 px-2 py-1 text-xs font-bold hover:bg-purple-600"><GalleryHorizontal className="h-3.5 w-3.5" />대배너에 추가</button>
+                        )}
                         <button type="button" onClick={() => openForm(event)} className="rounded p-1.5 text-gray-300 hover:bg-gray-700" aria-label="수정"><Pencil className="h-4 w-4" /></button>
                         <button type="button" onClick={() => void remove(event)} className="rounded p-1.5 text-red-400 hover:bg-gray-700" aria-label="삭제"><Trash2 className="h-4 w-4" /></button>
                       </div>
@@ -237,6 +264,11 @@ export default function EventsAdminPage() {
               <div className="flex flex-wrap gap-4 text-sm">
                 <label className="flex items-center gap-2"><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />사이트에 노출</label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} />홈 우선 노출</label>
+                {editing && bannerEventIds.has(editing.id) ? (
+                  <a href="/banners" className="flex items-center gap-1 text-green-300"><GalleryHorizontal className="h-4 w-4" />홈 대배너에 등록됨 (배너 관리)</a>
+                ) : (
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={addBannerOnSave} onChange={(e) => setAddBannerOnSave(e.target.checked)} />저장하면 홈 대배너에도 추가</label>
+                )}
                 <label className="flex items-center gap-2">순서 <input type="number" className="w-20 rounded border border-gray-600 bg-gray-700 px-2 py-1" value={form.order} onChange={(e) => setForm({ ...form, order: Number(e.target.value) })} /></label>
               </div>
             </div>

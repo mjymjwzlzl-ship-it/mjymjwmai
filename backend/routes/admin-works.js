@@ -141,6 +141,8 @@ router.patch('/admin/works/:id', async (req, res) => {
     data.status = b.status;
   }
   if (b.resumeAt !== undefined) data.resumeAt = b.resumeAt ? new Date(b.resumeAt) : null;
+  // 상태 안내 문구: 작품 상세 [작품 공지] 탭 상단 안내·자동 공지에 덧붙는다 (예전 [연재 상태] 화면 기능)
+  if (b.statusNotice !== undefined) data.statusNotice = String(b.statusNotice || '').trim() || null;
   if (b.isPublished !== undefined) data.isPublished = Boolean(b.isPublished);
   if (b.isOfficial !== undefined) data.isOfficial = Boolean(b.isOfficial);
   // 런칭일 = 작품 등록일(createdAt). NEW 배지는 이 날부터 7일

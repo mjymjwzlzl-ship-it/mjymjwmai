@@ -33,7 +33,7 @@ export default function AdminDashboard() {
   const [englishAdultWebtoons, setEnglishAdultWebtoons] = useState<Webtoon[]>([]);
   const [loading, setLoading] = useState(true);
   const [mainTab, setMainTab] = useState<'general' | 'adult' | 'english' | 'englishAdult' | 'statistics' | 'users'>('general');
-  const [selectedCategory, setSelectedCategory] = useState<'banner' | 'realtime' | 'daily' | 'week' | 'complete' | 'latest' | 'new' | 'finished'>('banner');
+  const [selectedCategory, setSelectedCategory] = useState<'banner' | 'realtime' | 'daily' | 'week' | 'complete' | 'latest' | 'new' | 'finished'>('realtime'); // [배너] 탭은 없앰: 홈 대배너는 [배너 관리]가 기준
   const [selectedDay, setSelectedDay] = useState<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'>('monday');
   const [refreshKey, setRefreshKey] = useState(0);
   
@@ -1159,13 +1159,13 @@ export default function AdminDashboard() {
                   </h3>
                 </div>
                 <p className="text-gray-600 text-sm mb-4">
-                  {mainTab === 'adult' 
-                    ? '성인 사용자에게 표시될 메인 페이지 슬라이드 배너를 관리합니다.'
-                    : '메인 페이지의 슬라이드 배너를 관리합니다.'
+                  {mainTab === 'adult'
+                    ? '성인 홈 상단 배너는 성인 실시간 인기작으로 자동 구성됩니다. 홈 대배너는 [배너 관리]에서 관리합니다.'
+                    : '사용자 화면 메인 홈 > 대배너를 관리합니다. [배너 관리]에 등록된 배너만 대배너에 노출됩니다.'
                   }
                 </p>
                 <button
-                  onClick={() => router.push(mainTab === 'adult' ? '/banners?type=adult' : '/banners')}
+                  onClick={() => router.push('/banners')}
                   className={`inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors text-sm ${
                     mainTab === 'adult' 
                       ? 'bg-red-600 hover:bg-red-700' 
@@ -1225,16 +1225,6 @@ export default function AdminDashboard() {
               {/* 카테고리 탭 */}
               <div className="p-6">
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <button
-                    onClick={() => setSelectedCategory('banner')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      selectedCategory === 'banner'
-                        ? (mainTab === 'adult' ? 'bg-red-600 text-white' : mainTab === 'english' ? 'bg-orange-600 text-white' : mainTab === 'englishAdult' ? 'bg-purple-600 text-white' : 'bg-blue-600 text-white')
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    배너 관리 ({mainTab === 'adult' ? adultBannerWebtoons.length : mainTab === 'english' ? englishBannerWebtoons.length : mainTab === 'englishAdult' ? englishAdultBannerWebtoons.length : bannerWebtoons.length})
-                  </button>
                   <button
                     onClick={() => setSelectedCategory('realtime')}
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
