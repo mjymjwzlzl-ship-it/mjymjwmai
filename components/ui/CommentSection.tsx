@@ -548,14 +548,14 @@ const CommentSection: React.FC<CommentSectionProps> = ({ episodeId, initialComme
               disabled={!isAuthenticated}
             />
             <div className="mt-2 flex items-center justify-between gap-2">
-              <label className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition ${newSpoiler ? 'border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300' : 'border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-400'}`}>
+              <label className={`flex min-w-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-bold transition ${newSpoiler ? 'border-amber-400 bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300' : 'border-gray-200 text-gray-500 dark:border-gray-600 dark:text-gray-400'}`}>
                 <input type="checkbox" role="switch" checked={newSpoiler} onChange={(e) => setNewSpoiler(e.target.checked)} disabled={!isAuthenticated} className="accent-amber-500" />
                 스포일러 포함 {newSpoiler ? 'ON' : 'OFF'}
               </label>
               <button
                 type="submit"
                 disabled={loading || !newComment.trim() || !isAuthenticated}
-                className="flex items-center rounded-lg bg-[#00dc64] px-4 py-2 font-bold text-black transition-colors hover:bg-[#00c85a] disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-600"
+                className="flex shrink-0 items-center whitespace-nowrap rounded-lg bg-[#00dc64] px-4 py-2 font-bold text-black transition-colors hover:bg-[#00c85a] disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-600"
               >
                 {loading ? (
                   <><div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-black" />전송 중...</>
