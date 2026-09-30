@@ -156,6 +156,7 @@ export default function ProfilePage() {
           <MenuRow href="/my/library" icon={<Library className="h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />} label="내 서재" />
           <MenuRow href="/notifications" icon={<Bell className="h-5 w-5 text-red-500" />} label="알림함" />
           <MenuRow href="/my/comments" icon={<MessageSquare className="h-5 w-5 text-sky-500" />} label="댓글 내역" />
+          <MenuRow href="/my/community" icon={<MessageSquare className="h-5 w-5 text-violet-500" />} label="커뮤니티 활동 (내 글·댓글·저장한 글)" />
           <MenuRow href="/gifts" icon={<Gift className="h-5 w-5 text-pink-500" />} label="선물함" />
           <MenuRow href="/coupons" icon={<Ticket className="h-5 w-5 text-[#00a84c] dark:text-[#00dc64]" />} label="쿠폰함 · 이용권" />
           <MenuRow href="/coin" icon={<Coins className="h-5 w-5 text-yellow-500" />} label="코인 충전" />

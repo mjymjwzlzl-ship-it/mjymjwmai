@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 
-type PrefKey = 'updates' | 'events' | 'promotions';
+type PrefKey = 'updates' | 'events' | 'promotions' | 'community';
 interface ComicPref { comicId: string; title: string; thumbnail?: string | null; notify: boolean }
 
 const ROWS: { key: PrefKey; title: string; desc: string }[] = [
   { key: 'updates', title: '작품 업데이트', desc: '찜한 작품의 새 회차와 작품 공지(휴재·연재 재개·완결·이벤트 안내 등)를 알려 드려요' },
   { key: 'events', title: '이벤트', desc: '이벤트 시작과 종료 임박(24시간 전) 안내' },
   { key: 'promotions', title: '할인·무료 소식', desc: '할인·무료 공개 등 프로모션이 시작되면 알려 드려요' },
+  { key: 'community', title: '커뮤니티', desc: '내 게시글에 댓글이 달리거나 내 댓글에 답글이 달리면 알려 드려요' },
 ];
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
@@ -36,7 +37,7 @@ export default function NotificationSettings() {
   useEffect(() => {
     api.get('/notifications/settings')
       .then(({ data }) => {
-        setPrefs({ updates: data.updates, events: data.events, promotions: data.promotions });
+        setPrefs({ updates: data.updates, events: data.events, promotions: data.promotions, community: data.community !== false });
         setComics(data.comics || []);
       })
       .catch(() => setError('로그인 후 알림을 설정할 수 있어요.'));

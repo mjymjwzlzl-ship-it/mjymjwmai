@@ -26,11 +26,26 @@ const shape = (r) => ({
   description: r.description, status: r.status, statusLabel: STATUS_LABEL[r.status] || r.status, resolution: r.resolution,
   createdAt: r.createdAt, updatedAt: r.updatedAt, resolvedAt: r.resolvedAt, hasImage: !!r.imageUrl,
   // 예전 회차 신고는 comicId 가 비어 있어 회차의 작품으로 채운다
+  post: r.post ? { id: r.post.id, title: r.post.title, content: String(r.post.content || '').slice(0, 300), status: r.post.status, isSpoiler: r.post.isSpoiler } : null,
+  postComment: r.postComment ? { id: r.postComment.id, content: r.postComment.content, status: r.postComment.status } : null,
   comic: r.comic || r.episode?.comic || null, episode: r.episode ? { id: r.episode.id, episodeNumber: r.episode.episodeNumber, title: r.episode.title } : null, comment: r.comment, reporter: r.reporter ? { id: r.reporter.id, name: who(r.reporter) } : null,
   targetUser: r.targetUser ? { id: r.targetUser.id, name: who(r.targetUser) } : null,
 });
 // 같은 대상: 댓글 > 회차 > 작품(회차 없는 작품 신고) > 사용자
+// 게시판 글·댓글 정보 (Report 에 관계가 없어 따로 읽는다)
+async function attachBoard(list) {
+  const postIds = [...new Set(list.map((r) => r.postId).filter(Boolean))];
+  const pcIds = [...new Set(list.map((r) => r.postCommentId).filter(Boolean))];
+  const [posts, pcs] = await Promise.all([
+    postIds.length ? prisma.post.findMany({ where: { id: { in: postIds } }, select: { id: true, title: true, content: true, status: true, isSpoiler: true } }) : [],
+    pcIds.length ? prisma.postComment.findMany({ where: { id: { in: pcIds } }, select: { id: true, content: true, status: true } }) : [],
+  ]);
+  const pm = new Map(posts.map((p) => [p.id, p])); const cm = new Map(pcs.map((c) => [c.id, c]));
+  return list.map((r) => ({ ...r, post: r.postId ? pm.get(r.postId) || null : null, postComment: r.postCommentId ? cm.get(r.postCommentId) || null : null }));
+}
 const sameTargetWhere = (r) => {
+  if (r.postCommentId) return { postCommentId: r.postCommentId };
+  if (r.postId && r.type === 'POST') return { postId: r.postId, type: 'POST' };
   if (r.commentId) return { commentId: r.commentId };
   if (r.episodeId) return { episodeId: r.episodeId };
   if (r.comicId) return { comicId: r.comicId, episodeId: null, commentId: null };
@@ -41,11 +56,11 @@ const sameTargetWhere = (r) => {
 router.get('/admin/report-center', async (req, res) => {
   const where = {};
   if (STATUSES.includes(req.query.status)) where.status = req.query.status;
-  if (['COMIC', 'EPISODE', 'COMMENT', 'USER'].includes(req.query.type)) where.type = req.query.type === 'COMIC' ? { in: ['COMIC', 'EPISODE'] } : req.query.type;
+  if (['COMIC', 'EPISODE', 'COMMENT', 'USER', 'BOARD'].includes(req.query.type)) where.type = req.query.type === 'COMIC' ? { in: ['COMIC', 'EPISODE'] } : req.query.type === 'BOARD' ? { in: ['POST', 'POST_COMMENT'] } : req.query.type;
   const q = String(req.query.q || '').trim();
   if (q) where.OR = [{ description: { contains: q } }, { comic: { title: { contains: q } } }, { comment: { content: { contains: q } } }];
   const [reports, counts] = await Promise.all([
-    prisma.report.findMany({ where, include, orderBy: { createdAt: 'desc' }, take: 200 }),
+    prisma.report.findMany({ where, include, orderBy: { createdAt: 'desc' }, take: 200 }).then(attachBoard),
     prisma.report.groupBy({ by: ['status'], _count: { _all: true } }),
   ]);
   // 같은 대상 신고 수 (반복 신고 표시)
@@ -61,12 +76,13 @@ router.get('/admin/report-center', async (req, res) => {
 });
 
 router.get('/admin/report-center/:id', async (req, res) => {
-  const report = await prisma.report.findUnique({ where: { id: req.params.id }, include });
-  if (!report) return res.status(404).json({ message: '신고를 찾을 수 없습니다.' });
+  const found = await prisma.report.findUnique({ where: { id: req.params.id }, include });
+  if (!found) return res.status(404).json({ message: '신고를 찾을 수 없습니다.' });
+  const [report] = await attachBoard([found]);
   const sameWhere = sameTargetWhere(report);
   const [history, previous] = await Promise.all([
     prisma.reportHistory.findMany({ where: { reportId: report.id }, orderBy: { createdAt: 'asc' } }),
-    sameWhere ? prisma.report.findMany({ where: { ...sameWhere, id: { not: report.id } }, include, orderBy: { createdAt: 'desc' }, take: 20 }) : [],
+    sameWhere ? prisma.report.findMany({ where: { ...sameWhere, id: { not: report.id } }, include, orderBy: { createdAt: 'desc' }, take: 20 }).then(attachBoard) : [],
   ]);
   res.json({
     report: shape(report),
@@ -86,12 +102,22 @@ router.patch('/admin/report-center/:id', async (req, res) => {
   const admin = await prisma.user.findUnique({ where: { id: req.user.id || req.user.userId }, select: { id: true, nickname: true, email: true } });
   const final = status === 'RESOLVED' || status === 'REJECTED';
   let extraMemo = '';
-  if (report.commentId && req.body?.hideComment) {
+  if (report.type === 'COMMENT' && report.commentId && req.body?.hideComment) {
     await prisma.comment.update({ where: { id: report.commentId }, data: { hiddenAt: new Date(), hiddenReason: memo || reasonLabel(report.type, report.reason) } });
     extraMemo = ' [댓글 숨김]';
-  } else if (report.commentId && req.body?.unhideComment) {
+  } else if (report.type === 'COMMENT' && report.commentId && req.body?.unhideComment) {
     await prisma.comment.update({ where: { id: report.commentId }, data: { hiddenAt: null, hiddenReason: null } });
     extraMemo = ' [댓글 숨김 해제]';
+  }
+  // 게시판: 글·댓글 숨김/해제 (hideComment 를 대상 숨김으로 같이 쓴다)
+  if (report.type === 'POST_COMMENT' && report.postCommentId && (req.body?.hideComment || req.body?.unhideComment)) {
+    await prisma.postComment.update({ where: { id: report.postCommentId }, data: { status: req.body.hideComment ? 'HIDDEN' : 'NORMAL' } });
+    extraMemo = req.body.hideComment ? ' [게시판 댓글 숨김]' : ' [게시판 댓글 숨김 해제]';
+  } else if (report.type === 'POST' && report.postId && (req.body?.hideComment || req.body?.unhideComment)) {
+    await prisma.post.update({ where: { id: report.postId }, data: { status: req.body.hideComment ? 'HIDDEN' : 'NORMAL', statusReason: req.body.hideComment ? (memo || '신고 처리') : null } });
+    extraMemo = req.body.hideComment ? ' [게시글 숨김]' : ' [게시글 숨김 해제]';
+  } else if (report.type === 'POST' && report.postId && ['PENDING', 'PROCESSING'].includes(status)) {
+    // 확인 중으로 바꾸면 게시글 상태를 "신고 검토 중"으로 (사이트에는 그대로 보임)
   }
   await prisma.report.update({
     where: { id: report.id },

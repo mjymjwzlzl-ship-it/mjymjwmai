@@ -14,6 +14,7 @@ interface Report {
   comic?: { id: string; title: string } | null; episode?: { id: string; episodeNumber: number; title: string } | null;
   comment?: { id: string; content: string; isSpoiler: boolean; hiddenAt?: string | null } | null;
   reporter?: { id: string; name: string } | null; targetUser?: { id: string; name: string } | null; sameTargetCount?: number;
+  post?: { id: string; title: string; content: string; status: string; isSpoiler: boolean } | null; postComment?: { id: string; content: string; status: string } | null;
 }
 interface HistoryRow { id: string; fromLabel?: string | null; toLabel: string; memo?: string | null; adminName?: string | null; createdAt: string }
 
@@ -24,15 +25,17 @@ const STATUS: { key: Status; label: string; className: string }[] = [
   { key: 'REJECTED', label: '반려', className: 'bg-gray-500/30 text-gray-300' },
 ];
 const statusMeta = (s: string) => STATUS.find((x) => x.key === s) || STATUS[0];
-const TYPES = [['', '전체'], ['COMIC', '작품·회차'], ['COMMENT', '댓글'], ['USER', '사용자']] as const;
+const TYPES = [['', '전체'], ['COMIC', '작품·회차'], ['COMMENT', '회차 댓글'], ['BOARD', '게시판 글·댓글'], ['USER', '사용자']] as const;
 const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-');
-const target = (r: Report) => r.comment ? r.comment.content : r.description || '';
+const target = (r: Report) => r.postComment ? r.postComment.content : r.post && r.type === 'POST' ? `[글] ${r.post.title}` : r.comment ? r.comment.content : r.description || '';
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [status, setStatus] = useState<'' | Status>('');
   const [type, setType] = useState('');
+  // 커뮤니티 관리에서 ?type=BOARD 로 넘어오면 게시판 글·댓글 신고만
+  useEffect(() => { try { const t = new URLSearchParams(window.location.search).get('type'); if (t) setType(t); } catch {} }, []);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -80,10 +83,10 @@ export default function ReportsPage() {
                 {reports.map((r) => (
                   <tr key={r.id} onClick={() => setOpenId(r.id)} className="cursor-pointer border-t border-gray-700 hover:bg-gray-800/60">
                     <td className="p-3"><span className="mr-1 rounded bg-gray-700 px-1.5 text-xs">{r.typeLabel}</span><b>{r.reasonLabel}</b></td>
-                    <td className="p-3">{r.comic?.title || (r.targetUser ? `사용자 ${r.targetUser.name}` : '-')}</td>
+                    <td className="p-3">{r.comic?.title || (r.post ? '커뮤니티' : r.targetUser ? `사용자 ${r.targetUser.name}` : '-')}</td>
                     <td className="p-3">{r.episode ? `${r.episode.episodeNumber}화` : '-'}</td>
                     <td className="p-3 text-gray-300">
-                      <span className="line-clamp-2">{r.comment && <span className="mr-1 text-xs text-gray-500">[댓글]</span>}{target(r) || <span className="text-gray-500">(내용 없음)</span>}</span>
+                      <span className="line-clamp-2">{(r.comment || r.postComment) && <span className="mr-1 text-xs text-gray-500">[댓글]</span>}{target(r) || <span className="text-gray-500">(내용 없음)</span>}</span>
                       {(r.sameTargetCount || 1) > 1 && <span className="mt-0.5 inline-block rounded bg-red-500/20 px-1 text-[11px] text-red-300">같은 대상 신고 {r.sameTargetCount}건</span>}
                     </td>
                     <td className="whitespace-nowrap p-3 text-xs text-gray-400">{fmt(r.createdAt)}</td>
@@ -153,7 +156,9 @@ function ReportDetail({ id, onClose, onChanged }: { id: string; onClose: () => v
               <dt className="text-gray-400">작품명</dt><dd>{r.comic ? <a href={`${siteBase()}/webtoons/${r.comic.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">{r.comic.title}<ExternalLink className="h-3 w-3" /></a> : '-'}</dd>
               <dt className="text-gray-400">회차</dt><dd>{r.episode && r.comic ? <a href={`${siteBase()}/webtoons/${r.comic.id}/episode/${r.episode.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">{r.episode.episodeNumber}화 {r.episode.title}<ExternalLink className="h-3 w-3" /></a> : '-'}</dd>
               {r.comment && (<><dt className="text-gray-400">신고된 댓글</dt><dd className="whitespace-pre-wrap rounded bg-gray-900 p-2">{r.comment.isSpoiler && <span className="mr-1 rounded bg-amber-500/30 px-1 text-[10px] text-amber-200">스포일러 표시됨</span>}{r.comment.hiddenAt && <span className="mr-1 rounded bg-red-500/30 px-1 text-[10px] text-red-200">숨김 처리됨</span>}{r.comment.content}</dd></>)}
-              {r.targetUser && (<><dt className="text-gray-400">대상 사용자</dt><dd>{r.targetUser.name}</dd></>)}
+              {r.post && (<><dt className="text-gray-400">{r.type === 'POST' ? '신고된 게시글' : '게시글'}</dt><dd className="rounded bg-gray-900 p-2"><a href={`${siteBase()}/community/post/${r.post.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold hover:underline">{r.post.title}<ExternalLink className="h-3 w-3" /></a>{r.post.status !== 'NORMAL' && <span className="ml-1 rounded bg-red-500/30 px-1 text-[10px] text-red-200">{r.post.status === 'HIDDEN' ? '숨김' : '삭제'}</span>}{r.post.isSpoiler && <span className="ml-1 rounded bg-amber-500/30 px-1 text-[10px] text-amber-200">스포일러 표시됨</span>}{r.type === 'POST' && <p className="mt-1 whitespace-pre-wrap text-gray-300">{r.post.content}</p>} <a href={`/community/posts?focus=${r.post.id}`} className="mt-1 block text-xs text-purple-300 underline">커뮤니티 관리에서 보기</a></dd></>)}
+              {r.postComment && (<><dt className="text-gray-400">신고된 댓글</dt><dd className="whitespace-pre-wrap rounded bg-gray-900 p-2">{r.postComment.status !== 'NORMAL' && <span className="mr-1 rounded bg-red-500/30 px-1 text-[10px] text-red-200">{r.postComment.status === 'HIDDEN' ? '숨김' : '삭제'}</span>}{r.postComment.content}</dd></>)}
+              {r.targetUser && (<><dt className="text-gray-400">대상 사용자</dt><dd>{r.targetUser.name} <a href={`/users?q=${encodeURIComponent(r.targetUser.name)}`} className="ml-1 text-xs text-purple-300 underline">사용자 관리에서 이용 제한</a></dd></>)}
               <dt className="text-gray-400">신고 내용</dt><dd className="whitespace-pre-wrap">{r.description || <span className="text-gray-500">(작성 안 함)</span>}</dd>
               <dt className="text-gray-400">신고자</dt><dd>{r.reporter?.name || '-'}</dd>
               <dt className="text-gray-400">신고일</dt><dd>{fmt(r.createdAt)}</dd>
@@ -172,11 +177,14 @@ function ReportDetail({ id, onClose, onChanged }: { id: string; onClose: () => v
               <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3} maxLength={1000}
                 placeholder={next === 'REJECTED' ? '반려 사유 (예: 확인 결과 이미지 정상 노출, 제재 대상 아님)' : next === 'RESOLVED' ? '처리 내용 (예: 12화 이미지 재업로드 완료 / 댓글 숨김)' : '메모 (선택)'}
                 className="mt-3 w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-sm" />
+              {((r.type === 'POST' && r.post?.status === 'NORMAL') || (r.type === 'POST_COMMENT' && r.postComment?.status === 'NORMAL')) && next === 'RESOLVED' && (
+                <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={hideComment} onChange={(e) => setHideComment(e.target.checked)} />신고된 {r.type === 'POST' ? '게시글' : '댓글'} 숨기기 (사이트에서 빠짐)</label>
+              )}
               {r.comment && next === 'RESOLVED' && !r.comment.hiddenAt && (
                 <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={hideComment} onChange={(e) => setHideComment(e.target.checked)} />신고된 댓글 숨기기 (사이트 댓글 목록에서 빠짐)</label>
               )}
               <div className="mt-3 flex flex-wrap justify-end gap-2">
-                {r.comment?.hiddenAt && <button type="button" disabled={busy} onClick={() => void save(true)} className="rounded bg-gray-700 px-3 py-1.5">댓글 숨김 해제</button>}
+                {(r.comment?.hiddenAt || (r.type === 'POST' && r.post?.status === 'HIDDEN') || (r.type === 'POST_COMMENT' && r.postComment?.status === 'HIDDEN')) && <button type="button" disabled={busy} onClick={() => void save(true)} className="rounded bg-gray-700 px-3 py-1.5">숨김 해제</button>}
                 <button type="button" disabled={busy} onClick={() => void save()} className="rounded bg-purple-600 px-4 py-1.5 font-bold disabled:opacity-50">{busy ? '저장 중...' : '저장'}</button>
               </div>
             </section>

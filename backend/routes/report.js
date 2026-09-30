@@ -44,6 +44,16 @@ router.post('/submit', authenticate, maybeUpload, async (req, res) => {
       if (!comment) return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
       if (comment.userId === reporterId) return res.status(400).json({ message: '내 댓글은 신고할 수 없습니다.' });
       Object.assign(target, { commentId: comment.id, targetUserId: comment.userId, episodeId: comment.episodeId || undefined, comicId: comment.comicId || comment.episode?.comicId || undefined });
+    } else if (type === 'POST') {
+      const post = await prisma.post.findUnique({ where: { id: targetId }, select: { id: true, authorId: true, comicId: true, episodeId: true } });
+      if (!post) return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+      if (post.authorId === reporterId) return res.status(400).json({ message: '내 글은 신고할 수 없습니다.' });
+      Object.assign(target, { postId: post.id, targetUserId: post.authorId, comicId: post.comicId || undefined, episodeId: post.episodeId || undefined });
+    } else if (type === 'POST_COMMENT') {
+      const c = await prisma.postComment.findUnique({ where: { id: targetId }, select: { id: true, authorId: true, postId: true } });
+      if (!c) return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
+      if (c.authorId === reporterId) return res.status(400).json({ message: '내 댓글은 신고할 수 없습니다.' });
+      Object.assign(target, { postCommentId: c.id, postId: c.postId, targetUserId: c.authorId });
     } else {
       if (targetId === reporterId) return res.status(400).json({ message: '나 자신은 신고할 수 없습니다.' });
       target.targetUserId = targetId;
@@ -56,7 +66,9 @@ router.post('/submit', authenticate, maybeUpload, async (req, res) => {
         ...(type === 'COMIC' && { comicId: targetId, episodeId: null }),
         ...(type === 'EPISODE' && { episodeId: targetId }),
         ...(type === 'COMMENT' && { commentId: targetId }),
-        ...(type === 'USER' && { targetUserId: targetId, commentId: null }),
+        ...(type === 'USER' && { targetUserId: targetId, commentId: null, postId: null }),
+        ...(type === 'POST' && { postId: targetId, postCommentId: null }),
+        ...(type === 'POST_COMMENT' && { postCommentId: targetId }),
       },
     });
     if (existingReport) return res.status(400).json({ message: '이미 같은 사유로 신고해 처리 중이에요.' });

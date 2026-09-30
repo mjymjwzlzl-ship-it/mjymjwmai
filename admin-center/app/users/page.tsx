@@ -35,7 +35,10 @@ export default function UsersPage() {
       setUsers(d.users); setCounts(d.counts); setAdultTotal(d.adultVerified);
     } catch (e: any) { alert(e.message); } finally { setLoading(false); }
   }, [q, adult, status]);
-  useEffect(() => { void load(); }, [adult, status]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 신고 관리·커뮤니티 관리에서 ?q=닉네임 으로 넘어오면 바로 그 회원을 찾는다
+  const [ready, setReady] = useState(false);
+  useEffect(() => { try { const q0 = new URLSearchParams(window.location.search).get('q'); if (q0) setQ(q0); } catch {} setReady(true); }, []);
+  useEffect(() => { if (ready) void load(); }, [adult, status, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (

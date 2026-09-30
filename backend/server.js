@@ -329,6 +329,8 @@ app.use('/api', require('./routes/admin-reports')); // 관리자: 신고 관리(
 app.use('/api', require('./routes/admin-banners')); // 관리자: 배너 관리(홈 대배너 기준, 이벤트→대배너)
 app.use('/api', require('./routes/admin-exposure')); // 관리자: 노출 관리(추천·인기 고정·홈 섹션·자동 분류·랭킹)
 app.use('/api', require('./routes/admin-ops')); // 관리자: 결제·사용자·통계·대시보드
+app.use('/api/board', require('./routes/board')); // 커뮤니티 게시판 (분류·작품 연결·스포일러·추천·저장·대댓글·알림)
+app.use('/api', require('./routes/admin-community')); // 관리자: 커뮤니티 관리
 app.use('/api/frontend', frontendRouter);
 app.use('/api/episodes', episodesRouter);
 app.use('/api/payment', paymentRouter);

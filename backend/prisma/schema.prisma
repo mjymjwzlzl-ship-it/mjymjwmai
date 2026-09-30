@@ -248,6 +248,8 @@ model Report {
   description String?
   status      String     @default("PENDING") // PENDING(접수) → PROCESSING(확인 중) → RESOLVED(처리 완료) / REJECTED(반려)
   resolution  String?    // 처리 결과 메시지 (마지막 관리자 메모)
+  postId        String?  // 게시글 신고 (type POST)
+  postCommentId String?  // 게시판 댓글 신고 (type POST_COMMENT)
   imageUrl    String?    // 첨부 스크린샷 (backend/private/report-images, 관리자만 열람)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -579,8 +581,16 @@ model Post {
   viewCount   Int      @default(0)
   upvotes     Int      @default(0)  // 추천수
   downvotes   Int      @default(0)  // 비추천수
-  isPinned    Boolean  @default(false)
+  isPinned    Boolean  @default(false) // 상단 고정 (공지·중요)
   isAdult     Boolean  @default(false)
+  // 커뮤니티 확장 (2026-09-30)
+  noticeType  String?  // NOTICE([공지]) | IMPORTANT([중요]) — isPinned 와 함께 목록 맨 위
+  pinnedUntil DateTime? // 고정 기간 (비우면 계속)
+  isSpoiler   Boolean  @default(false) // 작성자가 [스포일러 포함] ON → 목록·본문 가림
+  status      String   @default("NORMAL") // NORMAL(정상) | HIDDEN(숨김) | DELETED(삭제) | REVIEW(신고 검토 중)
+  statusReason String?
+  comicId     String?  // 연결 작품
+  episodeId   String?  // 연결 회차
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -590,6 +600,7 @@ model Post {
   comments    PostComment[]
   likes       PostLike[]
   
+  @@index([status, category, createdAt])
   @@map("posts")
 }
 
@@ -604,7 +615,11 @@ model PostComment {
   author    User     @relation(fields: [authorId], references: [id])
   postId    String
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId  String?  // 대댓글: 원댓글 id (한 단계)
+  status    String   @default("NORMAL") // NORMAL | HIDDEN(관리자 숨김) | DELETED(작성자·관리자 삭제)
+  likeCount Int      @default(0)
   
+  @@index([postId, createdAt])
   @@map("post_comments")
 }
 
@@ -795,6 +810,7 @@ model NotificationPreference {
   updates    Boolean  @default(true)
   events     Boolean  @default(true)
   promotions Boolean  @default(true)
+  community  Boolean  @default(true) // 내 게시글 댓글·내 댓글 답글 알림
   syncedAt   DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -938,4 +954,41 @@ model UserStatusLog {
 
   @@index([userId, createdAt])
   @@map("user_status_logs")
+}
+
+// 게시판 분류 (관리자 [커뮤니티 관리 > 카테고리 관리]). key 는 Post.category 에 저장
+model BoardCategory {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  adminOnly   Boolean  @default(false) // 관리자만 글쓰기 (공지)
+  createdAt   DateTime @default(now())
+
+  @@map("board_categories")
+}
+
+// 게시판 댓글 좋아요
+model PostCommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, commentId])
+  @@map("post_comment_likes")
+}
+
+// 게시글 저장(북마크)
+model PostBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@index([userId, createdAt])
+  @@map("post_bookmarks")
 }

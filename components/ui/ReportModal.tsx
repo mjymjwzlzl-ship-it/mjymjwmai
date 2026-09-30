@@ -10,7 +10,7 @@ import { getApiUrl } from '@/lib/api-config';
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetType: 'COMIC' | 'EPISODE' | 'COMMENT' | 'USER';
+  targetType: 'COMIC' | 'EPISODE' | 'COMMENT' | 'USER' | 'POST' | 'POST_COMMENT';
   targetId: string;
   targetName?: string;
   /** 작품·회차 신고에 자동으로 붙는 정보 */
@@ -40,10 +40,15 @@ const REASONS: Record<ReportModalProps['targetType'], { value: string; label: st
     { value: 'OTHER', label: '기타 문의', description: '그 밖의 문제' },
   ],
   EPISODE: [],
+  POST: [],
+  POST_COMMENT: [],
 };
 REASONS.EPISODE = REASONS.COMIC;
+// 게시판 글·댓글: 댓글과 같은 사유 (스포일러 포함)
+REASONS.POST = REASONS.COMMENT.map((r) => (r.value === 'SPOILER' ? { ...r, description: '스포일러 표시 없이 줄거리·결말을 공개' } : r));
+REASONS.POST_COMMENT = REASONS.COMMENT;
 
-const TYPE_LABEL = { COMIC: '작품', EPISODE: '회차', COMMENT: '댓글', USER: '사용자' } as const;
+const TYPE_LABEL = { COMIC: '작품', EPISODE: '회차', COMMENT: '댓글', USER: '사용자', POST: '게시글', POST_COMMENT: '댓글' } as const;
 
 export default function ReportModal({ isOpen, onClose, targetType, targetId, targetName, context }: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState('');

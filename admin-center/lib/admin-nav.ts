@@ -1,11 +1,20 @@
 // 관리자 센터 메뉴 구조 (상단 메뉴바 8개 + 메뉴별 세부 탭)
-// 작품 정보 = 작품 관리 / 사용자 화면에 어떻게 보여 줄지 = 노출 관리 / 혜택 = 프로모션 / 돈 = 결제 관리 / 회원 = 사용자 관리 / 운영 결과 = 통계
+// 작품 정보 = 작품 관리 / 게시판 = 커뮤니티 관리 / 사용자 화면에 어떻게 보여 줄지 = 노출 관리 / 혜택 = 프로모션 / 돈 = 결제 관리 / 회원 = 사용자 관리 / 운영 결과 = 통계
 export interface NavTab { label: string; href: string }
 export interface NavGroup { key: string; label: string; href: string; match: string[]; tabs: NavTab[] }
 
 export const NAV: NavGroup[] = [
   { key: 'dashboard', label: '대시보드', href: '/', match: [], tabs: [] },
   { key: 'works', label: '작품 관리', href: '/works', match: ['/works', '/comic-status', '/novels'], tabs: [{ label: '작품 목록', href: '/works' }] },
+  {
+    key: 'community', label: '커뮤니티 관리', href: '/community', match: ['/community'],
+    tabs: [
+      { label: '게시판 관리', href: '/community' },
+      { label: '게시글 관리', href: '/community/posts' },
+      { label: '댓글 관리', href: '/community/comments' },
+      { label: '카테고리 관리', href: '/community/categories' },
+    ],
+  },
   {
     key: 'exposure', label: '노출 관리', href: '/exposure', match: ['/exposure', '/banners', '/popular'],
     tabs: [

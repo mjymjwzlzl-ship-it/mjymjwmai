@@ -8,10 +8,10 @@ import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { useLoginModalStore } from '@/store/loginModal';
 
-type Tab = 'all' | 'update' | 'event';
+type Tab = 'all' | 'update' | 'event' | 'community';
 interface NotificationItem {
   id: string;
-  type: 'UPDATE' | 'EVENT' | 'PROMOTION';
+  type: 'UPDATE' | 'EVENT' | 'PROMOTION' | 'COMMUNITY';
   title: string;
   body?: string | null;
   link?: string | null;
@@ -24,8 +24,9 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'all', label: '전체' },
   { key: 'update', label: '작품 업데이트' },
   { key: 'event', label: '이벤트·혜택' },
+  { key: 'community', label: '커뮤니티' },
 ];
-const TYPE_LABEL: Record<NotificationItem['type'], string> = { UPDATE: '작품 업데이트', EVENT: '이벤트', PROMOTION: '할인·무료' };
+const TYPE_LABEL: Record<NotificationItem['type'], string> = { UPDATE: '작품 업데이트', EVENT: '이벤트', PROMOTION: '할인·무료', COMMUNITY: '커뮤니티' };
 
 function timeAgo(value: string) {
   const diff = Date.now() - new Date(value).getTime();
@@ -45,7 +46,7 @@ export default function NotificationsPage() {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [tab, setTab] = useState<Tab>('all');
   const [items, setItems] = useState<NotificationItem[]>([]);
-  const [unreadByType, setUnreadByType] = useState({ update: 0, event: 0 });
+  const [unreadByType, setUnreadByType] = useState<{ update: number; event: number; community: number }>({ update: 0, event: 0, community: 0 });
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (nextTab: Tab) => {
@@ -53,7 +54,7 @@ export default function NotificationsPage() {
     try {
       const { data } = await api.get('/notifications', { params: { type: nextTab, limit: 100 } });
       setItems(data.notifications || []);
-      setUnreadByType(data.unreadByType || { update: 0, event: 0 });
+      setUnreadByType({ update: 0, event: 0, community: 0, ...(data.unreadByType || {}) });
     } catch {
       setItems([]);
     } finally {
@@ -85,11 +86,11 @@ export default function NotificationsPage() {
   const readAll = async () => {
     await api.post('/notifications/read-all', null, { params: { type: tab } }).catch(() => {});
     setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadByType((prev) => (tab === 'all' ? { update: 0, event: 0 } : { ...prev, [tab]: 0 }));
+    setUnreadByType((prev) => (tab === 'all' ? { update: 0, event: 0, community: 0 } : { ...prev, [tab]: 0 }));
     notifyHeader();
   };
 
-  const unreadCount = (key: Tab) => (key === 'all' ? unreadByType.update + unreadByType.event : unreadByType[key]);
+  const unreadCount = (key: Tab) => (key === 'all' ? unreadByType.update + unreadByType.event + unreadByType.community : unreadByType[key]);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
