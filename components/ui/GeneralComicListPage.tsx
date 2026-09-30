@@ -19,6 +19,7 @@ import {
   User,
 } from 'lucide-react';
 import Skeleton from '@/components/ui/Skeleton';
+import PlacementBanners from '@/components/ui/PlacementBanners';
 import AppDownloadBanner from '@/components/ui/AppDownloadBanner';
 import { api } from '@/lib/api';
 import {
@@ -100,6 +101,8 @@ interface GeneralComicListPageProps {
   hideHeader?: boolean;
   queryKey?: string[];
   selectItems?: (homeData: any) => Comic[];
+  /** 페이지 배너 위치 (관리자 배너 관리): 웹툰 WEBTOON · 단행본 BOOK · 웹소설 NOVEL */
+  bannerPlacement?: 'WEBTOON' | 'BOOK' | 'NOVEL';
   emptyMessage?: string;
   beforeGrid?: ReactNode;
   /** 19 ON(성인인증 완료)일 때 성인 작품도 같은 목록·장르 탭([성인])에 섞는다 */
@@ -322,6 +325,7 @@ export default function GeneralComicListPage({
   hideHeader = false,
   queryKey = ['frontend-home', title],
   selectItems,
+  bannerPlacement,
   emptyMessage = '표시할 작품이 없습니다.',
   beforeGrid,
   includeAdult = false,
@@ -589,7 +593,8 @@ export default function GeneralComicListPage({
   return (
     <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
       <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-6">
-        <AppDownloadBanner />
+        {/* 페이지 배너: [노출 관리 > 배너 관리]의 웹툰·단행본·웹소설 배너. 등록된 것이 없으면 기본 앱 다운로드 안내 */}
+        {bannerPlacement ? <PlacementBanners placement={bannerPlacement} fallback={<AppDownloadBanner />} /> : <AppDownloadBanner />}
         {beforeGrid && <div className="mb-6">{beforeGrid}</div>}
 
         <section data-comic-list className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-md shadow-gray-200/70 transition-colors dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">

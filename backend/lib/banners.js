@@ -1,8 +1,10 @@
-// 홈 대배너 노출 기준: [배너 관리]에 등록되고 켜져 있고(isActive) 노출 기간 안인 HOME_MAIN 배너만, 순서(order)대로.
+// 배너 노출 기준: [배너 관리]에 등록되고 켜져 있고(isActive) 노출 기간 안이며 그 위치(placements)가 있는 배너만, 순서(order)대로.
 // 연결된 작품이 숨김·성인이면 일반 홈에서 뺀다.
 const { prisma } = require('./prisma');
 
-const PLACEMENTS = { HOME_MAIN: '메인 홈 > 대배너' };
+// 노출 위치: 사용자 화면의 배너 영역
+const PLACEMENTS = { HOME_MAIN: '홈 대배너', WEBTOON: '웹툰 페이지 배너', BOOK: '단행본 페이지 배너', NOVEL: '웹소설 페이지 배너', CHAT: '캐릭터 채팅 배너' };
+const placementsOf = (b) => { try { const list = JSON.parse(b.placements || '[]'); if (Array.isArray(list) && list.length) return list.filter((p) => PLACEMENTS[p]); } catch {} return b.placement && PLACEMENTS[b.placement] ? [b.placement] : ['HOME_MAIN']; };
 
 function bannerState(banner, now = new Date()) {
   if (!banner.isActive) return 'OFF';
@@ -11,10 +13,11 @@ function bannerState(banner, now = new Date()) {
   return 'LIVE';
 }
 
-async function homeMainBanners(now = new Date()) {
+// 위치별 노출 배너: 그 위치가 들어 있고 켜져 있고 기간 안인 배너만, 순서대로
+async function bannersFor(placement, now = new Date()) {
   const rows = await prisma.banner.findMany({
     where: {
-      placement: 'HOME_MAIN', isActive: true,
+      isActive: true, placements: { contains: `"${placement}"` },
       AND: [{ OR: [{ startAt: null }, { startAt: { lte: now } }] }, { OR: [{ endAt: null }, { endAt: { gt: now } }] }],
     },
     orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
@@ -30,4 +33,6 @@ async function homeMainBanners(now = new Date()) {
     .filter((b) => b.link);
 }
 
-module.exports = { PLACEMENTS, bannerState, homeMainBanners };
+const homeMainBanners = (now) => bannersFor('HOME_MAIN', now);
+
+module.exports = { PLACEMENTS, placementsOf, bannerState, bannersFor, homeMainBanners };

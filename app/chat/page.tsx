@@ -17,6 +17,7 @@ import {
   Settings,
   Trophy,
 } from 'lucide-react';
+import PlacementBanners from '@/components/ui/PlacementBanners';
 import { api } from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { referenceComics } from '@/components/ui/referenceContent';
@@ -387,6 +388,9 @@ export default function ChatHomePage() {
               );
             })}
           </nav>
+
+          {/* 캐릭터 채팅 배너: [노출 관리 > 배너 관리]의 캐릭터 채팅 배너 (없으면 영역 없음) */}
+          <PlacementBanners placement="CHAT" />
 
           {/* 히어로 캐러셀 */}
           {loading && comics.length === 0 ? (

@@ -6,7 +6,7 @@ const { isPromoFreeEpisode, activePromotions, describePromotion } = require('../
 const { optionalAuth } = require('../middleware/auth');
 const { guardComicParam, requireVerifiedAdultMode, generalComicWhere } = require('../services/adult-access');
 const { parseCredits } = require('../lib/credits');
-const { homeMainBanners } = require('../lib/banners');
+const { homeMainBanners, bannersFor, PLACEMENTS } = require('../lib/banners');
 const { autoCategories } = require('../lib/auto-categories');
 const { getCuration, homeSections } = require('../lib/curation');
 const { getJwtSecret } = require('../lib/jwt-secret');
@@ -51,6 +51,14 @@ async function loadCategorySettings() {
     };
   }
 }
+
+// GET /api/frontend/banners?placement=WEBTOON|BOOK|NOVEL|CHAT|HOME_MAIN - 페이지별 배너 (관리자 [노출 관리 > 배너 관리] 기준)
+router.get('/banners', async (req, res) => {
+  const placement = String(req.query.placement || '').toUpperCase();
+  if (!PLACEMENTS[placement]) return res.status(400).json({ message: '노출 위치가 올바르지 않습니다.' });
+  res.set('Cache-Control', 'no-cache');
+  res.json({ placement, banners: await bannersFor(placement) });
+});
 
 // GET /api/frontend/home - 홈페이지 데이터
 router.get('/home', async (req, res) => {

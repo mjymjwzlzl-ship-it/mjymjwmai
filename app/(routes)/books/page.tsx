@@ -19,6 +19,7 @@ export default function BooksPage() {
       title={t('books.title')}
       description={t('books.description')}
       queryKey={['home-data', 'books']}
+      bannerPlacement="BOOK"
       selectItems={selectBookItems}
       emptyMessage={t('books.empty')}
     />

@@ -19,6 +19,7 @@ export default function NovelPage() {
       hideHeader
       title={t('nav.novels')}
       queryKey={['home-data', 'novel']}
+      bannerPlacement="NOVEL"
       selectItems={selectNovelItems}
       emptyMessage="등록된 웹소설이 없습니다."
     />

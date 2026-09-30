@@ -20,6 +20,7 @@ export default function DailyPage() {
       includeAdult
       title={t('nav.webtoons')}
       queryKey={['home-data', 'daily']}
+      bannerPlacement="WEBTOON"
       selectItems={selectDailyItems}
       emptyMessage={t('list.empty')}
     />

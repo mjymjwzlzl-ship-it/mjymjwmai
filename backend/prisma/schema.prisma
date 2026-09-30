@@ -422,7 +422,8 @@ model Banner {
   ctaText     String   @default("") // Call to Action 버튼 텍스트 (선택)
   ctaLink     String   @default("") // 클릭 시 이동할 링크
   type        String   @default("event") // event, best, serialized 등 (분류 표시용)
-  placement   String   @default("HOME_MAIN") // 노출 위치: HOME_MAIN = 메인 홈 > 대배너 (지금은 이것만 사용자 화면에 연결)
+  placement   String   @default("HOME_MAIN") // 대표 노출 위치 (placements 첫 번째, 예전 호환)
+  placements  String   @default("[\"HOME_MAIN\"]") // 노출 위치들 JSON: HOME_MAIN(홈 대배너)·WEBTOON·BOOK·NOVEL·CHAT — 여러 곳 동시 노출 가능
   showText    Boolean  @default(true) // 배너 위에 제목·부제 글자 표시 (글자가 이미지에 들어 있으면 끔)
   startAt     DateTime? // 노출 시작 (비우면 바로)
   endAt       DateTime? // 노출 종료 (비우면 계속)

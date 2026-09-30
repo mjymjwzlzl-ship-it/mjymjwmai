@@ -8,7 +8,7 @@ const multer = require('multer');
 const sharp = require('sharp');
 const { prisma } = require('../lib/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
-const { PLACEMENTS, bannerState } = require('../lib/banners');
+const { PLACEMENTS, placementsOf, bannerState } = require('../lib/banners');
 
 const router = express.Router();
 router.use('/admin/banner-center', authenticate, requireAdmin);
@@ -35,10 +35,17 @@ const dateOrNull = (v) => { if (!v) return null; const d = new Date(v); return N
 async function parseBody(body, file, { create }) {
   const data = {};
   for (const key of ['title', 'subtitle', 'description', 'ctaText', 'ctaLink', 'type']) if (body[key] !== undefined) data[key] = String(body[key] || '').trim();
-  if (body.placement !== undefined) {
-    if (!PLACEMENTS[body.placement]) return { error: '노출 위치가 올바르지 않습니다.' };
-    data.placement = body.placement;
+  // 노출 위치: 여러 개 선택 가능 (placements = 배열 또는 JSON 문자열, 예전 placement 한 개도 받음)
+  if (body.placements !== undefined || body.placement !== undefined) {
+    let list = body.placements !== undefined ? body.placements : [body.placement];
+    if (typeof list === 'string') { try { list = JSON.parse(list); } catch { list = list.split(','); } }
+    list = [...new Set((Array.isArray(list) ? list : []).map((p) => String(p).trim()))];
+    if (!list.length) return { error: '노출 위치를 하나 이상 고르세요.' };
+    if (list.some((p) => !PLACEMENTS[p])) return { error: '노출 위치가 올바르지 않습니다.' };
+    data.placements = JSON.stringify(list);
+    data.placement = list[0];
   }
+  if (body.eventId !== undefined) data.eventId = body.eventId ? String(body.eventId) : null;
   if (body.webtoonId !== undefined) data.webtoonId = body.webtoonId ? String(body.webtoonId) : null;
   if (body.showText !== undefined) data.showText = bool(body.showText, true);
   if (body.isActive !== undefined) data.isActive = bool(body.isActive, true);
@@ -51,6 +58,12 @@ async function parseBody(body, file, { create }) {
   if (file) data.imageUrl = await saveImage(file);
   else if (body.imageUrl) data.imageUrl = String(body.imageUrl).trim();
   if (data.webtoonId && !(await prisma.comic.findUnique({ where: { id: data.webtoonId }, select: { id: true } }))) return { error: '연결할 작품을 찾을 수 없습니다.' };
+  // 이벤트 연결: 링크가 비면 이벤트 링크로
+  if (data.eventId) {
+    const ev = await prisma.event.findUnique({ where: { id: data.eventId }, select: { link: true } });
+    if (!ev) return { error: '연결할 이벤트를 찾을 수 없습니다.' };
+    if (!data.ctaLink && !body.ctaLink) data.ctaLink = ev.link || '/events';
+  }
   if (create) {
     if (!data.title) return { error: '배너 제목을 입력하세요.' };
     if (!data.imageUrl) return { error: '배너 이미지를 올리세요.' };
@@ -63,7 +76,7 @@ async function parseBody(body, file, { create }) {
 const shape = (b, events, now) => {
   const ev = b.eventId ? events.get(b.eventId) : null;
   return {
-    ...b, state: bannerState(b, now), placementLabel: PLACEMENTS[b.placement] || b.placement,
+    ...b, state: bannerState(b, now), placements: placementsOf(b), placementLabels: placementsOf(b).map((p) => PLACEMENTS[p]), placementLabel: placementsOf(b).map((p) => PLACEMENTS[p]).join(' · '),
     webtoonTitle: b.webtoon?.title || null, webtoon: undefined,
     event: ev ? { id: ev.id, title: ev.title, endAt: ev.endAt, ended: !!(ev.endAt && ev.endAt <= now) || !ev.isActive } : b.eventId ? { id: b.eventId, title: '(삭제된 이벤트)', ended: true } : null,
   };
@@ -81,7 +94,8 @@ router.post('/admin/banner-center', maybeUpload, async (req, res) => {
   const { data, error } = await parseBody(req.body || {}, req.file, { create: true });
   if (error) return res.status(400).json({ message: error });
   const last = await prisma.banner.findFirst({ orderBy: { order: 'desc' }, select: { order: true } });
-  const banner = await prisma.banner.create({ data: { placement: 'HOME_MAIN', type: 'event', ...data, order: (last?.order ?? -1) + 1 } });
+  if (!data.placements) { data.placements = JSON.stringify(['HOME_MAIN']); data.placement = 'HOME_MAIN'; }
+  const banner = await prisma.banner.create({ data: { type: 'event', ...data, order: (last?.order ?? -1) + 1 } });
   res.json({ banner });
 });
 
@@ -107,6 +121,13 @@ router.delete('/admin/banner-center/:id', async (req, res) => {
 router.post('/admin/banner-center/reorder', async (req, res) => {
   const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : [];
   if (!ids.length) return res.status(400).json({ message: '순서를 보낼 배너가 없습니다.' });
+  // 한 위치 탭에서 순서를 바꾸면 그 탭 배너들이 차지하던 순서 값 안에서만 다시 매긴다 (다른 위치 배너 순서는 그대로)
+  if (req.body?.scoped) {
+    const rows = await prisma.banner.findMany({ where: { id: { in: ids } }, select: { order: true } });
+    const slots = rows.map((r) => r.order).sort((a, b) => a - b);
+    await prisma.$transaction(ids.map((id, i) => prisma.banner.updateMany({ where: { id }, data: { order: slots[i] ?? i } })));
+    return res.json({ success: true });
+  }
   await prisma.$transaction(ids.map((id, index) => prisma.banner.updateMany({ where: { id }, data: { order: index } })));
   res.json({ success: true });
 });
@@ -122,7 +143,7 @@ router.post('/admin/banner-center/from-event/:eventId', async (req, res) => {
   const banner = await prisma.banner.create({
     data: {
       title: event.title, subtitle: event.summary || '', imageUrl: event.thumbnailUrl, ctaLink: event.link || `/events`, ctaText: '이벤트 보기',
-      type: 'event', placement: 'HOME_MAIN', showText: true, isActive: true,
+      type: 'event', placement: 'HOME_MAIN', placements: JSON.stringify(['HOME_MAIN']), showText: true, isActive: true,
       startAt: event.startAt > new Date() ? event.startAt : null, endAt: event.endAt || null, eventId: event.id,
       order: (last?.order ?? -1) + 1,
     },

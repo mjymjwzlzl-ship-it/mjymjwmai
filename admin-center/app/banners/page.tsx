@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { adminApi, apiBase, authHeaders, img, siteBase } from '@/lib/works';
 
@@ -9,7 +10,7 @@ import { adminApi, apiBase, authHeaders, img, siteBase } from '@/lib/works';
 // 목록 순서(위→아래) = 대배너 왼쪽→오른쪽. [이벤트 관리 > 대배너에 추가]로 만든 배너도 여기서 관리한다.
 interface Banner {
   id: string; title: string; subtitle?: string | null; description?: string | null; imageUrl: string; ctaText: string; ctaLink: string;
-  placement: string; placementLabel: string; showText: boolean; isActive: boolean; startAt?: string | null; endAt?: string | null; order: number;
+  placement: string; placements: string[]; placementLabel: string; showText: boolean; eventId?: string | null; isActive: boolean; startAt?: string | null; endAt?: string | null; order: number;
   webtoonId?: string | null; webtoonTitle?: string | null; state: 'LIVE' | 'SCHEDULED' | 'ENDED' | 'OFF';
   event?: { id: string; title: string; endAt?: string | null; ended: boolean } | null;
 }
@@ -22,8 +23,19 @@ const STATE: Record<Banner['state'], { label: string; className: string }> = {
 const toLocal = (v?: string | null) => { if (!v) return ''; const d = new Date(v); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 const fmt = (v?: string | null) => (v ? new Date(v).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
 const input = 'w-full rounded border border-gray-600 bg-gray-700 px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none';
+// 노출 위치 탭 (백엔드 lib/banners.js PLACEMENTS 와 같은 키) — 각 위치의 사용자 페이지
+const PLACEMENT_TABS: { key: string; label: string; page: string; where: string }[] = [
+  { key: 'HOME_MAIN', label: '홈 대배너', page: '/home', where: '사용자 홈 맨 위 대배너' },
+  { key: 'WEBTOON', label: '웹툰', page: '/daily', where: '웹툰 목록 페이지 상단 배너' },
+  { key: 'BOOK', label: '단행본', page: '/books', where: '단행본 목록 페이지 상단 배너' },
+  { key: 'NOVEL', label: '웹소설', page: '/novel', where: '웹소설 목록 페이지 상단 배너' },
+  { key: 'CHAT', label: '캐릭터 채팅', page: '/chat', where: '캐릭터 채팅 페이지 상단 배너' },
+];
 
-export default function BannersPage() {
+function BannersContent() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const tab = PLACEMENT_TABS.find((t) => t.key === params.get('placement')) || PLACEMENT_TABS[0];
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Banner | 'new' | null>(null);
@@ -33,13 +45,13 @@ export default function BannersPage() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  const shown = banners.filter((b) => (b.placements || [b.placement]).includes(tab.key));
   const move = async (index: number, dir: -1 | 1) => {
-    const next = [...banners];
+    const next = [...shown];
     const j = index + dir;
     if (j < 0 || j >= next.length) return;
     [next[index], next[j]] = [next[j], next[index]];
-    setBanners(next);
-    try { await adminApi('/admin/banner-center/reorder', { method: 'POST', json: { ids: next.map((b) => b.id) } }); } catch (e: any) { alert(e.message); await load(); }
+    try { await adminApi('/admin/banner-center/reorder', { method: 'POST', json: { ids: next.map((b) => b.id), scoped: true } }); await load(); } catch (e: any) { alert(e.message); await load(); }
   };
   const toggle = async (b: Banner) => {
     try { await adminApi(`/admin/banner-center/${b.id}`, { method: 'PUT', json: { isActive: !b.isActive } }); await load(); } catch (e: any) { alert(e.message); }
@@ -48,7 +60,7 @@ export default function BannersPage() {
     if (!confirm(`'${b.title}' 배너를 삭제할까요?\n홈 대배너에서도 바로 빠집니다.`)) return;
     try { await adminApi(`/admin/banner-center/${b.id}`, { method: 'DELETE' }); await load(); } catch (e: any) { alert(e.message); }
   };
-  const live = banners.filter((b) => b.state === 'LIVE');
+  const live = shown.filter((b) => b.state === 'LIVE');
 
   return (
     <div className="min-h-screen bg-gray-900 p-6 text-white">
@@ -57,32 +69,43 @@ export default function BannersPage() {
           <div>
             <h1 className="text-2xl font-bold">배너 관리</h1>
             <p className="mt-1 text-sm text-gray-400">
-              여기 등록된 배너만 <b className="text-white">사용자 화면 · 메인 홈 &gt; 대배너</b>에 나옵니다. 켜져 있고 노출 기간 안이면 노출, 삭제·끄기·기간 종료면 대배너에서 빠집니다.
-              목록 순서(위→아래)가 대배너 왼쪽→오른쪽 순서입니다. 이벤트는 [이벤트 관리 &gt; 대배너에 추가]로도 올릴 수 있습니다.
+              노출 위치별로 관리합니다. 각 탭에 등록된 배너만 그 사용자 페이지의 배너 영역에 나오고, 켜져 있고 노출 기간 안일 때만 보입니다(끄기·기간 종료·삭제 → 자동으로 내려감).
+              한 배너를 여러 위치에 동시에 걸 수 있습니다. 목록 순서(위→아래)가 그 위치의 왼쪽→오른쪽(넘김) 순서입니다.
             </p>
           </div>
           <div className="flex gap-2">
-            <a href={`${siteBase()}/home`} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded bg-gray-700 px-3 py-2 text-sm hover:bg-gray-600"><ExternalLink className="h-4 w-4" />홈에서 보기</a>
+            <a href={`${siteBase()}${tab.page}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded bg-gray-700 px-3 py-2 text-sm hover:bg-gray-600"><ExternalLink className="h-4 w-4" />{tab.label} 페이지에서 보기</a>
             <button type="button" onClick={() => setEditing('new')} className="flex items-center gap-1 rounded bg-purple-600 px-4 py-2 text-sm font-bold hover:bg-purple-700"><Plus className="h-4 w-4" />배너 추가</button>
           </div>
         </div>
-        <p className="mt-3 rounded bg-gray-800 px-3 py-2 text-sm">지금 홈 대배너에 <b className="text-green-300">{live.length}개</b> 노출 중{live.length === 0 && ' — 노출할 배너가 없으면 대배너 영역이 숨겨집니다.'}</p>
+        <div className="mt-4 flex flex-wrap gap-1 border-b border-gray-700" role="tablist" aria-label="노출 위치">
+          {PLACEMENT_TABS.map((t) => {
+            const n = banners.filter((b) => (b.placements || [b.placement]).includes(t.key)).length;
+            return (
+              <button key={t.key} type="button" role="tab" aria-selected={tab.key === t.key} onClick={() => router.replace(`/banners?placement=${t.key}`)}
+                className={`-mb-px border-b-2 px-4 py-2 text-sm font-bold ${tab.key === t.key ? 'border-purple-500 text-white' : 'border-transparent text-gray-400 hover:text-white'}`}>
+                {t.label} <span className="text-xs text-gray-500">{n}</span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-3 rounded bg-gray-800 px-3 py-2 text-sm">노출 위치: <b>{tab.where}</b> — 지금 <b className="text-green-300">{live.length}개</b> 노출 중{live.length === 0 && (tab.key === 'HOME_MAIN' || tab.key === 'CHAT' ? ' (없으면 이 배너 영역이 숨겨집니다)' : ' (없으면 기본 앱 다운로드 안내가 나옵니다)')}</p>
 
-        {loading ? <p className="py-20 text-center text-gray-400">불러오는 중...</p> : banners.length === 0 ? (
-          <p className="mt-4 rounded-lg border border-dashed border-gray-700 py-16 text-center text-gray-400">등록된 배너가 없습니다. [배너 추가]로 올리세요.</p>
+        {loading ? <p className="py-20 text-center text-gray-400">불러오는 중...</p> : shown.length === 0 ? (
+          <p className="mt-4 rounded-lg border border-dashed border-gray-700 py-16 text-center text-gray-400">{tab.label}에 등록된 배너가 없습니다. [배너 추가]로 올리세요.</p>
         ) : (
           <ul className="mt-4 space-y-2">
-            {banners.map((b, index) => (
+            {shown.map((b, index) => (
               <li key={b.id} className={`flex flex-wrap items-center gap-4 rounded-lg border p-3 ${b.state === 'LIVE' ? 'border-green-500/30 bg-gray-800' : 'border-gray-700 bg-gray-800/60'}`}>
                 <div className="flex flex-col gap-1">
                   <button type="button" aria-label="위로" disabled={index === 0} onClick={() => void move(index, -1)} className="rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
-                  <button type="button" aria-label="아래로" disabled={index === banners.length - 1} onClick={() => void move(index, 1)} className="rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                  <button type="button" aria-label="아래로" disabled={index === shown.length - 1} onClick={() => void move(index, 1)} className="rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
                 </div>
                 <img src={img(b.imageUrl)} alt="" className="h-20 w-40 shrink-0 rounded bg-gray-700 object-cover" />
                 <div className="min-w-0 flex-1 text-sm">
                   <p className="flex flex-wrap items-center gap-2">
                     <span className={`rounded px-2 py-0.5 text-xs font-bold ${STATE[b.state].className}`}>{STATE[b.state].label}</span>
-                    <span className="rounded bg-purple-500/20 px-2 py-0.5 text-xs text-purple-200">노출 위치: {b.placementLabel}</span>
+                    {(b.placements || [b.placement]).map((p) => <span key={p} className={`rounded px-2 py-0.5 text-xs ${p === tab.key ? 'bg-purple-500/30 text-purple-100' : 'bg-gray-700 text-gray-300'}`}>{PLACEMENT_TABS.find((t) => t.key === p)?.label || p}</span>)}
                     <b className="truncate">{b.title}</b>
                   </p>
                   {b.subtitle && <p className="mt-0.5 truncate text-gray-400">{b.subtitle}</p>}
@@ -109,12 +132,20 @@ export default function BannersPage() {
           </ul>
         )}
       </div>
-      {editing && <BannerForm banner={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />}
+      {editing && <BannerForm defaultPlacement={tab.key} banner={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await load(); }} />}
     </div>
   );
 }
 
-function BannerForm({ banner, onClose, onSaved }: { banner: Banner | null; onClose: () => void; onSaved: () => Promise<void> }) {
+export default function BannersPage() {
+  return <Suspense fallback={null}><BannersContent /></Suspense>;
+}
+
+function BannerForm({ banner, defaultPlacement, onClose, onSaved }: { banner: Banner | null; defaultPlacement: string; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [placements, setPlacements] = useState<string[]>(banner?.placements?.length ? banner.placements : [defaultPlacement]);
+  const [events, setEvents] = useState<{ id: string; title: string; link: string; endAt?: string | null }[]>([]);
+  const [eventId, setEventId] = useState(banner?.eventId || '');
+  useEffect(() => { adminApi<{ events: any[] }>('/admin/events').then((d) => setEvents(d.events || [])).catch(() => {}); }, []);
   const [form, setForm] = useState({
     title: banner?.title || '', subtitle: banner?.subtitle || '', ctaLink: banner?.ctaLink || '', ctaText: banner?.ctaText || '',
     webtoonId: banner?.webtoonId || '', showText: banner?.showText ?? true, isActive: banner?.isActive ?? true,
@@ -129,12 +160,13 @@ function BannerForm({ banner, onClose, onSaved }: { banner: Banner | null; onClo
   const save = async () => {
     if (!form.title.trim()) { alert('배너 제목을 입력하세요.'); return; }
     if (!banner && !file) { alert('배너 이미지를 올리세요.'); return; }
-    if (!form.ctaLink.trim() && !form.webtoonId.trim()) { alert('누르면 이동할 링크를 넣거나 작품 ID를 연결하세요.'); return; }
+    if (!placements.length) { alert('노출 위치를 하나 이상 고르세요.'); return; }
+    if (!form.ctaLink.trim() && !form.webtoonId.trim() && !eventId) { alert('누르면 이동할 링크를 넣거나 작품·이벤트를 연결하세요.'); return; }
     setBusy(true);
     try {
       const body = new FormData();
       body.append('title', form.title); body.append('subtitle', form.subtitle); body.append('ctaLink', form.ctaLink); body.append('ctaText', form.ctaText);
-      body.append('webtoonId', form.webtoonId); body.append('showText', String(form.showText)); body.append('isActive', String(form.isActive)); body.append('placement', 'HOME_MAIN');
+      body.append('webtoonId', form.webtoonId); body.append('showText', String(form.showText)); body.append('isActive', String(form.isActive)); body.append('placements', JSON.stringify(placements)); body.append('eventId', eventId);
       body.append('startAt', form.startAt ? new Date(form.startAt).toISOString() : ''); body.append('endAt', form.endAt ? new Date(form.endAt).toISOString() : '');
       if (file) body.append('image', file);
       const r = await fetch(`${apiBase()}/admin/banner-center${banner ? `/${banner.id}` : ''}`, { method: banner ? 'PUT' : 'POST', headers: authHeaders(), body });
@@ -151,7 +183,15 @@ function BannerForm({ banner, onClose, onSaved }: { banner: Banner | null; onClo
           <h2 className="text-lg font-bold">{banner ? '배너 수정' : '배너 추가'}</h2>
           <button type="button" onClick={onClose} aria-label="닫기" className="rounded p-1 text-gray-400 hover:bg-gray-700"><X className="h-5 w-5" /></button>
         </div>
-        <p className="rounded bg-purple-500/10 px-3 py-2 text-purple-200">노출 위치: <b>메인 홈 &gt; 대배너</b></p>
+        <fieldset className="rounded bg-purple-500/10 px-3 py-2">
+          <legend className="sr-only">노출 위치</legend>
+          <span className="mr-2 text-purple-200">노출 위치 *</span>
+          {PLACEMENT_TABS.map((t) => (
+            <label key={t.key} className="mr-3 inline-flex items-center gap-1 text-purple-100">
+              <input type="checkbox" checked={placements.includes(t.key)} onChange={(e) => setPlacements(e.target.checked ? [...placements, t.key] : placements.filter((p) => p !== t.key))} />{t.label}
+            </label>
+          ))}
+        </fieldset>
         <label className="block"><span className="mb-1 block text-gray-300">배너 이미지 {banner ? '(바꿀 때만)' : '*'} <span className="text-xs text-gray-500">가로형 권장(약 2:1), 10MB 이하 · 자르지 않고 폭 1600px로 줄여 저장</span></span>
           {preview && <img src={preview} alt="배너 미리보기" className="mb-2 max-h-48 rounded border border-gray-600" />}
           <span className="flex cursor-pointer items-center gap-2 rounded border border-dashed border-gray-600 px-3 py-3 text-gray-300 hover:bg-gray-700"><ImagePlus className="h-4 w-4" />{file ? file.name : '이미지 선택'}
@@ -163,6 +203,9 @@ function BannerForm({ banner, onClose, onSaved }: { banner: Banner | null; onClo
         <div className="grid gap-3 md:grid-cols-2">
           <label className="block"><span className="mb-1 block text-gray-300">누르면 이동할 링크 <span className="text-xs text-gray-500">예) /events, /webtoons/작품ID</span></span><input className={input} value={form.ctaLink} onChange={(e) => set({ ctaLink: e.target.value })} /></label>
           <label className="block"><span className="mb-1 block text-gray-300">작품 연결(작품 ID) <span className="text-xs text-gray-500">링크가 비면 이 작품으로</span></span><input className={input} value={form.webtoonId} onChange={(e) => set({ webtoonId: e.target.value })} /></label>
+          <label className="block md:col-span-2"><span className="mb-1 block text-gray-300">이벤트 연결 <span className="text-xs text-gray-500">링크가 비면 이 이벤트 링크로</span></span>
+            <select className={input} value={eventId} onChange={(e) => setEventId(e.target.value)}><option value="">연결 안 함</option>{events.map((ev) => <option key={ev.id} value={ev.id}>{ev.title}</option>)}</select>
+          </label>
           <label className="block"><span className="mb-1 block text-gray-300">노출 시작 <span className="text-xs text-gray-500">비우면 바로</span></span><input type="datetime-local" className={input} value={form.startAt} onChange={(e) => set({ startAt: e.target.value })} /></label>
           <label className="block"><span className="mb-1 block text-gray-300">노출 종료 <span className="text-xs text-gray-500">비우면 계속</span></span><input type="datetime-local" className={input} value={form.endAt} onChange={(e) => set({ endAt: e.target.value })} /></label>
         </div>
