@@ -59,6 +59,7 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
         episodeNumber: true,
         images: true,
         textContent: true,
+        authorNote: true,
         viewCount: true,
         createdAt: true,
         comicId: true,
@@ -264,8 +265,9 @@ router.get('/:episodeId', ...guardEpisode(), async (req, res) => {
 
     // 웹소설: 본문은 볼 수 있을 때만 내려준다 (이미지 대신 text)
     episodeInfo.contentType = episode.comic.contentType || 'WEBTOON';
-    const { textContent, ...rest } = episodeInfo;
-    const payload = { ...rest, text: episodeInfo.canView && episode.comic.contentType === 'NOVEL' ? (textContent || '') : null };
+    const { textContent, authorNote, ...rest } = episodeInfo;
+    // 작가의 말은 회차를 볼 수 있을 때만 (본문과 같이)
+    const payload = { ...rest, text: episodeInfo.canView && episode.comic.contentType === 'NOVEL' ? (textContent || '') : null, authorNote: episodeInfo.canView ? (authorNote || null) : null };
     res.json({
       success: true,
       episode: payload
@@ -584,6 +586,7 @@ router.post('/:episodeId/purchase', auth, ...guardEpisode({ purchasing: true }),
       title: episode.title,
       images: parseEpisodeImages(),
       text: episode.comic.contentType === 'NOVEL' ? (episode.textContent || '') : null,
+      authorNote: episode.authorNote || null,
       purchaseDate: purchase.createdAt,
       purchaseType: purchase.type || 'OWN',
       expiresAt: purchase.expiresAt,

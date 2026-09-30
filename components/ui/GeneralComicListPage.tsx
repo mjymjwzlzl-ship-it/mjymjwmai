@@ -65,6 +65,8 @@ type NormalizedComic = {
 
 // 상태·분류 필터와 정렬 기준 (장르와 분리)
 type StatusFilter = 'all' | 'new' | 'ongoing' | 'completed';
+// 작품 상세에서 돌아올 때 되돌릴 목록 스크롤 위치
+const LIST_RETURN_KEY = 'arata_list_return_v1';
 const NEW_WINDOW_MS = 90 * 24 * 60 * 60 * 1000; // 신작 = 최근 90일 안에 등록
 const statusFilterLabels: Record<Locale, Record<StatusFilter, string>> = {
   ko: { all: '전체', new: '신작', ongoing: '연재중', completed: '완결' },
@@ -400,6 +402,39 @@ export default function GeneralComicListPage({
     };
   }, []);
 
+  // ── 목록 탐색 상태 유지: 장르(?category) 외 태그·요일·정렬·상태·옵션·검색어·페이지를 주소(?tag=&day=&sort=…)에 담는다.
+  // 작품 상세에 갔다가 뒤로가기(브라우저·[이전])로 오면 주소 그대로 돌아와 같은 조건으로 다시 그린다.
+  // 스크롤 위치는 작품을 누를 때 sessionStorage 에 적어 두고, 같은 주소로 돌아오면 그 위치로 되돌린다.
+  const stateSettled = useRef(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sortParam = params.get('sort');
+    if (sortParam && ['updated', 'created', 'oldest', 'popular'].includes(sortParam)) setSort(sortParam as CatalogSort);
+    const statusParam = params.get('status');
+    if (statusParam && ['all', 'new', 'ongoing', 'completed'].includes(statusParam)) setStatusFilter(statusParam as StatusFilter);
+    const dayParam = params.get('day');
+    if (dayParam && WEEKDAY_TABS.some((tab) => tab.key === dayParam)) setWeekday(dayParam as WeekdayKey);
+    const optParam = params.get('opt');
+    if (optParam) setActiveOption(optParam);
+    const qParam = params.get('q');
+    if (qParam) setSearchQuery(qParam);
+    const pageParam = Number(params.get('page'));
+    if (pageParam > 1) setPage(pageParam);
+    // 복원한 값이 그려진 뒤부터 조건 변경을 페이지 1로 되돌리기·주소 쓰기에 반영
+    const id = window.setTimeout(() => { stateSettled.current = true; }, 60);
+    // 뒤로가기(popstate)는 장르만 다시 읽던 기존 동작에 더해 나머지 조건도 주소에서 다시 읽는다
+    const onPop = () => {
+      const next = new URLSearchParams(window.location.search);
+      const sp = next.get('sort'); if (sp && ['updated', 'created', 'oldest', 'popular'].includes(sp)) setSort(sp as CatalogSort);
+      const st = next.get('status'); if (st && ['all', 'new', 'ongoing', 'completed'].includes(st)) setStatusFilter(st as StatusFilter);
+      const d = next.get('day'); setWeekday(d && WEEKDAY_TABS.some((tab) => tab.key === d) ? d as WeekdayKey : 'all');
+      setActiveTag(next.get('tag')); setActiveOption(next.get('opt')); setSearchQuery(next.get('q') || '');
+      const pg = Number(next.get('page')); setPage(pg > 1 ? pg : 1);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => { window.clearTimeout(id); window.removeEventListener('popstate', onPop); };
+  }, []);
+
   const { data: homeData, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey,
     queryFn: async () => {
@@ -498,8 +533,21 @@ export default function GeneralComicListPage({
   }, [baseItems]);
 
   useEffect(() => {
+    if (!stateSettled.current) return; // 주소에서 복원하는 중에는 페이지를 유지
     setPage(1);
   }, [activeCategory, activeOption, searchQuery, sort, statusFilter]);
+
+  // 현재 조건을 주소에 반영 (Next 라우터 상태를 지우지 않게 history.state 는 그대로 둔다)
+  useEffect(() => {
+    if (!stateSettled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const put = (key: string, value: string | null | undefined, fallback = '') => { if (value && value !== fallback) params.set(key, value); else params.delete(key); };
+    put('tag', activeTag); put('day', weekday, 'all'); put('sort', sort, 'updated'); put('status', statusFilter, 'all');
+    put('opt', activeOption); put('q', searchQuery.trim()); put('page', String(page), '1');
+    const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
+    if (next !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(window.history.state, '', next);
+  }, [activeTag, weekday, sort, statusFilter, activeOption, searchQuery, page]);
+
 
   const itemsPerPage = viewMode === 'grid' ? GRID_ITEMS_PER_PAGE : ITEMS_PER_PAGE;
   const pageCount = Math.max(1, Math.ceil(items.length / itemsPerPage));
@@ -515,13 +563,36 @@ export default function GeneralComicListPage({
   };
   const pagedItems = items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  // 스크롤 위치: 목록에서 작품을 누르는 순간 (주소, 위치)를 적어 두고, 같은 주소로 돌아오면 목록이 그려진 뒤 그 위치로
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      const link = (event.target as HTMLElement | null)?.closest?.('a[href^="/webtoons/"]');
+      if (!link || !link.closest('[data-comic-list]')) return;
+      try { sessionStorage.setItem(LIST_RETURN_KEY, JSON.stringify({ url: `${window.location.pathname}${window.location.search}`, y: window.scrollY, at: Date.now() })); } catch {}
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, []);
+  const scrollRestored = useRef(false);
+  useEffect(() => {
+    if (scrollRestored.current || !pagedItems.length) return;
+    let saved: { url: string; y: number; at: number } | null = null;
+    try { saved = JSON.parse(sessionStorage.getItem(LIST_RETURN_KEY) || 'null'); } catch {}
+    scrollRestored.current = true;
+    if (!saved || saved.url !== `${window.location.pathname}${window.location.search}` || Date.now() - saved.at > 60 * 60 * 1000) return;
+    try { sessionStorage.removeItem(LIST_RETURN_KEY); } catch {}
+    const y = saved.y;
+    requestAnimationFrame(() => window.scrollTo(0, y));
+    window.setTimeout(() => { if (Math.abs(window.scrollY - y) > 40) window.scrollTo(0, y); }, 350);
+  }, [pagedItems.length]);
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-950 transition-colors dark:bg-[#141414] dark:text-white">
       <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-6">
         <AppDownloadBanner />
         {beforeGrid && <div className="mb-6">{beforeGrid}</div>}
 
-        <section className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-md shadow-gray-200/70 transition-colors dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
+        <section data-comic-list className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-md shadow-gray-200/70 transition-colors dark:border-gray-800 dark:bg-[#1b1b1b] dark:shadow-none">
           <div className="border-b border-gray-200 p-3 sm:p-5 dark:border-gray-800">
             {!hideHeader && (
               <div className="mb-5">

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, Share2, Settings, Eye, EyeOff, Coins, Lock, X, AlertTriangle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Home, List, MessageCircle, Heart, Share2, Settings, Eye, EyeOff, Coins, Lock, X, AlertTriangle, RotateCcw, PenLine } from 'lucide-react';
 import FastImage from '@/components/ui/FastImage';
 import NovelReader from '@/components/viewer/NovelReader';
 import CommentSection from '@/components/ui/CommentSection';
@@ -56,6 +56,8 @@ interface Episode {
   saleSuspended?: boolean;
   contentType?: string;
   text?: string | null;
+  authorNote?: string | null; // 회차별 [작가의 말]
+  authorName?: string;
   canView?: boolean;
   needsPurchase?: boolean;
   needsLogin?: boolean;
@@ -250,6 +252,8 @@ export default function EpisodePage() {
           createdAt: episodeData.createdAt,
           webtoonTitle: episodeData.comic?.title || '',
           author: episodeData.comic?.author?.nickname || '작가',
+          authorNote: episodeData.authorNote || null,
+          authorName: episodeData.comic?.authorName || '',
           isFree: episodeData.isFree,
           coinPrice: episodeData.coinPrice,
           ownPrice: episodeData.ownPrice,
@@ -631,6 +635,7 @@ export default function EpisodePage() {
             ...prev,
             images: response.data.episode.images,
             text: response.data.episode.text ?? prev.text,
+            authorNote: response.data.episode.authorNote ?? prev.authorNote,
             canView: true,
             needsPurchase: false,
             purchaseDate: response.data.episode.purchaseDate,
@@ -1091,6 +1096,17 @@ export default function EpisodePage() {
                 <div className="mb-4">
                   <SimilarWorksRail comicId={String(params.id)} isFinale={isLastEpisode} />
                 </div>
+                {/* 작가의 말: 회차별 짧은 코멘트·후기·다음 화 안내 (관리자 회차 등록·수정에서 작성, 없으면 영역 없음).
+                    작품 전체 안내(휴재·일정·판매)는 작품 상세 [작품 공지] */}
+                {episode.authorNote && (
+                  <section aria-label="작가의 말" className="mb-4 rounded-xl border border-[#00dc64]/30 bg-[#00dc64]/5 p-4">
+                    <h3 className="mb-2 flex items-center gap-1.5 text-sm font-black text-gray-950 dark:text-white">
+                      <PenLine className="h-4 w-4 text-[#00a84c] dark:text-[#00dc64]" />작가의 말
+                      {episode.authorName && <span className="ml-1 text-xs font-bold text-gray-500 dark:text-gray-400">{episode.authorName}</span>}
+                    </h3>
+                    <p className="whitespace-pre-line break-words text-sm leading-relaxed text-gray-700 dark:text-gray-300">{episode.authorNote}</p>
+                  </section>
+                )}
                 <div data-comments-anchor>
                   <CommentSection
                     episodeId={params.episodeId}

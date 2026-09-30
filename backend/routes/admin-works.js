@@ -77,7 +77,7 @@ router.get('/admin/works/:id', async (req, res) => {
   const comic = await prisma.comic.findUnique({
     where: { id: req.params.id },
     include: {
-      episodes: { orderBy: { episodeNumber: 'asc' }, select: { id: true, episodeNumber: true, title: true, thumbnail: true, images: true, textContent: true, createdAt: true, viewCount: true, _count: { select: { purchases: true } } } },
+      episodes: { orderBy: { episodeNumber: 'asc' }, select: { id: true, episodeNumber: true, title: true, thumbnail: true, images: true, textContent: true, authorNote: true, createdAt: true, viewCount: true, _count: { select: { purchases: true } } } },
     },
   });
   if (!comic) return res.status(404).json({ message: '작품을 찾을 수 없습니다.' });
@@ -110,6 +110,7 @@ router.get('/admin/works/:id', async (req, res) => {
       imageCount: parseImages(ep.images).length,
       textLength: ep.textContent ? ep.textContent.length : 0,
       textContent: comic.contentType === 'NOVEL' ? ep.textContent || '' : undefined,
+      authorNote: ep.authorNote || '',
       viewCount: ep.viewCount,
       purchases: ep._count.purchases,
     })),
@@ -218,7 +219,7 @@ router.post('/admin/works/:id/episodes', upload.array('images', 300), async (req
     }
   }
   const episode = await prisma.episode.create({
-    data: { comicId: comic.id, episodeNumber, title, images: isNovel ? '[]' : images.join(','), textContent, createdAt: publishedAt },
+    data: { comicId: comic.id, episodeNumber, title, images: isNovel ? '[]' : images.join(','), textContent, authorNote: String(req.body.authorNote || '').trim().slice(0, 1000) || null, createdAt: publishedAt },
   });
   await prisma.comic.update({ where: { id: comic.id }, data: { updatedAt: new Date() } });
   res.json({ episode: { id: episode.id, episodeNumber, title, publishedAt, scheduled: publishedAt > new Date(), imageCount: images.length } });
@@ -235,6 +236,8 @@ router.patch('/admin/works/:id/episodes/:epId', async (req, res) => {
     data.createdAt = date;
   }
   if (req.body.textContent !== undefined) data.textContent = String(req.body.textContent);
+  // 작가의 말: 비우면 삭제(null) → 뷰어에서 영역이 사라진다
+  if (req.body.authorNote !== undefined) data.authorNote = String(req.body.authorNote || '').trim().slice(0, 1000) || null;
   const updated = await prisma.episode.update({ where: { id: req.params.epId }, data, select: { id: true, title: true, createdAt: true } });
   res.json({ episode: { ...updated, publishedAt: updated.createdAt } });
 });

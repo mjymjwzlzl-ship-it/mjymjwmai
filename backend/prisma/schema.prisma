@@ -148,6 +148,7 @@ model Episode {
   thumbnail   String?  // 에피소드 썸네일
   images      String   // JSON string으로 저장 (웹소설은 "[]")
   textContent String?  // 웹소설 회차 본문
+  authorNote  String?  // 회차별 [작가의 말] (짧은 코멘트·후기·다음 화 안내). 비면 뷰어에 영역 자체가 없다
   viewCount   Int      @default(0)
   rating      Float    @default(0)  // 평균 평점
 

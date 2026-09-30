@@ -18,7 +18,7 @@ interface Work {
 }
 interface Episode {
   id: string; episodeNumber: number; title: string; publishedAt: string; scheduled: boolean; publishedToday: boolean; free: boolean;
-  imageCount: number; textLength: number; textContent?: string; viewCount: number; purchases: number;
+  imageCount: number; textLength: number; textContent?: string; authorNote?: string; viewCount: number; purchases: number;
 }
 
 // 사이트 장르 탭과 맞춘 장르 값
@@ -306,16 +306,17 @@ export default function WorkDetailPage() {
 }
 
 function EpisodeSection({ workId, isNovel, episodes, onChanged, paidStart }: { workId: string; isNovel: boolean; episodes: Episode[]; onChanged: () => Promise<void>; paidStart: number }) {
-  const [edits, setEdits] = useState<Record<string, { title: string; publishedAt: string; textContent?: string }>>({});
+  const [edits, setEdits] = useState<Record<string, { title: string; publishedAt: string; textContent?: string; authorNote?: string }>>({});
+  const [openNote, setOpenNote] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [openText, setOpenText] = useState<string | null>(null);
-  const edit = (ep: Episode) => edits[ep.id] || { title: ep.title, publishedAt: toLocal(ep.publishedAt), textContent: ep.textContent };
+  const edit = (ep: Episode) => edits[ep.id] || { title: ep.title, publishedAt: toLocal(ep.publishedAt), textContent: ep.textContent, authorNote: ep.authorNote || '' };
   const change = (ep: Episode, patch: any) => setEdits({ ...edits, [ep.id]: { ...edit(ep), ...patch } });
 
   const saveEp = async (ep: Episode) => {
     const e = edit(ep);
     try {
-      await adminApi(`/admin/works/${workId}/episodes/${ep.id}`, { method: 'PATCH', json: { title: e.title, publishedAt: fromLocal(e.publishedAt), ...(isNovel ? { textContent: e.textContent } : {}) } });
+      await adminApi(`/admin/works/${workId}/episodes/${ep.id}`, { method: 'PATCH', json: { title: e.title, publishedAt: fromLocal(e.publishedAt), authorNote: e.authorNote ?? '', ...(isNovel ? { textContent: e.textContent } : {}) } });
       const next = { ...edits }; delete next[ep.id]; setEdits(next);
       await onChanged();
     } catch (err: any) { alert(err.message); }
@@ -334,7 +335,7 @@ function EpisodeSection({ workId, isNovel, episodes, onChanged, paidStart }: { w
       <p className="mb-3 text-xs text-gray-400">공개 일시를 미래로 두면 <b>예약 공개</b>: 그 시각 전에는 사이트에 보이지 않고, 공개되는 날 작품에 <b className="text-red-400">UP</b> 배지가 붙습니다.</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="text-left text-gray-400"><tr><th className="p-2">회차</th><th className="p-2">제목</th><th className="p-2">발행 날짜 · 시간</th><th className="p-2">가격</th><th className="p-2">{isNovel ? '글자' : '이미지'}</th><th className="p-2">조회</th><th className="p-2">구매</th><th className="p-2" /></tr></thead>
+          <thead className="text-left text-gray-400"><tr><th className="p-2">회차</th><th className="p-2">제목</th><th className="p-2">발행 날짜 · 시간</th><th className="p-2">가격</th><th className="p-2">{isNovel ? '글자' : '이미지'}</th><th className="p-2">작가의 말</th><th className="p-2">조회</th><th className="p-2">구매</th><th className="p-2" /></tr></thead>
           <tbody>
             {episodes.map((ep) => {
               const e = edit(ep);
@@ -357,6 +358,9 @@ function EpisodeSection({ workId, isNovel, episodes, onChanged, paidStart }: { w
                     <td className="p-2 text-xs">
                       {isNovel ? <button type="button" className="underline" onClick={() => setOpenText(openText === ep.id ? null : ep.id)}>{ep.textLength.toLocaleString()}자 · 편집</button> : `${ep.imageCount}장`}
                     </td>
+                    <td className="p-2 text-xs">
+                      <button type="button" className={`underline ${e.authorNote ? 'text-green-300' : 'text-gray-500'}`} onClick={() => setOpenNote(openNote === ep.id ? null : ep.id)}>{e.authorNote ? '있음 · 편집' : '없음 · 쓰기'}</button>
+                    </td>
                     <td className="p-2 text-xs">{ep.viewCount.toLocaleString()}</td>
                     <td className="p-2 text-xs">{ep.purchases}</td>
                     <td className="whitespace-nowrap p-2">
@@ -364,8 +368,16 @@ function EpisodeSection({ workId, isNovel, episodes, onChanged, paidStart }: { w
                       <button type="button" onClick={() => void removeEp(ep)} className="rounded p-1 text-red-400 hover:bg-gray-700" aria-label="삭제"><Trash2 className="h-4 w-4" /></button>
                     </td>
                   </tr>
+                  {openNote === ep.id && (
+                    <tr><td colSpan={9} className="p-2">
+                      <label className="block text-xs text-gray-300">작가의 말 <span className="text-gray-500">— 이 회차 뷰어 댓글 위에 나옵니다. 짧은 코멘트·후기·다음 화 안내. 비우고 저장하면 영역이 사라집니다. (작품 전체 휴재·일정·판매 안내는 아래 [작품 공지])</span>
+                        <textarea rows={3} maxLength={1000} className={`${input} mt-1`} value={e.authorNote || ''} placeholder="예) 이번 화도 읽어 주셔서 감사합니다! 다음 화는 금요일에 만나요." onChange={(ev) => change(ep, { authorNote: ev.target.value })} />
+                      </label>
+                      <p className="mt-1 text-right text-[11px] text-gray-500">{(e.authorNote || '').length}/1000 · 오른쪽 [저장]으로 반영</p>
+                    </td></tr>
+                  )}
                   {isNovel && openText === ep.id && (
-                    <tr><td colSpan={8} className="p-2"><textarea rows={10} className={input} value={e.textContent || ''} onChange={(ev) => change(ep, { textContent: ev.target.value })} /></td></tr>
+                    <tr><td colSpan={9} className="p-2"><textarea rows={10} className={input} value={e.textContent || ''} onChange={(ev) => change(ep, { textContent: ev.target.value })} /></td></tr>
                   )}
                 </React.Fragment>
               );
@@ -384,6 +396,7 @@ function NewEpisode({ workId, isNovel, nextNumber, onClose, onDone }: { workId: 
   const [publishedAt, setPublishedAt] = useState(toLocal(new Date().toISOString()));
   const [files, setFiles] = useState<File[]>([]);
   const [text, setText] = useState('');
+  const [authorNote, setAuthorNote] = useState('');
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
@@ -395,6 +408,7 @@ function NewEpisode({ workId, isNovel, nextNumber, onClose, onDone }: { workId: 
       body.append('publishedAt', new Date(publishedAt).toISOString());
       if (isNovel) body.append('textContent', text);
       else files.forEach((f) => body.append('images', f));
+      if (authorNote.trim()) body.append('authorNote', authorNote.trim());
       const r = await fetch(`${apiBase()}/admin/works/${workId}/episodes`, { method: 'POST', headers: authHeaders(), body });
       const d = await r.json();
       if (!r.ok) throw new Error(d.message || '등록 실패');
@@ -426,6 +440,9 @@ function NewEpisode({ workId, isNovel, nextNumber, onClose, onDone }: { workId: 
             {files.length > 0 && <span className="mt-1 block text-xs text-gray-400">{files.length}장 선택됨</span>}
           </Field>
         )}
+        <Field label="작가의 말" hint="선택 · 뷰어 댓글 위에 표시, 비우면 영역 없음">
+          <textarea rows={3} maxLength={1000} className={input} value={authorNote} placeholder="짧은 코멘트·후기·다음 화 안내" onChange={(e) => setAuthorNote(e.target.value)} />
+        </Field>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="rounded bg-gray-700 px-4 py-2 text-sm">취소</button>
           <button type="button" disabled={busy} onClick={() => void submit()} className="rounded bg-purple-600 px-4 py-2 text-sm font-bold disabled:opacity-50">{busy ? '올리는 중...' : '등록'}</button>
