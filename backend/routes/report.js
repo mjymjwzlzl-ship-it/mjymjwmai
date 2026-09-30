@@ -4,77 +4,73 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-// 신고 사유 목록
-const REPORT_REASONS = {
-  INAPPROPRIATE: '부적절한 콘텐츠',
-  COPYRIGHT: '저작권 침해',
-  SPAM: '스팸/광고',
-  VIOLENCE: '폭력적인 콘텐츠',
-  ADULT: '성인물 노출',
-  HATE: '혐오 발언',
-  PRIVACY: '개인정보 노출',
-  ILLEGAL: '불법 콘텐츠',
-  OTHER: '기타'
-};
+const path = require('path');
+const fs = require('fs').promises;
+const multer = require('multer');
+const sharp = require('sharp');
+const { REASONS } = require('../lib/report-reasons');
 
-// POST: 신고하기
-router.post('/submit', authenticate, async (req, res) => {
+// 첨부 스크린샷: 공개 폴더(uploads)가 아니라 private 에 두고, 관리자 API 로만 연다
+const REPORT_IMAGE_DIR = path.join(__dirname, '../private/report-images');
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype) ? cb(null, true) : cb(new Error('이미지 파일만 첨부할 수 있습니다.'))),
+});
+const maybeUpload = (req, res, next) => upload.single('image')(req, res, (err) => (err ? res.status(400).json({ message: err.message || '첨부 파일을 올리지 못했습니다.' }) : next()));
+
+// POST: 신고하기 (JSON 또는 multipart: image 1장)
+// type: COMIC(작품) | EPISODE(회차) | COMMENT(댓글) | USER(사용자). 회차 신고는 작품도 함께 묶는다.
+router.post('/submit', authenticate, maybeUpload, async (req, res) => {
   try {
-    const { type, targetId, reason, description } = req.body;
+    const { type, targetId, reason } = req.body;
+    const description = String(req.body.description || '').trim().slice(0, 2000);
     const reporterId = req.user.id || req.user.userId;
 
-    // 유효성 검사
-    if (!type || !targetId || !reason) {
-      return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
+    if (!type || !targetId || !reason) return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
+    if (!REASONS[type]) return res.status(400).json({ message: '유효하지 않은 신고 유형입니다.' });
+    if (!REASONS[type][reason]) return res.status(400).json({ message: '유효하지 않은 신고 사유입니다.' });
+
+    const target = {};
+    if (type === 'COMIC') {
+      if (!(await prisma.comic.findUnique({ where: { id: targetId }, select: { id: true } }))) return res.status(404).json({ message: '작품을 찾을 수 없습니다.' });
+      target.comicId = targetId;
+    } else if (type === 'EPISODE') {
+      const episode = await prisma.episode.findUnique({ where: { id: targetId }, select: { id: true, comicId: true } });
+      if (!episode) return res.status(404).json({ message: '회차를 찾을 수 없습니다.' });
+      Object.assign(target, { episodeId: episode.id, comicId: episode.comicId });
+    } else if (type === 'COMMENT') {
+      const comment = await prisma.comment.findUnique({ where: { id: targetId }, select: { id: true, userId: true, episodeId: true, comicId: true, episode: { select: { comicId: true } } } });
+      if (!comment) return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
+      if (comment.userId === reporterId) return res.status(400).json({ message: '내 댓글은 신고할 수 없습니다.' });
+      Object.assign(target, { commentId: comment.id, targetUserId: comment.userId, episodeId: comment.episodeId || undefined, comicId: comment.comicId || comment.episode?.comicId || undefined });
+    } else {
+      if (targetId === reporterId) return res.status(400).json({ message: '나 자신은 신고할 수 없습니다.' });
+      target.targetUserId = targetId;
     }
 
-    if (!['COMIC', 'EPISODE', 'COMMENT', 'USER'].includes(type)) {
-      return res.status(400).json({ message: '유효하지 않은 신고 유형입니다.' });
-    }
-
-    if (!Object.keys(REPORT_REASONS).includes(reason)) {
-      return res.status(400).json({ message: '유효하지 않은 신고 사유입니다.' });
-    }
-
-    // 중복 신고 확인
+    // 같은 대상·같은 사유로 처리 중인 신고가 있으면 한 번만
     const existingReport = await prisma.report.findFirst({
       where: {
-        reporterId,
-        type,
-        ...(type === 'COMIC' && { comicId: targetId }),
+        reporterId, type, reason, status: { in: ['PENDING', 'PROCESSING'] },
+        ...(type === 'COMIC' && { comicId: targetId, episodeId: null }),
         ...(type === 'EPISODE' && { episodeId: targetId }),
         ...(type === 'COMMENT' && { commentId: targetId }),
-        ...(type === 'USER' && { targetUserId: targetId }),
-        status: { in: ['PENDING', 'PROCESSING'] }
-      }
+        ...(type === 'USER' && { targetUserId: targetId, commentId: null }),
+      },
     });
+    if (existingReport) return res.status(400).json({ message: '이미 같은 사유로 신고해 처리 중이에요.' });
 
-    if (existingReport) {
-      return res.status(400).json({ message: '이미 신고한 콘텐츠입니다.' });
+    const report = await prisma.report.create({ data: { type, reason, description, reporterId, ...target } });
+    if (req.file) {
+      await fs.mkdir(REPORT_IMAGE_DIR, { recursive: true });
+      const name = `${report.id}.webp`;
+      await sharp(req.file.buffer).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 85 }).toFile(path.join(REPORT_IMAGE_DIR, name));
+      await prisma.report.update({ where: { id: report.id }, data: { imageUrl: name } });
     }
+    await prisma.reportHistory.create({ data: { reportId: report.id, fromStatus: null, toStatus: 'PENDING', memo: '신고 접수' } });
 
-    // 신고 생성
-    const reportData = {
-      type,
-      reason,
-      description: description || '',
-      reporterId,
-      ...(type === 'COMIC' && { comicId: targetId }),
-      ...(type === 'EPISODE' && { episodeId: targetId }),
-      ...(type === 'COMMENT' && { commentId: targetId }),
-      ...(type === 'USER' && { targetUserId: targetId })
-    };
-
-    const report = await prisma.report.create({
-      data: reportData
-    });
-
-    res.json({
-      success: true,
-      message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
-      reportId: report.id
-    });
-
+    res.json({ success: true, message: '신고가 접수되었습니다. 확인 후 조치할게요.', reportId: report.id });
   } catch (error) {
     console.error('신고 처리 오류:', error);
     res.status(500).json({ message: '신고 처리 중 오류가 발생했습니다.' });

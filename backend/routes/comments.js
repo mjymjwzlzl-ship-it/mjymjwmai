@@ -22,11 +22,17 @@ router.get('/episodes/:episodeId/comments', async (req, res) => {
       }
     }
 
-    // 댓글 조회
+    // 내가 차단한 사용자: 목록에서 빼지 않고 isBlocked 로 표시 → 화면에서 접어 두고 [차단한 댓글 보기]로 펼친다
+    const blockedIds = userId
+      ? new Set((await prisma.blockedUser.findMany({ where: { blockerId: userId }, select: { blockedId: true } })).map((b) => b.blockedId))
+      : new Set();
+
+    // 댓글 조회 (관리자가 신고 처리로 숨긴 댓글은 빼기)
     const comments = await prisma.comment.findMany({
       where: { 
         episodeId: episodeId,
-        parentId: null // 최상위 댓글만
+        parentId: null, // 최상위 댓글만
+        hiddenAt: null
       },
       include: {
         user: {
@@ -40,6 +46,7 @@ router.get('/episodes/:episodeId/comments', async (req, res) => {
           where: { userId }
         } : false,
         replies: {
+          where: { hiddenAt: null },
           include: {
             user: {
               select: {
@@ -75,6 +82,8 @@ router.get('/episodes/:episodeId/comments', async (req, res) => {
       likes: comment._count.commentLikes,
       isLiked: userId && comment.commentLikes ? comment.commentLikes.length > 0 : false,
       isMyComment: userId === comment.user.id,
+      isSpoiler: comment.isSpoiler,
+      isBlocked: blockedIds.has(comment.user.id),
       replies: comment.replies.map(reply => ({
         id: reply.id.toString(),
         content: reply.content,
@@ -84,7 +93,9 @@ router.get('/episodes/:episodeId/comments', async (req, res) => {
         createdAt: reply.createdAt.toISOString(),
         likes: reply._count?.commentLikes || 0,
         isLiked: userId && reply.commentLikes ? reply.commentLikes.length > 0 : false,
-        isMyComment: userId === reply.user.id
+        isMyComment: userId === reply.user.id,
+        isSpoiler: reply.isSpoiler,
+        isBlocked: blockedIds.has(reply.user.id)
       }))
     }));
 
@@ -99,15 +110,26 @@ router.get('/episodes/:episodeId/comments', async (req, res) => {
 router.post('/episodes/:episodeId/comments', authenticate, async (req, res) => {
   try {
     const { episodeId } = req.params;
-    const { content, parentId } = req.body;
+    const { parentId } = req.body;
+    const content = String(req.body.content || '').trim();
+    const isSpoiler = req.body.isSpoiler === true || req.body.isSpoiler === 'true';
     const userId = req.user.id || req.user.userId;
+    if (!content) return res.status(400).json({ error: '댓글 내용을 입력하세요' });
+    if (content.length > 1000) return res.status(400).json({ error: '댓글은 1000자까지 쓸 수 있어요' });
+    // 답글은 같은 회차의 최상위 댓글에만 (답글의 답글은 원댓글에 붙인다)
+    let parent = null;
+    if (parentId) {
+      parent = await prisma.comment.findUnique({ where: { id: String(parentId) }, select: { id: true, parentId: true, episodeId: true } });
+      if (!parent || parent.episodeId !== episodeId) return res.status(400).json({ error: '답글을 달 댓글을 찾을 수 없습니다' });
+    }
 
     const comment = await prisma.comment.create({
       data: {
         content,
+        isSpoiler,
         episodeId: episodeId,
         userId,
-        parentId: parentId || null
+        parentId: parent ? parent.parentId || parent.id : null
       },
       include: {
         user: {
@@ -130,6 +152,9 @@ router.post('/episodes/:episodeId/comments', authenticate, async (req, res) => {
       likes: 0,
       isLiked: false,
       isMyComment: true,
+      isSpoiler: comment.isSpoiler,
+      isBlocked: false,
+      parentId: comment.parentId,
       replies: []
     };
 

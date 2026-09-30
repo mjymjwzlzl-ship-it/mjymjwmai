@@ -197,6 +197,10 @@ model Comment {
   episodeId String?
   episode   Episode? @relation(fields: [episodeId], references: [id])
   
+  isSpoiler Boolean  @default(false) // 작성자가 [스포일러 포함] 켬 → 가려서 보여 준다
+  hiddenAt  DateTime? // 관리자가 신고 처리로 숨김 (목록에서 빠짐)
+  hiddenReason String?
+
   // 좋아요 관계
   commentLikes CommentLike[]
   reports      Report[]      // 신고 관계 추가
@@ -241,8 +245,9 @@ model Report {
   type        String     // COMIC, EPISODE, COMMENT, USER
   reason      String     // INAPPROPRIATE, COPYRIGHT, SPAM, VIOLENCE, ADULT, OTHER
   description String?
-  status      String     @default("PENDING") // PENDING, PROCESSING, RESOLVED, REJECTED
-  resolution  String?    // 처리 결과 메시지
+  status      String     @default("PENDING") // PENDING(접수) → PROCESSING(확인 중) → RESOLVED(처리 완료) / REJECTED(반려)
+  resolution  String?    // 처리 결과 메시지 (마지막 관리자 메모)
+  imageUrl    String?    // 첨부 스크린샷 (backend/private/report-images, 관리자만 열람)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   resolvedAt  DateTime?  // 처리 완료 시간
@@ -885,4 +890,19 @@ model LibraryHide {
   @@unique([userId, comicId, section])
   @@index([userId, section])
   @@map("library_hides")
+}
+
+// 신고 처리 이력: 상태가 바뀔 때마다 한 줄 (누가·언제·무엇으로·메모). 같은 대상 신고가 반복될 때 지난 처리를 본다.
+model ReportHistory {
+  id         String   @id @default(cuid())
+  reportId   String
+  fromStatus String?
+  toStatus   String
+  memo       String?
+  adminId    String?
+  adminName  String?
+  createdAt  DateTime @default(now())
+
+  @@index([reportId, createdAt])
+  @@map("report_histories")
 }

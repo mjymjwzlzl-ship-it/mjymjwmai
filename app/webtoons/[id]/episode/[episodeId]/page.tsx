@@ -1191,6 +1191,7 @@ export default function EpisodePage() {
         targetType="EPISODE"
         targetId={params.episodeId as string}
         targetName={`${episode?.webtoonTitle} - ${episode?.title}`}
+        context={{ comicTitle: episode?.webtoonTitle, episodeLabel: episode ? `${episode.episodeNumber}화${episode.title && episode.title !== `${episode.episodeNumber}화` ? ` ${episode.title}` : ''}` : '' }}
       />
 
     </div>

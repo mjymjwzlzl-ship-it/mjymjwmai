@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Bell, BellOff } from 'lucide-react';
+import { AlertTriangle, Bell, BellOff } from 'lucide-react';
 import { goBackOr } from '@/lib/nav-history';
 import { Heart, Share2, Star, User, Play, ArrowLeft, Eye, MessageCircle, Trophy, CalendarDays } from 'lucide-react';
 import CheerModal from '@/components/ui/CheerModal';
@@ -24,6 +24,7 @@ import {
 } from '@/lib/comic-localization';
 import ComicBadges from '@/components/ui/ComicBadges';
 import { contentTypeLabel } from '@/lib/comic-content-format';
+const ReportModal = dynamic(() => import('@/components/ui/ReportModal'), { ssr: false, loading: () => null });
 
 // ?깆씤?몄쬆 紐⑤떖 ?숈쟻 濡쒕뱶
 const AdultVerificationModal = dynamic(() => import('@/components/ui/AdultVerificationModal'), {
@@ -304,6 +305,7 @@ const WebtoonDetailPage = () => {
   const [isLiked, setIsLiked] = useState(false);
   // 작품 알림(구독): 찜하면 ON, 찜 유지한 채 끌 수 있음, 찜 해제하면 함께 해제 (Like.notify)
   const [notifyOn, setNotifyOn] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [notifyBusy, setNotifyBusy] = useState(false);
   const toggleNotify = async () => {
     if (!isLiked || notifyBusy) return;
@@ -815,6 +817,11 @@ const WebtoonDetailPage = () => {
                   ) : (
                     <p className="px-1 text-xs text-gray-500 dark:text-gray-400">찜하면 새 회차·작품 공지를 알림함으로 받아 볼 수 있어요.</p>
                   )}
+                  {/* 작품 신고: 작품명이 자동으로 붙는다 (회차 문제는 뷰어의 신고 버튼) */}
+                  <button type="button" onClick={() => { if (!localStorage.getItem('authToken')) { alert('로그인 후 신고할 수 있어요.'); return; } setReportOpen(true); }}
+                    className="flex items-center gap-1 px-1 text-xs font-bold text-gray-400 hover:text-red-500">
+                    <AlertTriangle className="h-3.5 w-3.5" />작품 신고
+                  </button>
                 </div>
 
                 {/* 작품 응원 */}
@@ -1160,6 +1167,9 @@ const WebtoonDetailPage = () => {
         comicTitle={displayTitle}
         onSuccess={fetchCheerStatus}
       />
+      {reportOpen && webtoon && (
+        <ReportModal isOpen={reportOpen} onClose={() => setReportOpen(false)} targetType="COMIC" targetId={String(params.id)} targetName={webtoon.title} context={{ comicTitle: webtoon.title }} />
+      )}
     </div>
   );
 };
