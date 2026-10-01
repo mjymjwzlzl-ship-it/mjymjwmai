@@ -158,7 +158,6 @@ function RankingArea({ area }: { area: Area }) {
           {dirty && <button type="button" onClick={() => apply(view)} className="rounded bg-gray-700 px-3 py-1.5">되돌리기</button>}
         </div>
         <p className="mt-2 text-xs text-gray-400">{metricHelp}</p>
-        {form.metric === 'composite' && <p className="mt-1 text-xs text-gray-500">종합 인기 점수 = {Object.entries(view.options.weights).map(([k, w]) => `${METRIC_COLS.find(([c]) => c === k)?.[1] || k} × ${w}`).join(' + ')} (집계 기간 기준. 전체 기간이면 조회는 누적 조회수, 찜은 현재 찜 수)</p>}
       </div>
 
       {/* 고정 일괄 + 작품 추가 */}

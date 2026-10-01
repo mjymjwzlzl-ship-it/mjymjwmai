@@ -18,7 +18,7 @@ const METRIC_HELP = {
   reads: '기간 안 작품을 본 회원 수 (같은 사람 여러 번 = 1)',
   hearts: '기간 안 회차 좋아요 수',
   rising: '기간 조회 수 − 바로 앞 같은 길이 기간 조회 수 (전체 기간이면 24시간 기준)',
-  composite: '조회×1 + 찜×10 + 구매×20 + 열람×3 + 좋아요×5 (같은 기간)',
+  composite: '조회×1 + 찜×10 + 구매×20 + 열람×3 + 좋아요×5 (같은 기간. 전체 기간이면 조회 = 누적 조회수, 찜 = 현재 찜 수)',
   launch: '런칭일 최신순 (추천 신작 전용)',
 };
 const WEIGHTS = { views: 1, likes: 10, purchases: 20, reads: 3, hearts: 5 };
