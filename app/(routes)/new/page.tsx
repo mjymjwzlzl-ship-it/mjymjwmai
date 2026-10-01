@@ -1,18 +1,18 @@
 'use client';
 
 import GeneralComicListPage from '@/components/ui/GeneralComicListPage';
+import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export default function NewPage() {
+  const { t } = useLanguage();
   return (
     <GeneralComicListPage
-      title="신작 웹툰"
+      title={t('nav.new')}
+      initialSort="created"
       queryKey={['home-data', 'new']}
       selectItems={(homeData) => {
-        const categories = homeData?.data?.categories || {};
         const comics = homeData?.data?.allComics || [];
-        return categories.new?.length > 0
-          ? categories.new
-          : comics.filter((comic: any) => comic.status === 'ONGOING');
+        return comics;
       }}
       emptyMessage="신작 웹툰이 없습니다."
     />

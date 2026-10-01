@@ -37,7 +37,7 @@ export const NAV: NavGroup[] = [
       { label: '추천 신작', href: '/exposure?tab=new' },
       { label: '인기 작품', href: '/exposure?tab=popular' },
       { label: '실시간 랭킹', href: '/exposure?tab=realtime' },
-      { label: '자동 분류(요일·완결·신작·최신)', href: '/exposure?tab=auto' },
+      { label: '자동 분류(완결·신작·최신)', href: '/exposure?tab=auto' },
     ],
   },
   {

@@ -1,61 +1,77 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ArrowRight, BookOpen, CheckCircle2, CreditCard, Eye, Image, Mail, RefreshCw, Shield, ShoppingCart, Users } from 'lucide-react';
 import { adminApi } from '@/lib/works';
-import { NAV } from '@/lib/admin-nav';
 
-// 대시보드: 오늘 운영 현황 + 메뉴별 역할 안내
-// (예전 첫 화면의 수동 [카테고리 관리]는 작품 정보 기반 자동 분류로 바뀌어 [노출 관리 > 자동 분류]에서 확인)
 interface Summary { works: number; scheduled: number; users: number; newUsers: number; views: number; hiatus: number; upToday: number; pendingReports: number; purchases: number; coins: number; payments: number }
-
-const ROLE: Record<string, string> = {
-  works: '작품 정보의 기준: 유형·언어·이용등급·연재 상태·연재 요일·장르·태그·회차·예약 공개·작품 공지',
-  exposure: '사용자 화면에 무엇을 어디에: 홈 섹션 순서, 대배너, 오늘의 추천작, 추천 신작, 인기 작품 고정, 실시간 랭킹, 자동 분류 현황',
-  promotion: '사용자 혜택: 이벤트, 할인·무료 작품, 쿠폰, 선물함 지급',
-  payment: '돈과 가격: 작품별 대여·소장 가격, 코인 가격, 결제·구매·대여 내역, 환불',
-  users: '회원: 회원 정보, 성인 인증 상태·설정, 이용 제한·차단, 고객센터',
-  reports: '작품·회차·댓글·사용자 신고 처리 (접수 → 확인 중 → 처리 완료/반려, 메모·이력)',
-  stats: '운영 결과: 작품·회차 조회수, 찜, 구매, 매출, 인기 추이, 랭킹',
-};
+const number = (value: number | undefined, suffix = '') => value === undefined ? '—' : value.toLocaleString('ko-KR') + suffix;
+const actions = [
+  { href: '/works', label: '작품·회차 관리', note: '작품 정보, 공개 상태와 회차 관리', icon: BookOpen },
+  { href: '/exposure', label: '홈 노출 관리', note: '배너와 추천 작품 배치', icon: Image },
+  { href: '/payments/history', label: '구매·결제 내역', note: '결제 내역과 환불 확인', icon: CreditCard },
+];
 
 export default function Dashboard() {
-  const [s, setS] = useState<Summary | null>(null);
-  useEffect(() => { adminApi<Summary>('/admin/ops/dashboard').then(setS).catch((e) => alert(e.message)); }, []);
-  const card = (label: string, value: React.ReactNode, href: string, tone = '') => (
-    <Link href={href} className={`rounded-lg bg-gray-800 p-4 hover:bg-gray-700 ${tone}`}><p className="text-xs text-gray-400">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p></Link>
-  );
-  return (
-    <div className="min-h-screen bg-gray-900 p-6 text-white">
-      <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-bold">대시보드</h1>
-        <p className="mt-1 text-sm text-gray-400">오늘(한국 시간) 운영 현황입니다.</p>
-        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {card('오늘 조회', s ? s.views.toLocaleString() : '…', '/stats')}
-          {card('오늘 구매', s ? `${s.purchases}건 · ${s.coins.toLocaleString()}코인` : '…', '/payments/purchases')}
-          {card('오늘 결제', s ? `${s.payments.toLocaleString()}원` : '…', '/payments/history')}
-          {card('신규 회원', s ? `${s.newUsers}명 / 전체 ${s.users.toLocaleString()}` : '…', '/users')}
-          {card('오늘 새 회차 공개(UP)', s ? `${s.upToday}작품` : '…', '/exposure?tab=auto')}
-          {card('예약 공개 대기', s ? `${s.scheduled}회차` : '…', '/works?dateField=nextScheduledAt')}
-          {card('휴재 작품', s ? `${s.hiatus}작품` : '…', '/works?status=HIATUS')}
-          {card('처리할 신고', s ? `${s.pendingReports}건` : '…', '/reports', s && s.pendingReports > 0 ? 'ring-1 ring-red-500/60' : '')}
-        </div>
-
-        <h2 className="mb-3 mt-8 text-lg font-bold">메뉴 안내</h2>
-        <div className="grid gap-3 md:grid-cols-2">
-          {NAV.filter((g) => g.key !== 'dashboard').map((g) => (
-            <div key={g.key} className="rounded-lg border border-gray-700 bg-gray-800/60 p-4">
-              <Link href={g.href} className="text-base font-bold hover:underline">{g.label} →</Link>
-              <p className="mt-1 text-sm text-gray-400">{ROLE[g.key]}</p>
-              {g.tabs.length > 1 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {g.tabs.map((t) => <Link key={t.href} href={t.href} className="rounded bg-gray-700 px-2 py-0.5 text-xs hover:bg-gray-600">{t.label}</Link>)}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [checkedAt, setCheckedAt] = useState('');
+  const load = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const result = await adminApi<Summary>('/admin/ops/dashboard');
+      const fields: (keyof Summary)[] = ['works','scheduled','users','newUsers','views','hiatus','upToday','pendingReports','purchases','coins','payments'];
+      if (fields.some(field => typeof result[field] !== 'number' || !Number.isFinite(result[field]))) throw new Error('운영 현황 응답을 확인할 수 없습니다.');
+      setSummary(result);
+      setCheckedAt(new Date().toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }));
+    } catch (failure) {
+      setSummary(null);
+      setError(failure instanceof Error ? failure.message : '운영 현황을 불러오지 못했습니다.');
+    } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  const metrics = [
+    { label: '오늘 조회', value: number(summary?.views), note: '오늘의 작품 조회수', icon: Eye, href: '/stats' },
+    { label: '오늘 구매', value: number(summary?.purchases, '건'), note: '사용 코인 ' + number(summary?.coins), icon: ShoppingCart, href: '/payments/purchases' },
+    { label: '오늘 결제', value: number(summary?.payments, '원'), note: '오늘의 결제 금액', icon: CreditCard, href: '/payments/history' },
+    { label: '신규 회원', value: number(summary?.newUsers, '명'), note: '전체 회원 ' + number(summary?.users, '명'), icon: Users, href: '/users' },
+  ];
+  return <div className="admin-dashboard">
+    <div className="admin-page-heading">
+      <div><h1>운영 대시보드</h1><p>오늘의 운영 현황을 한눈에 확인하세요.</p></div>
+      <div className="admin-page-actions"><button className="admin-secondary-button" disabled={loading} onClick={load}><RefreshCw size={17} className={loading ? 'animate-spin' : ''} />{loading ? '불러오는 중' : '새로고침'}</button><Link className="admin-primary-button" href="/works"><BookOpen size={18} />작품 관리</Link></div>
     </div>
-  );
+    {error && <div className="admin-error" role="alert">{error}<button onClick={load} disabled={loading}>다시 시도</button></div>}
+    <div className="admin-metrics" aria-busy={loading}>
+      {metrics.map(metric => <Link className="admin-metric admin-work-stats-link" key={metric.label} href={metric.href}><div><metric.icon size={20} /><span>{metric.label}</span></div><strong>{loading ? '—' : metric.value}</strong><p>{metric.note}</p></Link>)}
+    </div>
+    <div className="admin-dashboard-grid">
+      <section className="admin-panel">
+        <div className="admin-panel-heading"><h2>콘텐츠 운영 현황</h2><Link href="/works">작품 관리 <ArrowRight size={16} /></Link></div>
+        <div className="admin-content-stats">
+          <Link href="/exposure?tab=auto"><div><span>오늘 공개</span><strong>{number(summary?.upToday, '작품')}</strong></div></Link>
+          <Link href="/works?dateField=nextScheduledAt"><div><span>예약 공개 대기</span><strong>{number(summary?.scheduled, '회차')}</strong></div></Link>
+          <Link href="/works?status=HIATUS"><div><span>휴재 중</span><strong>{number(summary?.hiatus, '작품')}</strong></div></Link>
+        </div>
+        <h3 className="admin-section-label">관리 바로가기</h3>
+        <div className="admin-action-list">{actions.map(action => <Link key={action.href} href={action.href}><action.icon size={23} /><div><strong>{action.label}</strong><span>{action.note}</span></div><ArrowRight size={18} /></Link>)}</div>
+      </section>
+      <section className="admin-panel">
+        <div className="admin-panel-heading"><h2>확인할 항목</h2></div>
+        <div className="admin-check-list">
+          <Link href="/reports"><Shield size={20} /><span>처리할 신고</span><strong>{number(summary?.pendingReports, '건')}</strong><ArrowRight size={17} /></Link>
+          <Link href="/works?status=HIATUS"><BookOpen size={20} /><span>휴재 작품</span><strong>{number(summary?.hiatus, '작품')}</strong><ArrowRight size={17} /></Link>
+          <Link href="/support"><Mail size={20} /><span>고객센터 문의</span><strong>확인</strong><ArrowRight size={17} /></Link>
+        </div>
+        {!loading && summary?.pendingReports === 0 && <div className="admin-all-clear"><CheckCircle2 size={29} /><p>처리 대기 중인 신고가 없습니다.</p></div>}
+        <p className="admin-data-note">일별 집계 기준: 한국 시간<br />{checkedAt && <>마지막 확인 {checkedAt}<br /></>}등록 작품 {number(summary?.works, '작품')}</p>
+      </section>
+    </div>
+    <section className="admin-panel">
+      <div className="admin-panel-heading"><div><h2>빠른 실행</h2><p>자주 사용하는 작업을 바로 시작하세요.</p></div></div>
+      <div className="admin-quick-actions"><Link href="/works"><BookOpen size={20} />작품·회차 관리</Link><Link href="/banners"><Image size={20} />배너 편집</Link><Link href="/events"><ShoppingCart size={20} />프로모션 관리</Link><Link href="/users"><Users size={20} />회원 조회</Link></div>
+    </section>
+  </div>;
 }

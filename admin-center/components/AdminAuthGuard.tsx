@@ -21,6 +21,7 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
     let token: string | null = null;
     try { token = localStorage.getItem('adminToken'); } catch { token = null; }
     if (!token) {
+      setAllowed(false);
       router.replace('/login');
       return;
     }
@@ -29,5 +30,6 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
 
   if (!allowed) return null;
   // 모든 관리자 화면 공통: 상단 메뉴바(8개) + 세부 탭 줄
-  return <>{!isLogin && <><AdminHeader /><AdminBackBar /></>}{children}</>;
+  if (isLogin) return <div className="admin-login">{children}</div>;
+  return <div className="admin-shell"><a href="#page-content" className="admin-skip-link">본문으로 이동</a><AdminHeader /><main className="admin-main" id="page-content"><AdminBackBar />{children}</main></div>;
 }

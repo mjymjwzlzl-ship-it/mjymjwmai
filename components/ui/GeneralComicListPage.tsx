@@ -107,6 +107,7 @@ interface GeneralComicListPageProps {
   beforeGrid?: ReactNode;
   /** 19 ON(성인인증 완료)일 때 성인 작품도 같은 목록·장르 탭([성인])에 섞는다 */
   includeAdult?: boolean;
+  initialSort?: CatalogSort;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -247,15 +248,6 @@ const resolveAudience = (comic: Comic, searchableText: string): 'male' | 'female
     : 'male';
 };
 
-// 홈 [요일별 연재]와 같은 기준: [UP] 오늘(KST) 새 회차, [NEW] 런칭 7일 이내
-const KST_OFFSET = 9 * 60 * 60 * 1000;
-const WEEKDAY_TABS = [
-  { key: 'all', label: '전체' }, { key: 'mon', label: '월' }, { key: 'tue', label: '화' }, { key: 'wed', label: '수' },
-  { key: 'thu', label: '목' }, { key: 'fri', label: '금' }, { key: 'sat', label: '토' }, { key: 'sun', label: '일' },
-] as const;
-type WeekdayKey = (typeof WEEKDAY_TABS)[number]['key'];
-const todayWeekdayKst = (): WeekdayKey => (['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const)[new Date(Date.now() + KST_OFFSET).getUTCDay()];
-
 const normalizeComic = (
   comic: Comic,
   index: number,
@@ -329,15 +321,15 @@ export default function GeneralComicListPage({
   emptyMessage = '표시할 작품이 없습니다.',
   beforeGrid,
   includeAdult = false,
+  initialSort = 'updated',
 }: GeneralComicListPageProps) {
   const { locale, t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState('전체');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeOption, setActiveOption] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ComicViewMode>('list');
-  const [sort, setSort] = useState<CatalogSort>('updated');
+  const [sort, setSort] = useState<CatalogSort>(initialSort);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [weekday, setWeekday] = useState<WeekdayKey>('all');
   // 태그(소재) 필터: 장르 탭과 별도. ?tag=회귀 로도 연다
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -388,7 +380,7 @@ export default function GeneralComicListPage({
       const legacy = ['new', 'ranking', 'realtime'].includes(queryCategory);
       setActiveCategory(legacy ? '전체' : categories.find((category) => category.query === queryCategory)?.value || '전체');
       setStatusFilter(queryCategory === 'new' ? 'new' : 'all');
-      setSort(queryCategory === 'ranking' ? 'popular' : 'updated');
+      setSort(queryCategory === 'ranking' ? 'popular' : queryCategory === 'new' ? 'created' : initialSort);
     };
     const syncFromLocation = () => {
       applyCategory(new URLSearchParams(window.location.search).get('category') || 'all');
@@ -404,7 +396,7 @@ export default function GeneralComicListPage({
       window.removeEventListener('popstate', syncFromLocation);
       window.removeEventListener('arata-content-category-change', handleCategoryChange);
     };
-  }, []);
+  }, [initialSort]);
 
   // ── 목록 탐색 상태 유지: 장르(?category) 외 태그·요일·정렬·상태·옵션·검색어·페이지를 주소(?tag=&day=&sort=…)에 담는다.
   // 작품 상세에 갔다가 뒤로가기(브라우저·[이전])로 오면 주소 그대로 돌아와 같은 조건으로 다시 그린다.
@@ -416,8 +408,6 @@ export default function GeneralComicListPage({
     if (sortParam && ['updated', 'created', 'oldest', 'popular'].includes(sortParam)) setSort(sortParam as CatalogSort);
     const statusParam = params.get('status');
     if (statusParam && ['all', 'new', 'ongoing', 'completed'].includes(statusParam)) setStatusFilter(statusParam as StatusFilter);
-    const dayParam = params.get('day');
-    if (dayParam && WEEKDAY_TABS.some((tab) => tab.key === dayParam)) setWeekday(dayParam as WeekdayKey);
     const optParam = params.get('opt');
     if (optParam) setActiveOption(optParam);
     const qParam = params.get('q');
@@ -431,7 +421,6 @@ export default function GeneralComicListPage({
       const next = new URLSearchParams(window.location.search);
       const sp = next.get('sort'); if (sp && ['updated', 'created', 'oldest', 'popular'].includes(sp)) setSort(sp as CatalogSort);
       const st = next.get('status'); if (st && ['all', 'new', 'ongoing', 'completed'].includes(st)) setStatusFilter(st as StatusFilter);
-      const d = next.get('day'); setWeekday(d && WEEKDAY_TABS.some((tab) => tab.key === d) ? d as WeekdayKey : 'all');
       setActiveTag(next.get('tag')); setActiveOption(next.get('opt')); setSearchQuery(next.get('q') || '');
       const pg = Number(next.get('page')); setPage(pg > 1 ? pg : 1);
     };
@@ -495,10 +484,6 @@ export default function GeneralComicListPage({
   }, [homeData, adultHomeData, includeAdult, selectItems, adultEnabled, isLoading, locale, t]);
 
   // 요일 편성 (관리자 > 카테고리 요일, /frontend/home 의 categories.week_mon…)
-  const weekdayIds = useMemo(() => {
-    if (weekday === 'all') return new Set<string>();
-    return new Set<string>(((homeData?.data?.categories?.[`week_${weekday}`] || []) as Comic[]).map((comic: Comic) => String(comic.id)));
-  }, [homeData, weekday]);
 
   const items = useMemo<NormalizedComic[]>(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -521,13 +506,13 @@ export default function GeneralComicListPage({
         comic.synopsis.toLowerCase().includes(query) ||
         comic.tags.some((tag) => tag.toLowerCase().includes(query));
 
-      const weekdayOk = (weekday === 'all' || weekdayIds.has(comic.id)) && (!activeTag || comic.tagList.includes(activeTag));
-      return categoryOk && optionOk && searchOk && weekdayOk && matchesStatus(comic, statusFilter);
+      const tagOk = !activeTag || comic.tagList.includes(activeTag);
+      return categoryOk && optionOk && searchOk && tagOk && matchesStatus(comic, statusFilter);
     });
 
     const sorted = sortCatalog(filteredItems, sort);
     return badgeTest ? sorted.map((comic, index) => (index < 3 ? { ...comic, isUp: index !== 1, isNew: index !== 0 } : comic)) : sorted;
-  }, [activeCategory, activeOption, baseItems, searchQuery, sort, statusFilter, weekday, weekdayIds, badgeTest, activeTag]);
+  }, [activeCategory, activeOption, baseItems, searchQuery, sort, statusFilter, badgeTest, activeTag]);
 
   // 지금 목록에 있는 작품들의 태그 (많이 쓰인 순)
   const tagCounts = useMemo(() => {
@@ -546,11 +531,11 @@ export default function GeneralComicListPage({
     if (!stateSettled.current) return;
     const params = new URLSearchParams(window.location.search);
     const put = (key: string, value: string | null | undefined, fallback = '') => { if (value && value !== fallback) params.set(key, value); else params.delete(key); };
-    put('tag', activeTag); put('day', weekday, 'all'); put('sort', sort, 'updated'); put('status', statusFilter, 'all');
+    put('tag', activeTag); params.delete('day'); put('sort', sort, 'updated'); put('status', statusFilter, 'all');
     put('opt', activeOption); put('q', searchQuery.trim()); put('page', String(page), '1');
     const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
     if (next !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(window.history.state, '', next);
-  }, [activeTag, weekday, sort, statusFilter, activeOption, searchQuery, page]);
+  }, [activeTag, sort, statusFilter, activeOption, searchQuery, page]);
 
 
   const itemsPerPage = viewMode === 'grid' ? GRID_ITEMS_PER_PAGE : ITEMS_PER_PAGE;
@@ -691,28 +676,6 @@ export default function GeneralComicListPage({
                 {activeTag && <button type="button" onClick={() => setActiveTag(null)} className="text-xs font-bold text-red-500">태그 해제</button>}
               </div>
             )}
-
-            {/* 요일별 연재 (홈과 같은 탭) */}
-            {/* 모바일은 8칸을 화면 폭에 나눠 넘기지 않아도 다 보이게 */}
-            <div className="mt-3 grid grid-cols-8 gap-1 border-t border-gray-100 pt-3 sm:flex sm:items-center sm:gap-1.5 dark:border-gray-800" role="tablist" aria-label="연재 요일">
-              <span className="mr-1 hidden shrink-0 text-xs font-black text-gray-400 sm:inline">요일</span>
-              {WEEKDAY_TABS.map((tab) => {
-                const active = weekday === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => { setWeekday(tab.key); setPage(1); }}
-                    className={`relative min-h-9 min-w-0 rounded-full px-0 text-xs font-black transition sm:shrink-0 sm:px-3 ${active ? 'bg-[#00dc64] text-black' : 'bg-gray-100 text-gray-500 hover:text-gray-900 dark:bg-white/5 dark:text-gray-400 dark:hover:text-white'}`}
-                  >
-                    {tab.label}{tab.key === todayWeekdayKst() && <span className="ml-0.5 hidden text-[10px] opacity-70 sm:inline">오늘</span>}
-                    {tab.key === todayWeekdayKst() && <span className="absolute -top-0.5 right-1 h-1.5 w-1.5 rounded-full bg-red-500 sm:hidden" aria-label="오늘" />}
-                  </button>
-                );
-              })}
-            </div>
 
             {/* 상태·분류 필터 / 정렬·집계 기준 (장르와 다른 줄) */}
             <div className="mt-3 flex flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">

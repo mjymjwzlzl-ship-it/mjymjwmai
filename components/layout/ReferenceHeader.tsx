@@ -1,33 +1,23 @@
 'use client';
-import { api } from '@/lib/api';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import {
   Book,
   BookOpen,
-  Clock,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Bell,
   Gamepad2,
-  Gift,
-  PartyPopper,
-  GalleryVertical,
-  Globe2,
   Home,
+  Heart,
   Image,
   Library,
   Menu,
   MessageCircle,
   Moon,
-  PlaySquare,
   Search,
   ClipboardList,
   Sun,
-  User,
   X,
 } from 'lucide-react';
 import { useThemeStore } from '@/store/theme';
@@ -36,26 +26,32 @@ import { useLoginModalStore } from '@/store/loginModal';
 import AgeGateModal from '@/components/ui/AgeGateModal';
 import { LANGUAGES, Locale, useLanguage } from '@/components/providers/LanguageProvider';
 import { useDragScroll } from '@/lib/use-drag-scroll';
+import { api } from '@/lib/api';
 
-const navItems = [
-  { href: '/home', labelKey: 'nav.home', icon: Home, mobilePrimary: true },
-  // 웹툰 = 세로로 이어지는 컷 (내 서재의 책장 아이콘과 구분)
-  { href: '/daily', labelKey: 'nav.webtoons', icon: GalleryVertical, mobilePrimary: true },
-  { href: '/books', labelKey: 'nav.books', icon: Book, mobilePrimary: true },
-  { href: '/novel', labelKey: 'nav.novels', icon: BookOpen, mobilePrimary: true },
-  { href: '/chat', labelKey: 'nav.chat', icon: MessageCircle },
-  { href: '#shortform', labelKey: 'nav.shortAnime', icon: PlaySquare, comingSoon: true },
+const mainNavItems = [
+  { href: '/home', labelKey: 'nav.home', icon: Home },
+  { href: '/new', labelKey: 'nav.new', icon: BookOpen },
+  { href: '/complete', labelKey: 'nav.complete', icon: Library },
+  { href: '/popular', labelKey: 'nav.popular', icon: Heart },
+  { href: '/daily', labelKey: 'nav.genres', icon: Book },
   { href: '/gallery', labelKey: 'nav.gallery', icon: Image },
-  { href: '/events', labelKey: 'nav.events', icon: PartyPopper }, // 선물함(Gift)과 구분
+  { href: '/chat', labelKey: 'nav.chat', icon: MessageCircle },
+];
+const extraNavItems = [
+  { href: '/books', labelKey: 'nav.books', icon: Book },
+  { href: '/novel', labelKey: 'nav.novels', icon: BookOpen },
   { href: '/community', labelKey: 'nav.community', icon: ClipboardList },
   { href: '/games', labelKey: 'nav.games', icon: Gamepad2 },
 ];
 
 const comicSubnavItems = [
   { value: 'all', labelKey: 'category.all' },
+  { value: 'new', labelKey: 'category.new' },
+  { value: 'ranking', labelKey: 'category.ranking' },
   { value: 'action', labelKey: 'category.action' },
   { value: 'school', labelKey: 'category.school' },
   { value: 'comedy', labelKey: 'category.comedy' },
+  { value: 'realtime', labelKey: 'category.realtime' },
   { value: 'romance', labelKey: 'category.romance' },
   { value: 'fantasy', labelKey: 'category.fantasy' },
   { value: 'martial', labelKey: 'category.martial' },
@@ -65,20 +61,14 @@ const comicSubnavItems = [
   { value: 'daily', labelKey: 'category.daily' },
 ];
 
-// 웹소설도 웹툰·단행본처럼 상단은 장르만. [신작]·[랭킹]은 목록 안 상태·정렬 줄에서 고른다
 const novelSubnavItems = [
   { value: 'all', labelKey: 'category.all' },
+  { value: 'new', labelKey: 'category.new' },
+  { value: 'ranking', labelKey: 'category.ranking' },
   { value: 'fantasy', labelKey: 'category.fantasy' },
   { value: 'martial', labelKey: 'category.martial' },
   { value: 'romance', labelKey: 'category.romance' },
   { value: 'modern', labelKey: 'category.modern' },
-  { value: 'romanceFantasy', labelKey: 'category.romanceFantasy' },
-  { value: 'modernFantasy', labelKey: 'category.modernFantasy' },
-  { value: 'mystery', labelKey: 'category.mystery' },
-  { value: 'sf', labelKey: 'category.sf' },
-  { value: 'horror', labelKey: 'category.horror' },
-  { value: 'historical', labelKey: 'category.historical' },
-  { value: 'sports', labelKey: 'category.sports' },
   { value: 'lightNovel', labelKey: 'category.lightNovel' },
   { value: 'bl', labelKey: 'BL' },
   { value: 'gl', labelKey: 'GL' },
@@ -86,6 +76,8 @@ const novelSubnavItems = [
 
 export default function ReferenceHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [authenticated, setAuthenticated] = useState(false);
   const { locale, setLanguage, t } = useLanguage();
   const storeTheme = useThemeStore((state) => state.theme);
   const setStoreTheme = useThemeStore((state) => state.set);
@@ -95,22 +87,11 @@ export default function ReferenceHeader() {
   const setAdultEnabled = useAdultModeStore((state) => state.setEnabled);
   const hydrateAdultMode = useAdultModeStore((state) => state.hydrate);
   const [ageGateOpen, setAgeGateOpen] = useState(false);
+  const adultCheckInFlight = useRef(false);
   const setLoginModalOpen = useLoginModalStore((state) => state.setOpen);
 
-
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sessionUser, setSessionUser] = useState<{ name: string } | null>(null);
-  // 알림함: 로그인 상태면 안 읽은 알림 수를 1분마다·페이지 이동 때 확인
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [readyGifts, setReadyGifts] = useState(0);
-  // 메뉴 보유 코인: 메뉴를 열 때마다 새로 읽는다
-  const [menuWallet, setMenuWallet] = useState<{ total: number; paid: number; event: number } | null>(null);
-  useEffect(() => {
-    if (!menuOpen || !sessionUser) return;
-    api.get('/wallet').then(({ data }) => setMenuWallet({ total: data.total, paid: data.paid, event: data.event })).catch(() => {});
-  }, [menuOpen, sessionUser]);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [activeSubnav, setActiveSubnav] = useState('all');
   const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const categoryPanelRef = useRef<HTMLElement | null>(null);
@@ -121,6 +102,9 @@ export default function ReferenceHeader() {
     ja: categoriesExpanded ? 'ジャンルを閉じる' : 'すべてのジャンル',
     fr: categoriesExpanded ? 'Réduire les genres' : 'Tous les genres',
   }[locale];
+  const navItems = [...mainNavItems, ...extraNavItems].map(item => ({ ...item, href: adultEnabled && ['/home', '/new', '/complete', '/daily', '/chat', '/gallery', '/popular'].includes(item.href) ? (item.href === '/home' ? '/adult' : item.href === '/gallery' ? '/adult/library' : item.href === '/popular' ? '/adult/daily?category=ranking' : '/adult' + item.href) : item.href }));
+  const primaryItems = navItems.slice(0, mainNavItems.length);
+  const isNavActive = (href: string) => href === '/home' ? pathname === '/' || pathname === '/home' : href === '/adult' ? pathname === '/adult' || pathname === '/adult/home' : href.includes('?') ? pathname === href.split('?')[0] && activeSubnav === 'ranking' : pathname === href;
   const primaryNavScrollRef = useDragScroll<HTMLDivElement>();
   const categoryNavScrollRef = useDragScroll<HTMLDivElement>();
   const contentPath = pathname?.startsWith('/daily')
@@ -130,16 +114,7 @@ export default function ReferenceHeader() {
       : pathname?.startsWith('/novel')
         ? '/novel'
         : null;
-  // [성인] 장르 탭: 성인인증 후 19 ON 일 때 웹툰 목록에서만 보인다
-  const contentSubnavItems = contentPath === '/novel'
-    ? novelSubnavItems
-    : adultEnabled && contentPath === '/daily'
-      ? [...comicSubnavItems, { value: 'adult', labelKey: 'category.adult' }]
-      : comicSubnavItems;
-
-  useEffect(() => {
-    if (!adultEnabled && activeSubnav === 'adult') setActiveSubnav('all');
-  }, [adultEnabled, activeSubnav]);
+  const contentSubnavItems = contentPath === '/novel' ? novelSubnavItems : comicSubnavItems;
 
   useEffect(() => {
     const rail = categoryNavScrollRef.current;
@@ -151,25 +126,6 @@ export default function ReferenceHeader() {
       rail.scrollTo({ left: rail.scrollLeft + itemRect.left - railRect.left - (rail.clientWidth - itemRect.width) / 2, behavior: 'auto' });
     }
   }, [activeSubnav, contentPath, categoryNavScrollRef]);
-
-  // 장르 탭 좌우 이동(PC 〈 〉 버튼): 가려진 쪽이 있을 때만 버튼을 보인다. 모바일은 터치 스와이프, PC 는 휠·드래그도 된다(useDragScroll)
-  const [categoryEdges, setCategoryEdges] = useState({ left: false, right: false });
-  useEffect(() => {
-    const rail = categoryNavScrollRef.current;
-    if (!rail) return;
-    const update = () => {
-      const max = rail.scrollWidth - rail.clientWidth;
-      setCategoryEdges({ left: rail.scrollLeft > 4, right: rail.scrollLeft < max - 4 });
-    };
-    update();
-    rail.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-    return () => { rail.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
-  }, [contentPath, contentSubnavItems.length, categoryNavScrollRef]);
-  const scrollCategories = (direction: 1 | -1) => {
-    const rail = categoryNavScrollRef.current;
-    if (rail) rail.scrollBy({ left: direction * rail.clientWidth * 0.7, behavior: 'smooth' });
-  };
 
   useEffect(() => { setCategoriesExpanded(false); }, [pathname]);
 
@@ -213,6 +169,12 @@ export default function ReferenceHeader() {
     setTheme(initialTheme);
     setStoreTheme(initialTheme);
     hydrateAdultMode();
+    const syncSession = () => setAuthenticated(Boolean(localStorage.getItem('authToken') || localStorage.getItem('token')));
+    syncSession();
+    window.addEventListener('userLogin', syncSession);
+    window.addEventListener('loginStateChanged', syncSession);
+    window.addEventListener('storage', syncSession);
+    return () => { window.removeEventListener('userLogin', syncSession); window.removeEventListener('loginStateChanged', syncSession); window.removeEventListener('storage', syncSession); };
   }, [setStoreTheme, hydrateAdultMode]);
 
   // ?섏씠吏 ?대룞 ???대젮 ?덈뒗 ?⑤꼸 ?リ린
@@ -258,18 +220,29 @@ export default function ReferenceHeader() {
   };
 
   const verifyAdultMode = async () => {
+    if (adultCheckInFlight.current) return;
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     if (!token) { setAdultEnabled(false); setLoginModalOpen(true); return; }
+    adultCheckInFlight.current = true;
     try {
-      const { data } = await api.get('/auth/pass/config');
+      const { data } = await api.get('/users/me');
+      // An account switch/logout while this request is running must not enable it.
       if (token !== (localStorage.getItem('authToken') || localStorage.getItem('token'))) return;
-      if (data.adultVerified === true) { setAdultEnabled(true); setAgeGateOpen(false); }
-      else { setAdultEnabled(false); setAgeGateOpen(true); }
+      if (data.adultVerified === true) {
+        setAdultEnabled(true);
+        setAgeGateOpen(false);
+      } else {
+        setAdultEnabled(false);
+        setAgeGateOpen(true);
+      }
     } catch { setAdultEnabled(false); }
+    finally { adultCheckInFlight.current = false; }
   };
+
   const handleAdultToggle = () => {
     if (adultEnabled) {
       setAdultEnabled(false);
+      if (pathname.startsWith('/adult')) router.push('/home');
       return;
     }
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
@@ -280,239 +253,28 @@ export default function ReferenceHeader() {
     void verifyAdultMode();
   };
 
-  useEffect(() => {
-    if (!sessionUser) { setUnreadNotifications(0); setReadyGifts(0); return; }
-    let alive = true;
-    const load = () => {
-      api.get('/notifications/unread-count')
-        .then(({ data }) => { if (alive) setUnreadNotifications(Number(data?.unread) || 0); })
-        .catch(() => {});
-      // 선물함: 받을 수 있는 선물 수
-      api.get('/gifts/count')
-        .then(({ data }) => { if (alive) setReadyGifts(Number(data?.ready) || 0); })
-        .catch(() => {});
-    };
-    load();
-    const timer = window.setInterval(load, 60 * 1000);
-    window.addEventListener('notificationsUpdated', load);
-    window.addEventListener('giftsUpdated', load);
-    return () => { alive = false; window.clearInterval(timer); window.removeEventListener('notificationsUpdated', load); window.removeEventListener('giftsUpdated', load); };
-  }, [sessionUser, pathname]);
-
-  // 로그인 상태: 토큰이 있으면 로그인으로 본다 (메뉴 하단 로그인/로그아웃 버튼)
-  const readSession = () => {
-    try {
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-      if (!token) { setSessionUser(null); return; }
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      setSessionUser({ name: user?.nickname || user?.username || user?.name || (user?.email ? String(user.email).split('@')[0] : '') });
-    } catch {
-      setSessionUser({ name: '' });
-    }
-  };
-
-  useEffect(() => {
-    readSession();
-    const onStorage = () => readSession();
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('focus', onStorage);
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('focus', onStorage);
-    };
-  }, [pathname, menuOpen]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setAdultEnabled(false);
-    setSessionUser(null);
-    setMenuOpen(false);
-    window.location.href = '/home';
-  };
-
-  const handleComingSoon = () => {
-    setMenuOpen(false);
-    setComingSoonOpen(true);
-    window.setTimeout(() => setComingSoonOpen(false), 2200);
-  };
-
-  // 회차 뷰어(웹툰 이미지·웹소설 텍스트)는 전용 상단 바를 쓰므로 사이트 헤더를 숨긴다
-  // (예전엔 헤더가 뷰어 첫 화면과 웹소설 1쪽 제목을 가렸다)
-  const isViewerPage = Boolean(pathname?.includes('/episode/'));
-  if (isViewerPage) return null;
-
   return (
     <header
       data-reference-header="true"
-      className="fixed left-0 right-0 top-0 z-[1000] border-b border-gray-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.08)] dark:border-gray-800 dark:bg-[#101010]"
+      className="fresh-header fixed left-0 right-0 top-0 z-[1000] border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-[#101a14]"
     >
-      <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-3 sm:px-6 md:h-14 lg:px-8">
-        <Link href="/home" className="shrink-0 whitespace-nowrap text-lg font-black tracking-tight text-[#00dc64] sm:text-xl md:text-2xl">
-          ARATA COMICS
-        </Link>
-
-        <div className="flex shrink-0 items-center gap-0 text-gray-500 dark:text-gray-400 sm:gap-1 md:gap-2">
-          <label className="hidden h-8 items-center gap-1.5 rounded-full border border-gray-300 bg-white px-2.5 text-xs font-black text-gray-600 transition hover:border-[#00dc64] dark:border-gray-700 dark:bg-[#1a1a1a] dark:text-gray-300 md:inline-flex">
-            <Globe2 className="h-4 w-4" />
-            <select
-              value={locale}
-              onChange={(event) => setLanguage(event.target.value as Locale)}
-              aria-label={t('common.language')}
-              className="cursor-pointer bg-transparent text-xs font-black outline-none dark:bg-[#1a1a1a]"
-            >
-              {LANGUAGES.map((language) => (
-                <option key={language.code} value={language.code}>
-                  {language.short}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            onClick={handleThemeToggle}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:h-9 md:w-9"
-            aria-label={theme === 'dark' ? t('common.themeLight') : t('common.themeDark')}
-            title={theme === 'dark' ? t('common.themeLight') : t('common.themeDark')}
-          >
-            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
-          <button
-            type="button"
-            onClick={handleAdultToggle}
-            aria-pressed={adultEnabled}
-            aria-label={adultEnabled ? t('common.hideAdult') : t('common.showAdult')}
-            className={`hidden h-7 items-center rounded-full border px-3 text-xs font-black transition md:inline-flex ${
-              adultEnabled
-                ? 'border-[#00dc64] bg-[#00dc64]/10 text-[#00a84c] hover:bg-[#00dc64]/20 dark:text-[#00dc64]'
-                : 'border-gray-300 bg-white text-gray-500 hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:bg-transparent'
-            }`}
-          >
-            {adultEnabled ? '19 ON' : '19 OFF'}
-          </button>
-          <Link href="/attendance" className="hidden h-7 items-center rounded-full border border-gray-300 bg-gray-100 px-3 text-xs font-bold text-gray-600 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:bg-[#1f1f1f] dark:text-gray-300 md:inline-flex">
-            {t('nav.attendance')}
-          </Link>
-          <Link
-            href="/search"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:h-9 md:w-9"
-            aria-label={t('common.search')}
-          >
-            <Search className="h-5 w-5" />
-          </Link>
-          {sessionUser && (
-            <Link
-              href="/notifications"
-              className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:h-9 md:w-9 ${
-                pathname?.startsWith('/notifications') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
-              }`}
-              aria-label={unreadNotifications > 0 ? `알림함 (안 읽은 알림 ${unreadNotifications}개)` : '알림함'}
-              title="알림함"
-            >
-              <Bell className="h-5 w-5" />
-              {unreadNotifications > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white md:right-0 md:top-0">
-                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                </span>
-              )}
-            </Link>
-          )}
-          {sessionUser && (
-            <Link
-              href="/gifts"
-              className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:h-9 md:w-9 ${
-                pathname?.startsWith('/gifts') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
-              }`}
-              aria-label={readyGifts > 0 ? `선물함 (받을 선물 ${readyGifts}개)` : '선물함'}
-              title="선물함"
-            >
-              <Gift className="h-5 w-5" />
-              {readyGifts > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white md:right-0 md:top-0">
-                  {readyGifts > 99 ? '99+' : readyGifts}
-                </span>
-              )}
-            </Link>
-          )}
-          <Link
-            href="/my/library?tab=viewed"
-            className={`hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex ${
-              pathname?.startsWith('/my/library') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
-            }`}
-            aria-label={t('common.myLibrary')}
-            title={t('common.myLibrary')}
-          >
-            <Library className="h-5 w-5" />
-          </Link>
-          {sessionUser ? (
-            <Link
-              href="/profile"
-              className={`hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex ${
-                pathname?.startsWith('/profile') ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' : ''
-              }`}
-              aria-label={t('common.myPage')}
-              title={t('common.myPage')}
-            >
-              <User className="h-5 w-5" />
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setLoginModalOpen(true)}
-              className="hidden h-9 w-9 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:inline-flex"
-              aria-label={t('common.loginJoin')}
-              title={t('common.loginJoin')}
-            >
-              <User className="h-5 w-5" />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white md:h-9 md:w-9"
-            aria-label={t('common.openMenu')}
-            aria-expanded={menuOpen}
-          >
-            <Menu className="h-5 w-5" />
-          </button>
+      <div className="fresh-header-row">
+        <Link href={adultEnabled ? '/adult' : '/home'} className="fresh-logo">ARATA COMICS</Link>
+        <nav className="fresh-desktop-nav" aria-label={t('common.menu')}>
+          {primaryItems.map(item => <Link key={item.labelKey} href={item.href} aria-current={isNavActive(item.href) ? 'page' : undefined}>{t(item.labelKey)}</Link>)}
+        </nav>
+        <form action="/search" className="fresh-search" role="search"><Search size={18} /><input name="q" aria-label={t('common.search')} placeholder={locale === 'ko' ? '작품명, 작가명으로 검색하세요.' : t('common.search')} /></form>
+        <div className="fresh-header-tools">
+          <button type="button" className={'fresh-adult-toggle ' + (adultEnabled ? 'is-enabled' : '')} onClick={handleAdultToggle} aria-pressed={adultEnabled} aria-label={adultEnabled ? t('common.hideAdult') : t('common.showAdult')}>19 <span>{adultEnabled ? 'ON' : 'OFF'}</span></button>
+          <Link href="/search" className="fresh-mobile-search" aria-label={t('common.search')}><Search size={21} /></Link>
+          <button type="button" className="fresh-theme-toggle" onClick={handleThemeToggle} aria-label={theme === 'dark' ? t('common.themeLight') : t('common.themeDark')}>{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
+          {authenticated ? <Link href="/profile" className="fresh-login">MY</Link> : <button type="button" className="fresh-login" onClick={() => setLoginModalOpen(true)}>{t('common.loginJoin')}</button>}
+          <button type="button" className="fresh-menu-button" onClick={() => setMenuOpen(true)} aria-label={t('common.openMenu')} aria-expanded={menuOpen}><Menu size={22} /></button>
         </div>
       </div>
-
-      <nav className="h-12 border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-[#151515]">
-        <div ref={primaryNavScrollRef} className="mx-auto flex h-full max-w-7xl cursor-grab touch-auto overflow-x-auto overscroll-x-contain px-0 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:px-6 lg:px-8">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const label = t(item.labelKey);
-            const isActive = pathname === item.href || (item.href !== '/home' && pathname?.startsWith(item.href));
-            if (item.comingSoon) {
-              return (
-                <button
-                  key={item.href}
-                  type="button"
-                  onClick={handleComingSoon}
-                  className="flex h-full min-w-max shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border-l border-gray-200 px-3 text-xs font-bold text-gray-600 transition last:border-r hover:bg-gray-50 hover:text-[#00a84c] dark:border-gray-800 dark:text-gray-300 dark:hover:bg-[#202020] dark:hover:text-[#00dc64] md:min-w-[118px] md:gap-2 md:px-6 md:text-sm"
-                >
-                  <Icon className="h-4 w-4 md:h-[18px] md:w-[18px]" />
-                  {label}
-                </button>
-              );
-            }
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex h-full min-w-max shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border-l border-gray-200 px-3 text-xs font-bold transition last:border-r dark:border-gray-800 md:min-w-[118px] md:gap-2 md:px-6 md:text-sm ${
-                  isActive
-                    ? 'bg-gray-50 text-[#00c85a] dark:bg-[#242424] dark:text-[#00dc64]'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-[#00a84c] dark:text-gray-300 dark:hover:bg-[#202020] dark:hover:text-[#00dc64]'
-                }`}
-              >
-                <Icon className="h-4 w-4 md:h-[18px] md:w-[18px]" />
-                {label}
-              </Link>
-            );
-          })}
+      <nav className="fresh-mobile-nav" aria-label={t('common.menu')}>
+        <div ref={primaryNavScrollRef}>
+          {primaryItems.map(item => <Link key={item.labelKey} href={item.href} aria-current={isNavActive(item.href) ? 'page' : undefined}>{t(item.labelKey)}</Link>)}
         </div>
       </nav>
 
@@ -523,18 +285,7 @@ export default function ReferenceHeader() {
           className="relative h-12 border-t border-gray-200 bg-[#f8f9fa] dark:border-gray-800 dark:bg-[#1b1b1b]"
         >
           <div className="mx-auto flex h-full max-w-7xl">
-          <div className="relative flex h-full min-w-0 flex-1">
-          {categoryEdges.left && (
-            <button
-              type="button"
-              aria-label="이전 장르"
-              onClick={() => scrollCategories(-1)}
-              className="absolute left-0 top-0 z-10 hidden h-full w-14 items-center justify-start bg-gradient-to-r from-[#f8f9fa] via-[#f8f9fa]/90 to-transparent pl-2 text-gray-700 dark:from-[#1b1b1b] dark:via-[#1b1b1b]/90 dark:text-gray-200 md:flex"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-[#262626] dark:hover:bg-[#333]"><ChevronLeft aria-hidden="true" className="h-4 w-4" /></span>
-            </button>
-          )}
-          <div ref={categoryNavScrollRef} className="flex h-full min-w-0 flex-1 cursor-grab touch-auto items-center gap-1 overflow-x-auto overscroll-x-contain px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2 sm:px-4 md:px-6 lg:px-8">
+          <div ref={categoryNavScrollRef} className="flex h-full min-w-0 flex-1 cursor-grab touch-auto items-center gap-1 overflow-x-auto overscroll-x-contain px-2 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2 sm:px-4 md:px-6 lg:px-8">
             {contentSubnavItems.map((item) => {
               const active = activeSubnav === item.value;
               const href = item.value === 'all' ? contentPath : `${contentPath}?category=${item.value}`;
@@ -557,17 +308,6 @@ export default function ReferenceHeader() {
                 </Link>
               );
             })}
-          </div>
-          {categoryEdges.right && (
-            <button
-              type="button"
-              aria-label="다음 장르"
-              onClick={() => scrollCategories(1)}
-              className="absolute right-0 top-0 z-10 hidden h-full w-14 items-center justify-end bg-gradient-to-l from-[#f8f9fa] via-[#f8f9fa]/90 to-transparent pr-2 text-gray-700 dark:from-[#1b1b1b] dark:via-[#1b1b1b]/90 dark:text-gray-200 md:flex"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-[#262626] dark:hover:bg-[#333]"><ChevronRight aria-hidden="true" className="h-4 w-4" /></span>
-            </button>
-          )}
           </div>
           <button
             ref={categoryToggleRef}
@@ -626,20 +366,7 @@ export default function ReferenceHeader() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const label = t(item.labelKey);
-                const isActive = pathname === item.href || (item.href !== '/home' && pathname?.startsWith(item.href));
-                if (item.comingSoon) {
-                  return (
-                    <button
-                      key={item.href}
-                      type="button"
-                      onClick={handleComingSoon}
-                      className="flex w-full items-center gap-3 px-5 py-3 text-left text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-[#00a84c] dark:text-gray-300 dark:hover:bg-[#202020] dark:hover:text-[#00dc64]"
-                    >
-                      <Icon className="h-[18px] w-[18px]" />
-                      {label}
-                    </button>
-                  );
-                }
+                const isActive = isNavActive(item.href);
                 return (
                   <Link
                     key={item.href}
@@ -677,12 +404,13 @@ export default function ReferenceHeader() {
                 </div>
               </div>
               <div className="mx-5 my-2 border-t border-gray-100 dark:border-gray-800" />
+              <button type="button" onClick={handleThemeToggle} className="flex min-h-11 w-full items-center gap-3 px-5 text-sm font-bold">{theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}{theme === 'dark' ? t('common.themeLight') : t('common.themeDark')}</button>
               <Link
                 href="/attendance"
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-3 px-5 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50 hover:text-[#00a84c] dark:text-gray-300 dark:hover:bg-[#202020] dark:hover:text-[#00dc64]"
               >
-                <Clock className="h-[18px] w-[18px]" />
+                <BookOpen className="h-[18px] w-[18px]" />
                 {t('common.checkIn')}
               </Link>
               <button
@@ -703,61 +431,16 @@ export default function ReferenceHeader() {
               </button>
             </nav>
             <div className="shrink-0 border-t border-gray-200 p-4 dark:border-gray-800">
-              {sessionUser ? (
-                <div className="space-y-2">
-                  {sessionUser.name && (
-                    <p className="truncate text-center text-xs font-bold text-gray-500 dark:text-gray-400">
-                      {t('common.loggedInAs', { name: sessionUser.name })}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 rounded-lg border border-[#00dc64]/30 bg-[#00dc64]/5 p-2.5">
-                    <Link href="/coin/event-coins" onClick={() => setMenuOpen(false)} className="min-w-0 flex-1" aria-label="보유 코인 상세">
-                      <span className="block text-[11px] font-bold text-gray-500 dark:text-gray-400">보유 코인</span>
-                      <span className="block text-lg font-black leading-tight text-gray-950 dark:text-white">{menuWallet ? menuWallet.total.toLocaleString() : '…'}</span>
-                      {menuWallet && menuWallet.event > 0 && (
-                        <span className="block text-[10px] text-gray-500 dark:text-gray-400">유료 {menuWallet.paid.toLocaleString()} · 이벤트 {menuWallet.event.toLocaleString()}</span>
-                      )}
-                    </Link>
-                    <Link href="/coin" onClick={() => setMenuOpen(false)} className="shrink-0 rounded-lg bg-[#00dc64] px-3 py-2 text-xs font-black text-black hover:bg-[#00c85a]">+ 충전</Link>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      href="/my/library"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-300 text-sm font-black text-gray-700 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:text-gray-200"
-                    >
-                      <Library className="h-4 w-4" />
-                      {t('common.myLibrary')}
-                    </Link>
-                    <Link
-                      href="/profile"
-                      onClick={() => setMenuOpen(false)}
-                      className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-300 text-sm font-black text-gray-700 transition hover:border-[#00dc64] hover:text-[#00a84c] dark:border-gray-700 dark:text-gray-200"
-                    >
-                      <User className="h-4 w-4" />
-                      {t('common.myPage')}
-                    </Link>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex h-11 w-full items-center justify-center rounded-lg bg-gray-900 text-sm font-black text-white transition hover:bg-black dark:bg-white/10 dark:hover:bg-white/20"
-                  >
-                    {t('common.logout')}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setLoginModalOpen(true);
-                  }}
-                  className="flex h-11 w-full items-center justify-center rounded-lg bg-[#00dc64] text-sm font-black text-black transition hover:bg-[#00c85a]"
-                >
-                  {t('common.loginJoin')}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setLoginModalOpen(true);
+                }}
+                className="flex h-11 w-full items-center justify-center rounded-lg bg-[#00dc64] text-sm font-black text-black transition hover:bg-[#00c85a]"
+              >
+                {t('common.loginJoin')}
+              </button>
             </div>
           </div>
         </div>
@@ -770,11 +453,7 @@ export default function ReferenceHeader() {
         }}
         onCancel={() => setAgeGateOpen(false)}
       />
-      {comingSoonOpen && (
-        <div className="fixed left-1/2 top-[116px] z-[1200] w-[calc(100vw-32px)] max-w-sm -translate-x-1/2 rounded-xl border border-[#00dc64]/30 bg-white px-4 py-3 text-center text-sm font-black text-gray-950 shadow-2xl dark:bg-[#1b1b1b] dark:text-white md:top-[124px]">
-          {t('common.comingSoonShortAnime')}
-        </div>
-      )}
+
     </header>
   );
 }

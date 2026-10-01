@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Library, Search, X } from 'lucide-react';
 import { DAY_LABEL, LOCALE_LABEL, RATING_LABEL, STATUS_LABEL, TYPE_LABEL, apiBase, authHeaders, genreLabel, img } from '@/lib/works';
 
-// 작품 관리: 웹툰·단행본·웹소설 한곳에서. 유형·언어·이용등급·연재 상태·연재 요일·장르·태그·날짜를 따로 골라 조합 필터.
+// 작품 관리: 웹툰·단행본·웹소설 한곳에서. 유형·언어·이용등급·연재 상태·장르·태그·날짜를 따로 골라 조합 필터.
 // (예전 일반/성인/영어 일반/영어 성인 구역 대신 조건으로 나눈다) 작품을 누르면 상세(정보·연재·회차·공지)로.
 interface Work {
   id: string; title: string; authorName?: string | null; thumbnail?: string | null; rating: string; status: string; type: 'webtoon' | 'book' | 'novel';
@@ -84,7 +84,7 @@ export default function WorksPage() {
     <div className="min-h-screen bg-gray-900 p-6 text-white">
       <div className="mx-auto max-w-7xl">
         <h1 className="flex items-center gap-2 text-2xl font-bold"><Library className="h-6 w-6" />작품 관리</h1>
-        <p className="mt-1 text-sm text-gray-400">작품 정보의 기준. 여기서 정한 유형·언어·이용등급·연재 상태·연재 요일·장르·태그·공개일이 사용자 화면과 자동 분류(요일·완결·신작·최신 업데이트)에 그대로 반영됩니다. 배지: <b className="text-red-400">UP</b> 오늘 공개 회차 · <b className="text-green-400">NEW</b> 런칭 7일 이내.</p>
+        <p className="mt-1 text-sm text-gray-400">작품 정보의 기준. 여기서 정한 유형·언어·이용등급·연재 상태·연재 요일·장르·태그·공개일이 사용자 화면과 자동 분류(완결·신작·최신 업데이트)에 그대로 반영됩니다. 배지: <b className="text-red-400">UP</b> 오늘 공개 회차 · <b className="text-green-400">NEW</b> 런칭 7일 이내.</p>
 
         <div className="mt-4 flex flex-wrap gap-1 border-b border-gray-700" role="tablist">
           {TYPE_TABS.map(([key, label]) => (
@@ -100,7 +100,6 @@ export default function WorksPage() {
           <select aria-label="언어" className={select} value={f.locale} onChange={(e) => set({ locale: e.target.value })}><option value="">언어 전체</option>{Object.entries(LOCALE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           <select aria-label="이용등급" className={select} value={f.rating} onChange={(e) => set({ rating: e.target.value })}><option value="">이용등급 전체</option><option value="GENERAL">전체 이용가</option><option value="15">15세</option><option value="19">19세</option></select>
           <select aria-label="연재 상태" className={select} value={f.status} onChange={(e) => set({ status: e.target.value })}><option value="">연재 상태 전체</option>{Object.entries(STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-          <select aria-label="연재 요일" className={select} value={f.days} onChange={(e) => set({ days: e.target.value })}><option value="">연재 요일 전체</option>{Object.entries(DAY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}요일</option>)}<option value="daily">매일</option><option value="irregular">비정기(요일 없음)</option></select>
           <select aria-label="장르" className={select} value={f.genre} onChange={(e) => set({ genre: e.target.value })}><option value="">장르 전체</option>{genres.map((g) => <option key={g} value={g}>{g}</option>)}</select>
           <select aria-label="태그" className={select} value={f.tag} onChange={(e) => set({ tag: e.target.value })}><option value="">태그 전체</option>{tags.map((t) => <option key={t} value={t}>#{t}</option>)}</select>
           <select aria-label="공개 여부" className={select} value={f.published} onChange={(e) => set({ published: e.target.value })}><option value="">공개·미공개</option><option value="true">공개</option><option value="false">미공개</option></select>
@@ -145,7 +144,6 @@ export default function WorksPage() {
                     <td className="p-3 text-xs">{ratingKey(w.rating) === '19' ? <span className="rounded bg-red-800 px-1.5">19세</span> : RATING_LABEL[ratingKey(w.rating)]}</td>
                     <td className="p-3 text-xs">
                       <span className={w.status === 'HIATUS' ? 'text-amber-300' : w.status === 'SUSPENDED' ? 'text-red-300' : ''}>{STATUS_LABEL[w.status] || w.status}</span><br />
-                      <span className="text-gray-400">{w.days.length === 7 ? '매일' : w.days.length ? w.days.map((d) => DAY_LABEL[d]).join('·') : '비정기'}</span>
                     </td>
                     <td className="max-w-[12rem] p-3 text-xs">{genreLabel(w.genre)}{w.tags.length > 0 && <span className="block truncate text-gray-400">{w.tags.map((t) => `#${t}`).join(' ')}</span>}</td>
                     <td className="p-3 text-xs">{w.episodes}{w.scheduled > 0 && <span className="ml-1 text-yellow-300">(예약 {w.scheduled})</span>}</td>

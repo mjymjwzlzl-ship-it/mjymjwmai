@@ -68,6 +68,7 @@ export default function ClientLayout({
   const isEpisodePage = pathname?.includes('/episode/') || false;
   const isIndividualGamePage = pathname?.match(/^\/games\/[^/]+$/) || false;
   const isCharacterChatPage = pathname?.includes('/chat/webtoon/') || pathname?.includes('/adult/chat/webtoon/') || false;
+  const isDiscoveryHome = ['/', '/home', '/adult', '/adult/home'].includes(pathname);
   const hideLayout = isEpisodePage || isIndividualGamePage || isCharacterChatPage;
   const hasContentSubnav = Boolean(
     pathname?.startsWith('/daily') || pathname?.startsWith('/books') || pathname?.startsWith('/novel'),
@@ -89,7 +90,7 @@ export default function ClientLayout({
         <MobileNav />
       </div>
 
-      {!hideLayout && <LaunchPromoModal />}
+      {!hideLayout && !isDiscoveryHome && <LaunchPromoModal />}
       {!hideLayout && <CookieConsentBanner />}
       <LoginModal />
       <NotificationManager />

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogIn, Shield } from 'lucide-react';
+import AdminThemeToggle from '@/components/AdminThemeToggle';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -58,8 +59,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#141414] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <div className="admin-login-page min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <AdminThemeToggle className="admin-login-theme-toggle" />
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm w-full max-w-md p-8">
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
             <Shield className="w-8 h-8 text-emerald-600" />
@@ -115,7 +117,7 @@ export default function LoginPage() {
             className={`w-full py-3 px-4 rounded-lg text-white font-medium transition-colors duration-200 flex items-center justify-center ${
               loading
                 ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90'
+                : 'bg-emerald-700 hover:bg-emerald-800'
             }`}
           >
             <LogIn className="w-5 h-5 mr-2" />

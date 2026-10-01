@@ -371,9 +371,9 @@ export default function SupportPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       
-      <div className="flex h-[calc(100vh-64px)]">
+      <div className="admin-mail-layout">
         {/* 사이드바 - 메일 목록 */}
-        <div className="w-96 border-r border-gray-800 flex flex-col">
+        <div className={`admin-mail-inbox border-r border-gray-800 flex flex-col ${selectedMail ? 'has-selection' : ''}`}>
           {/* 헤더 */}
           <div className="p-4 border-b border-gray-800">
             {/* 메일 작성 버튼 */}
@@ -498,14 +498,15 @@ export default function SupportPage() {
         </div>
         
         {/* 메인 컨텐츠 - 메일 상세 */}
-        <div className="flex-1 flex flex-col">
+        <div className={`admin-mail-detail flex-1 flex flex-col ${selectedMail ? 'has-selection' : ''}`}>
           {selectedMail ? (
             <>
               {/* 메일 헤더 */}
               <div className="p-4 border-b border-gray-800">
-                <div className="flex items-center justify-between mb-2">
+                <button className="admin-mail-back" onClick={() => { setSelectedMail(null); setShowReplyForm(false); }}>← 문의 목록으로</button>
+                <div className="flex flex-wrap gap-3 items-center justify-between mb-2">
                   <h2 className="text-xl font-semibold">{selectedMail.subject}</h2>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={selectedMail.status}
                       onChange={(e) => handleStatusChange(selectedMail.id, e.target.value)}

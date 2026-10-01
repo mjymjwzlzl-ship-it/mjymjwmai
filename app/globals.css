@@ -11,8 +11,8 @@
 [data-reference-header="true"] { padding-top: env(safe-area-inset-top, 0px); }
 
 @media (min-width: 768px) {
-  .arata-shell { padding-top: calc(104px + env(safe-area-inset-top, 0px)); padding-bottom: 0; }
-  .arata-shell-subnav { padding-top: calc(152px + env(safe-area-inset-top, 0px)); }
+  .arata-shell { padding-top: calc(76px + env(safe-area-inset-top, 0px)); padding-bottom: 0; }
+  .arata-shell-subnav { padding-top: calc(124px + env(safe-area-inset-top, 0px)); }
 }
 @media (max-width: 767px) {
   /* Prevent iOS from zooming into small text fields when the keyboard opens. */
@@ -307,3 +307,52 @@ video {
   -ms-user-select: none;
   user-select: none;
 }
+
+.fresh-header-row { max-width:1240px; margin:0 auto; padding:0 28px; height:76px; display:flex; align-items:center; gap:26px; color:#10282c; }
+.fresh-logo { white-space:nowrap; color:#087e47; font-size:23px; font-weight:900; letter-spacing:-1px; }
+.fresh-desktop-nav { display:flex; align-items:center; gap:20px; white-space:nowrap; }
+.fresh-desktop-nav a { display:flex; align-items:center; height:76px; font-size:13px; font-weight:750; border-bottom:3px solid transparent; padding-top:3px; }
+.fresh-desktop-nav a[aria-current="page"] { color:#087e47; border-bottom-color:#087e47; }
+.fresh-search { margin-left:auto; display:flex; align-items:center; gap:8px; background:#f4f6f5; border-radius:12px; padding:0 12px; min-width:0; max-width:235px; height:38px; }
+.fresh-search input { background:transparent; min-width:0; width:100%; font-size:11px; border:0; outline:none; }
+.fresh-header-tools { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.fresh-adult-toggle { display:flex; align-items:center; gap:4px; padding:6px 8px; border:1px solid #dce4df; border-radius:25px; font-size:10px; font-weight:800; color:#708078; }
+.fresh-adult-toggle.is-enabled { background:#073f2c; border-color:#073f2c; color:#d4ff52; }
+.fresh-login { background:#087e47; padding:9px 17px; border-radius:10px; color:#fff; font-size:12px; font-weight:750; }
+.fresh-menu-button,.fresh-theme-toggle,.fresh-mobile-search { min-height:36px; min-width:32px; display:flex; align-items:center; justify-content:center; }
+.fresh-mobile-search,.fresh-mobile-nav { display:none; }
+.dark .fresh-header-row { color:#e2eee6; }
+.dark .fresh-logo { color:#d4ff52; }
+.dark .fresh-search { background:#243429; }
+.dark .fresh-desktop-nav a[aria-current="page"] { color:#d4ff52; border-color:#d4ff52; }
+@media (min-width:768px) and (max-width:1199px) {
+  .fresh-header-row { gap:18px; padding:0 22px; }
+  .fresh-desktop-nav { gap:14px; }
+  .fresh-search,.fresh-theme-toggle { display:none; }
+  .fresh-mobile-search { display:flex; }
+  .fresh-header-tools { margin-left:auto; }
+  .fresh-logo { font-size:20px; }
+  .fresh-desktop-nav a { font-size:12px; }
+}
+@media (min-width:768px) and (max-width:959px) {
+  .fresh-desktop-nav { gap:12px; }
+  .fresh-desktop-nav a:last-child { display:none; }
+  .fresh-login { display:none; }
+  .fresh-header-row { gap:15px; }
+}
+@media (max-width:767px) {
+  .fresh-header-row { height:52px; padding:0 16px; gap:8px; }
+  .fresh-logo { font-size:20px; }
+  .fresh-desktop-nav,.fresh-search,.fresh-login,.fresh-theme-toggle { display:none; }
+  .fresh-header-tools { margin-left:auto; gap:3px; }
+  .fresh-mobile-search { display:flex; }
+  .fresh-menu-button,.fresh-mobile-search { min-height:44px; min-width:36px; }
+  .fresh-adult-toggle { font-size:9px; padding:5px 6px; gap:3px; }
+  .fresh-mobile-nav { display:block; border-top:1px solid #f0f3f0; height:44px; }
+  .fresh-mobile-nav > div { display:flex; overflow-x:auto; scrollbar-width:none; height:100%; padding:0 10px; gap:9px; }
+  .fresh-mobile-nav a { display:flex; align-items:center; justify-content:center; flex:1 0 auto; padding:0 8px; font-size:12px; font-weight:650; white-space:nowrap; border-bottom:3px solid transparent; padding-top:3px; }
+  .fresh-mobile-nav a[aria-current="page"] { color:#087e47; border-color:#087e47; font-weight:850; }
+  .dark .fresh-mobile-nav { border-color:#28372d; }
+  .dark .fresh-mobile-nav a[aria-current="page"] { color:#d4ff52; border-color:#d4ff52; }
+}
+@media (max-width:359px) { .fresh-logo { font-size:18px; } .fresh-header-row { padding:0 12px; } .fresh-header-tools { gap:0; } }

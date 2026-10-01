@@ -1,95 +1,86 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { NAV, groupOf } from '@/lib/admin-nav';
-import { LogOut, Mail } from 'lucide-react';
+import AdminThemeToggle from './AdminThemeToggle';
+import { BarChart3, BookOpen, Crown, ExternalLink, Home, Image, LogOut, Mail, Menu, Shield, TrendingUp, Users, X } from 'lucide-react';
+
+const contentKeys = ['works', 'gallery', 'community', 'exposure'];
+const menuIcons = { works: BookOpen, gallery: Image, community: Users, exposure: TrendingUp, promotion: Crown, payment: BarChart3, users: Users, reports: Shield, stats: BarChart3 };
+const menuItem = (group: typeof NAV[number]) => ({ href: group.href, label: group.label, icon: menuIcons[group.key as keyof typeof menuIcons] || Home });
+const groups = [
+  { label: '콘텐츠', items: NAV.filter(group => contentKeys.includes(group.key)).map(menuItem) },
+  { label: '운영', items: NAV.filter(group => group.key !== 'dashboard' && !contentKeys.includes(group.key)).map(menuItem) },
+];
 
 export default function AdminHeader() {
-  const router = useRouter();
   const pathname = usePathname();
+  const router = useRouter();
   const [adminName, setAdminName] = useState('관리자');
-  const [unreadCount, setUnreadCount] = useState(1); // 더미 데이터로 1개 표시
-  
-  useEffect(() => {
-    // 관리자 정보 로드
-    const admin = localStorage.getItem('adminUser');
-    if (admin) {
-      const adminData = JSON.parse(admin);
-      setAdminName(adminData.name || '관리자');
-    }
-  }, []);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const links = groups.flatMap(group => group.items);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    try {
+      const admin = JSON.parse(localStorage.getItem('adminUser') || 'null');
+      if (admin?.name || admin?.username) setAdminName(admin.name || admin.username);
+    } catch { /* 표시용 정보 오류가 메뉴를 막지 않도록 한다. */ }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    sidebarRef.current?.querySelector<HTMLAnchorElement>('a')?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setOpen(false); toggleRef.current?.focus(); }
+      if (event.key === 'Tab') {
+        const controls = sidebarRef.current?.querySelectorAll<HTMLElement>('a, button, input');
+        if (!controls?.length) return;
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', handleKey); };
+  }, [open]);
+
+  const isActive = (href: string) => groupOf(pathname || '/').href === href;
+  const currentTitle = groupOf(pathname || '/').label;
+  const logout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
-    router.push('/login');
+    router.replace('/login');
   };
+  const closeMenu = () => { setOpen(false); setQuery(''); };
 
-  return (
-    <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* 로고 및 메뉴 */}
-          <div className="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-2">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">A</span>
-              </div>
-              <span className="text-xl font-bold text-white">관리자 센터</span>
-            </Link>
-            
-            {/* 상단 메뉴바: lib/admin-nav.ts (8개 메뉴, 세부 기능은 아래 탭 줄) */}
-            <nav className="flex flex-wrap items-center gap-x-1 gap-y-1" aria-label="관리자 메뉴">
-              {NAV.map((group) => {
-                const active = groupOf(pathname || '/').key === group.key;
-                return (
-                  <Link key={group.key} href={group.href} aria-current={active ? 'page' : undefined}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${active ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>
-                    {group.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-          
-          {/* 우측 메뉴 */}
-          <div className="flex items-center space-x-4">
-            {/* 메일함 */}
-            <Link 
-              href="/support"
-              className="relative text-gray-300 hover:text-white transition-colors p-2"
-              title="메일함"
-            >
-              <Mail className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
-            
-            {/* 구분선 */}
-            <div className="h-6 w-px bg-gray-700" />
-            
-            {/* 관리자 정보 */}
-            <div className="flex items-center space-x-3">
-              <div className="text-right">
-                <p className="text-sm text-white font-medium">{adminName}</p>
-                <p className="text-xs text-gray-400">관리자</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-3 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-gray-300 hover:text-white"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="text-sm">로그아웃</span>
-              </button>
-            </div>
-          </div>
-        </div>
+  return <>
+    {open && <button className="admin-backdrop" aria-label="메뉴 닫기" onClick={closeMenu} tabIndex={-1} />}
+    <aside ref={sidebarRef} id="admin-navigation" className={`admin-sidebar ${open ? 'is-open' : ''}`} aria-label="관리자 메뉴">
+      <div className="admin-brand-row">
+        <Link href="/" className="admin-brand" onClick={closeMenu}>ARATA<span>관리자 센터</span></Link>
+        <button className="admin-mobile-close admin-icon-button" onClick={closeMenu} aria-label="메뉴 닫기"><X size={22} /></button>
       </div>
+      <nav className="admin-navigation">
+        <Link href="/" className={`admin-nav-link ${pathname === '/' ? 'is-active' : ''}`} aria-current={pathname === '/' ? 'page' : undefined} onClick={closeMenu}><Home size={21} />대시보드</Link>
+        <label className="admin-menu-search"><span className="sr-only">관리 메뉴 검색</span><input type="search" placeholder="메뉴 검색" value={query} onChange={event => setQuery(event.target.value)} /></label>
+        {groups.map(group => <div key={group.label} className="admin-nav-group">
+          <p>{group.label}</p>
+          {group.items.filter(item => item.label.includes(query.trim())).map(item => <Link key={item.href} href={item.href} className={`admin-nav-link ${isActive(item.href) ? 'is-active' : ''}`} aria-current={isActive(item.href) ? 'page' : undefined} onClick={closeMenu}><item.icon size={21} />{item.label}</Link>)}
+        </div>)}
+        {query && !links.some(item => item.label.includes(query.trim())) && <p className="admin-search-empty">일치하는 메뉴가 없습니다.</p>}
+      </nav>
+      <a className="admin-service-link" href="https://arata.co.kr/home" target="_blank" rel="noopener noreferrer"><ExternalLink size={18} />서비스로 이동</a>
+    </aside>
+    <header className="admin-topbar">
+      <div className="admin-breadcrumb"><button ref={toggleRef} className="admin-menu-toggle admin-icon-button" onClick={() => setOpen(!open)} aria-controls="admin-navigation" aria-expanded={open} aria-label="관리 메뉴 열기"><Menu size={23} /></button><span>관리자 센터</span><span aria-hidden="true">/</span><strong>{currentTitle}</strong></div>
+      <div className="admin-account"><AdminThemeToggle /><Link href="/support" className="admin-icon-button" aria-label="고객센터 문의 확인"><Mail size={21} /></Link><span className="admin-avatar" aria-hidden="true"><Users size={18} /></span><span className="admin-account-name">{adminName}</span><button onClick={logout} className="admin-logout"><LogOut size={17} /><span>로그아웃</span></button></div>
     </header>
-  );
+  </>;
 }

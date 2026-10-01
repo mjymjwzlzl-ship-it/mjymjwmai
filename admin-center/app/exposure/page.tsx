@@ -173,8 +173,6 @@ function Rankings({ kind }: { kind: 'popular' | 'realtime' }) {
 const AUTO_ROWS: { key: string; label: string; rule: string }[] = [
   { key: 'latest', label: '최신 업데이트', rule: '공개된 회차가 있는 작품, 마지막 공개 순 (오늘 공개 = UP 배지)' },
   { key: 'new', label: '신작', rule: '런칭일 포함 7일 이내 (NEW 배지와 같은 기준)' },
-  { key: 'daily', label: '매일', rule: '연재 요일 7일 모두 선택된 연재중·휴재 작품' },
-  ...Object.entries(DAY_LABEL).map(([k, v]) => ({ key: `week_${k}`, label: `${v}요일`, rule: `연재 요일에 ${v}요일이 있는 연재중·휴재 작품` })),
   { key: 'complete', label: '완결', rule: '연재 상태 = 완결' },
 ];
 function AutoCategories() {
@@ -185,7 +183,7 @@ function AutoCategories() {
   useEffect(() => { setData(null); adminApi<{ total: number; categories: Record<string, Brief[]> }>(`/admin/exposure/auto?audience=${audience}&locale=${locale}`).then(setData).catch((e) => alert(e.message)); }, [audience, locale]);
   return (
     <section>
-      <p className="mb-3 text-sm text-gray-400">예전 첫 화면 [카테고리 관리]에서 손으로 넣던 항목입니다. 이제 작품 관리 정보(연재 요일·상태·런칭일·회차 공개일)로 자동으로 나뉘며, 사용자 화면 요일별 연재·완결·신작 목록과 같은 결과입니다. 바꾸려면 해당 작품을 [작품 관리]에서 고치세요.</p>
+      <p className="mb-3 text-sm text-gray-400">예전 첫 화면 [카테고리 관리]에서 손으로 넣던 항목입니다. 이제 작품 관리 정보(상태·런칭일·회차 공개일)로 자동으로 나뉘며, 사용자 화면 최신 업데이트·완결·신작 목록과 같은 결과입니다. 바꾸려면 해당 작품을 [작품 관리]에서 고치세요.</p>
       <div className="mb-3 flex gap-2 text-sm">
         <select value={audience} onChange={(e) => setAudience(e.target.value as 'general' | 'adult')} className="rounded border border-gray-600 bg-gray-800 px-2 py-1.5"><option value="general">일반 작품</option><option value="adult">19세 작품 (성인 홈)</option></select>
         <select value={locale} onChange={(e) => setLocale(e.target.value as 'ko' | 'en')} className="rounded border border-gray-600 bg-gray-800 px-2 py-1.5"><option value="ko">한국어</option><option value="en">영어</option></select>

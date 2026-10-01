@@ -271,15 +271,6 @@ export default function WorkDetailPage() {
               </div>
               <p className="mt-1 text-xs text-gray-500">태그는 웹툰·단행본·웹소설 모두 사이트 작품 상세와 목록 태그 필터에 같은 방식으로 나갑니다.</p>
             </div>
-            <div className="text-sm md:col-span-2">
-              <span className="mb-1 block text-gray-300">연재 요일</span>
-              <div className="flex flex-wrap gap-2">
-                {DAYS.map(([key, label]) => {
-                  const on = form.updateDays.includes(key);
-                  return <button key={key} type="button" onClick={() => set({ updateDays: on ? form.updateDays.filter((d: string) => d !== key) : [...form.updateDays, key] })} className={`h-9 w-9 rounded-full text-sm font-bold ${on ? 'bg-purple-600' : 'bg-gray-700 text-gray-400'}`}>{label}</button>;
-                })}
-              </div>
-            </div>
             <div className="flex flex-wrap gap-5 text-sm md:col-span-2">
               <label className="flex items-center gap-2"><input type="checkbox" checked={form.isPublished} onChange={(e) => set({ isPublished: e.target.checked })} />사이트에 공개</label>
               <label className="flex items-center gap-2"><input type="checkbox" checked={form.isOfficial} onChange={(e) => set({ isOfficial: e.target.checked })} />정식 연재</label>
@@ -376,7 +367,7 @@ function EpisodeSection({ workId, isNovel, episodes, onChanged, paidStart }: { w
                   {openNote === ep.id && (
                     <tr><td colSpan={9} className="p-2">
                       <label className="block text-xs text-gray-300">작가의 말 <span className="text-gray-500">— 이 회차 뷰어 댓글 위에 나옵니다. 짧은 코멘트·후기·다음 화 안내. 비우고 저장하면 영역이 사라집니다. (작품 전체 휴재·일정·판매 안내는 아래 [작품 공지])</span>
-                        <textarea rows={3} maxLength={1000} className={`${input} mt-1`} value={e.authorNote || ''} placeholder="예) 이번 화도 읽어 주셔서 감사합니다! 다음 화는 금요일에 만나요." onChange={(ev) => change(ep, { authorNote: ev.target.value })} />
+                        <textarea rows={3} maxLength={1000} className={`${input} mt-1`} value={e.authorNote || ''} placeholder="예) 이번 화도 읽어 주셔서 감사합니다! 다음 화도 기대해 주세요." onChange={(ev) => change(ep, { authorNote: ev.target.value })} />
                       </label>
                       <p className="mt-1 text-right text-[11px] text-gray-500">{(e.authorNote || '').length}/1000 · 오른쪽 [저장]으로 반영</p>
                     </td></tr>

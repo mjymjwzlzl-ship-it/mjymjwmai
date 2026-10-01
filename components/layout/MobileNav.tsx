@@ -2,24 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
-import { Calendar, Home, MessageCircle, Sparkles, Tag } from 'lucide-react';
-import { useAdultStore } from '@/store/adult';
+import { BookOpen, Home, ImageIcon, MessageCircle, User } from 'lucide-react';
+import { useAdultModeStore } from '@/store/adultMode';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 
 export default function MobileNav() {
   const pathname = usePathname();
   const { t } = useLanguage();
-  const adult = useAdultStore((s) => s.adult);
-  const setAdult = useAdultStore((s) => s.setAdult);
-
-  useEffect(() => {
-    if (pathname.startsWith('/adult') && adult !== 'on') {
-      setAdult('on');
-    } else if (!pathname.startsWith('/adult') && adult === 'on') {
-      setAdult('off');
-    }
-  }, [pathname, adult, setAdult]);
+  const adult = useAdultModeStore((s) => s.enabled);
 
   const isWebtoonEpisode = pathname.includes('/episode/');
   const isCharacterChatPage = pathname.includes('/chat/webtoon/') || pathname.includes('/adult/chat/webtoon/');
@@ -28,13 +18,13 @@ export default function MobileNav() {
     return null;
   }
 
-  const isAdultMode = adult === 'on' || pathname.startsWith('/adult');
+  const isAdultMode = adult || pathname.startsWith('/adult');
   const navItems = [
     { href: isAdultMode ? '/adult' : '/home', label: t('nav.home'), icon: Home },
-    { href: isAdultMode ? '/adult/daily' : '/daily', label: isAdultMode ? t('nav.fullEdition') : t('nav.webtoons'), icon: Calendar },
+    { href: isAdultMode ? '/adult/complete' : '/complete', label: t('nav.complete'), icon: BookOpen },
+    { href: isAdultMode ? '/adult/library' : '/gallery', label: t('nav.gallery'), icon: ImageIcon },
     { href: isAdultMode ? '/adult/chat' : '/chat', label: t('nav.chat'), icon: MessageCircle },
-    { href: '/attendance', label: t('nav.attendance'), icon: Tag },
-    { href: isAdultMode ? '/adult/new' : '/new', label: t('nav.new'), icon: Sparkles },
+    { href: '/profile', label: 'MY', icon: User },
   ];
 
   const isActive = (href: string) => {
@@ -61,7 +51,7 @@ export default function MobileNav() {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center px-1 text-[10px] transition-colors sm:text-xs ${
-                active ? 'text-[#00dc64]' : 'text-gray-500 dark:text-gray-400'
+                active ? 'text-[#087e47] dark:text-[#d4ff52]' : 'text-gray-500 dark:text-gray-400'
               }`}
             >
               <Icon className="mb-1 h-5 w-5" />
