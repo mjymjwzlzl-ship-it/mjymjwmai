@@ -12,6 +12,7 @@ const HOME_SECTIONS = [
   { key: 'eventWorks', label: '이벤트 작품 (할인·무료)' },
   { key: 'events', label: '이벤트' },
 ];
+// 예전 수동 목록 키(today_picks·new_picks·popular_pins)는 ranking-engine 이 처음 한 번 고정 순위로 옮긴다
 const LIST_KEYS = ['today_picks', 'new_picks', 'popular_pins'];
 
 async function getCuration(key, fallback) {

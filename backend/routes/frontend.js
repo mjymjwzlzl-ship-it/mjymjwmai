@@ -8,7 +8,7 @@ const { guardComicParam, requireVerifiedAdultMode, generalComicWhere } = require
 const { parseCredits } = require('../lib/credits');
 const { homeMainBanners, bannersFor, PLACEMENTS } = require('../lib/banners');
 const { autoCategories } = require('../lib/auto-categories');
-const { getCuration, homeSections } = require('../lib/curation');
+const { homeSections } = require('../lib/curation');
 const { getJwtSecret } = require('../lib/jwt-secret');
 const express = require('express');
 const { prisma } = require('../lib/prisma');
@@ -219,10 +219,8 @@ router.get('/home', async (req, res) => {
       data: {
         // 홈 대배너: [배너 관리]에 등록된 것만 (lib/banners.js)
         banners: await homeMainBanners(),
-        // 노출 관리: 오늘의 추천작·추천 신작(직접 고른 작품 id), 홈 섹션 순서·노출
+        // 노출 관리: 홈 섹션 순서·노출 (오늘의 추천작·추천 신작 순위는 /frontend/rankings)
         curation: {
-          todayPicks: await getCuration('today_picks', []),
-          newPicks: await getCuration('new_picks', []),
           sections: (await homeSections()).map(({ key, visible }) => ({ key, visible })),
         },
         categories: {

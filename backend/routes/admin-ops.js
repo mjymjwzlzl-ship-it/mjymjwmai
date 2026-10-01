@@ -159,8 +159,8 @@ router.get('/admin/ops/stats', async (req, res) => {
   const periodViews = new Map(); views.forEach((v) => v.comicId && periodViews.set(v.comicId, (periodViews.get(v.comicId) || 0) + 1));
   const buy = new Map();
   purchases.forEach((p) => { const id = p.episode?.comicId; if (!id) return; const e = buy.get(id) || { own: 0, rent: 0, coins: 0, periodCoins: 0 }; e[p.type === 'RENT' ? 'rent' : 'own'] += 1; e.coins += p.coinPrice || 0; if (p.createdAt >= from) e.periodCoins += p.coinPrice || 0; buy.set(id, e); });
-  const popRank = new Map(ranking.popular.map((x, i) => [x.id, i + 1]));
-  const rtRank = new Map(ranking.realtime.map((x, i) => [x.id, i + 1]));
+  const popRank = new Map(ranking.areas.popular.list.map((x) => [x.id, x.rank]));
+  const rtRank = new Map(ranking.areas.realtime.list.map((x) => [x.id, x.rank]));
   const works = comics.map((c) => {
     const b = buy.get(c.id) || { own: 0, rent: 0, coins: 0, periodCoins: 0 };
     return { id: c.id, title: c.title, type: contentTypeOf(c), adult: ['19', 'ADULT', 'adult'].includes(String(c.rating)), status: c.status, views: c.viewCount || 0, periodViews: periodViews.get(c.id) || 0, likes: c._count.likes, episodes: c._count.episodes, own: b.own, rent: b.rent, purchases: b.own + b.rent, coins: b.coins, periodCoins: b.periodCoins, popularRank: popRank.get(c.id) || null, realtimeRank: rtRank.get(c.id) || null };

@@ -4,7 +4,7 @@ import { Eye, Heart, Star } from 'lucide-react';
 import { getImageUrl } from '@/lib/utils';
 import ComicBadges from '@/components/ui/ComicBadges';
 
-export type RankingKind = 'popular' | 'realtime' | 'new' | 'webtoon' | 'book' | 'novel';
+export type RankingKind = 'today' | 'popular' | 'realtime' | 'new' | 'webtoon' | 'book' | 'novel';
 export interface RankingItem {
   id: string;
   rank: number;
@@ -20,14 +20,18 @@ export interface RankingItem {
   lastEpisodeAt?: string | null;
   status?: string;
   isNew?: boolean;
+  metricValue?: number | null;
 }
-export interface RankingList { total: number; top: number; items: RankingItem[] }
+// 노출 관리 영역(오늘의 추천작·추천 신작·인기 작품·실시간 랭킹)은 관리자가 고른 집계 기준·기간을 함께 내려준다
+export interface RankingCriteria { metric: string; metricLabel: string; period: string; periodLabel: string; computedAt: number }
+export interface RankingList { total: number; top: number; items: RankingItem[]; criteria?: RankingCriteria }
 export interface RankingResponse { realtimeHours: number; rankings: Partial<Record<RankingKind, RankingList>> }
 
 export const RANKING_KINDS: RankingKind[] = ['popular', 'realtime', 'new', 'webtoon', 'book', 'novel'];
 
 // 탭 이름: TOP N 은 등록 작품 수에 맞춘 값(서버가 20·50·100 중 결정)
 export function rankingLabel(kind: RankingKind, list?: RankingList) {
+  if (kind === 'today') return '오늘의 추천작';
   if (kind === 'popular') return '인기 작품';
   if (kind === 'realtime') return '실시간 랭킹';
   if (kind === 'new') return '신작';
@@ -35,7 +39,15 @@ export function rankingLabel(kind: RankingKind, list?: RankingList) {
   return `TOP ${list && list.top > 20 ? list.top : 20} ${name}`;
 }
 
-export function rankingCriteria(kind: RankingKind, hours = 24) {
+const METRIC_UNIT: Record<string, string> = { views: '조회', likes: '찜', purchases: '구매', reads: '열람', hearts: '좋아요', rising: '조회 상승', composite: '인기 점수' };
+
+export function rankingCriteria(kind: RankingKind, hours = 24, list?: RankingList) {
+  const c = list?.criteria;
+  if (c) {
+    if (c.metric === 'launch') return '최근 런칭한 작품 순서예요. 런칭 7일 이내 작품에는 NEW 가 붙어요.';
+    const how = c.metric === 'composite' ? '조회 · 찜 · 구매 · 열람 · 좋아요를 합산한 종합 인기순' : c.metricLabel;
+    return `${c.periodLabel} ${how}이에요.${kind === 'new' ? ' 최근 런칭한 작품 중에서 골라요.' : ''} 매분 갱신됩니다.`;
+  }
   switch (kind) {
     case 'popular':
       return '누적 조회수 · 찜 · 회차 평점을 합산한 순위예요.';
@@ -50,7 +62,7 @@ export function rankingCriteria(kind: RankingKind, hours = 24) {
   }
 }
 
-export function RankingCard({ item, kind }: { item: RankingItem; kind: RankingKind }) {
+export function RankingCard({ item, kind, criteria }: { item: RankingItem; kind: RankingKind; criteria?: RankingCriteria }) {
   const top3 = item.rank <= 3;
   return (
     <Link href={`/webtoons/${item.id}`} className="group flex min-w-0 items-center gap-3 rounded-lg p-2 transition hover:bg-gray-50 dark:hover:bg-white/5">
@@ -68,7 +80,11 @@ export function RankingCard({ item, kind }: { item: RankingItem; kind: RankingKi
         <p className="mt-0.5 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">{[item.author, `${item.totalEpisodes}화`].filter(Boolean).join(' · ')}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] font-bold text-gray-500 dark:text-gray-400">
           {kind === 'realtime' ? (
-            <span className="text-red-500">최근 조회 {item.recentViews.toLocaleString()}</span>
+            <span className="text-red-500">
+              {criteria && criteria.metric !== 'launch' && item.metricValue != null
+                ? `${criteria.period === 'all' ? '' : `${criteria.periodLabel.replace('최근 ', '')} `}${METRIC_UNIT[criteria.metric] || ''} ${item.metricValue > 0 && criteria.metric === 'rising' ? '+' : ''}${item.metricValue.toLocaleString()}`
+                : `최근 조회 ${item.recentViews.toLocaleString()}`}
+            </span>
           ) : kind === 'new' ? (
             <>
               <span>{item.launchedAt ? new Date(item.launchedAt).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Seoul' }) : ''} 런칭</span>
@@ -120,14 +136,14 @@ export function RankingSection({ title, icon, kinds, data, limit = 6 }: { title:
           ))}
         </div>
       )}
-      <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{rankingCriteria(kind, data?.realtimeHours)}</p>
+      <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{rankingCriteria(kind, data?.realtimeHours, list)}</p>
       {!list || list.items.length === 0 ? (
         data ? <RankingEmpty kind={kind} /> : <div className="h-40 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800" />
       ) : (
         <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
           {/* 모바일은 1~5위까지만 (6위부터는 [전체보기]), PC는 3열 두 줄로 6위까지 */}
           {list.items.slice(0, limit).map((item, index) => (
-            <div key={item.id} className={index >= 5 ? 'hidden sm:block' : ''}><RankingCard item={item} kind={kind} /></div>
+            <div key={item.id} className={index >= 5 ? 'hidden sm:block' : ''}><RankingCard item={item} kind={kind} criteria={list.criteria} /></div>
           ))}
         </div>
       )}

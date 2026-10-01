@@ -1,18 +1,18 @@
 // 작품 랭킹 (/api/frontend/rankings)
-// - popular  [인기 작품]  : 누적 지표 = 누적 조회수 + 찜 수 × 10 + 회차 평점 합계(평균 × 참여 수)
-// - realtime [실시간 랭킹]: 최근 24시간 회차 조회 수 (조회가 있었던 작품만)
-// - new      [신작]      : 런칭(등록)일 최신순, 7일 이내는 isNew
-// - webtoon / book / novel [TOP N]: 유형별 인기 점수 순. N 은 등록 작품 수에 맞춰 20·50·100 중 하나
+// - today / new / popular / realtime [오늘의 추천작·추천 신작·인기 작품·실시간 랭킹]:
+//   관리자 [노출 관리]에서 영역마다 고른 집계 기준·기간 + 고정 순위로 lib/ranking-engine 이 계산
+// - webtoon / book / novel [TOP N]: 유형별 인기 점수(누적 조회수 + 찜 × 10 + 평점 합계) 순. N 은 등록 작품 수에 맞춰 20·50·100 중 하나
 // 성인 작품은 제외한다 (홈·일반 목록용).
 const express = require('express');
 const { prisma } = require('../lib/prisma');
 const { generalComicWhere } = require('../services/adult-access');
 const { contentTypeOf } = require('../lib/content-format');
 const { isNewLaunch } = require('../lib/badges');
-const { getCuration } = require('../lib/curation');
+const engine = require('../lib/ranking-engine');
 
 const router = express.Router();
-const KINDS = ['popular', 'realtime', 'new', 'webtoon', 'book', 'novel'];
+const KINDS = ['today', 'popular', 'realtime', 'new', 'webtoon', 'book', 'novel'];
+const ENGINE_AREAS = ['today', 'popular', 'realtime', 'new'];
 const REALTIME_HOURS = 24;
 
 const topSize = (count) => (count > 50 ? 100 : count > 20 ? 50 : 20);
@@ -65,15 +65,15 @@ async function buildRankings() {
   });
 
   const byPopular = (a, b) => b.popularScore - a.popularScore || b.views - a.views;
-  // [노출 관리 > 인기 작품] 상단 고정 작품은 점수와 관계없이 맨 앞 (고정 순서대로)
-  const pins = (await getCuration('popular_pins', [])).map(String);
-  const pinRank = new Map(pins.map((id, i) => [id, i]));
-  for (const item of items) item.pinned = pinRank.has(String(item.id));
-  const popular = [...items].sort((a, b) => (pinRank.has(String(a.id)) ? pinRank.get(String(a.id)) : 1e9) - (pinRank.has(String(b.id)) ? pinRank.get(String(b.id)) : 1e9) || byPopular(a, b));
-  const realtime = items.filter((item) => item.recentViews > 0).sort((a, b) => b.recentViews - a.recentViews || byPopular(a, b));
   const ofType = (type) => [...items].sort(byPopular).filter((item) => item.contentType === type);
-  const newest = [...items].sort((a, b) => new Date(b.launchedAt).getTime() - new Date(a.launchedAt).getTime() || byPopular(a, b));
-  return { popular, realtime, new: newest, webtoon: ofType('webtoon'), book: ofType('book'), novel: ofType('novel') };
+  // 노출 관리 영역: 엔진 결과에 평점만 덧붙인다
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const areas = {};
+  for (const area of ENGINE_AREAS) {
+    const r = await engine.computeArea(area);
+    areas[area] = { criteria: { metric: r.config.metric, metricLabel: r.metricLabel, period: r.config.period, periodLabel: r.periodLabel, computedAt: r.computedAt }, list: r.items.map((x) => ({ ...x, rating: byId.get(x.id)?.rating || 0, ratingCount: byId.get(x.id)?.ratingCount || 0 })) };
+  }
+  return { areas, webtoon: ofType('webtoon'), book: ofType('book'), novel: ofType('novel') };
 }
 
 // 집계는 1분 캐시 (홈에서 자주 불린다)
@@ -93,11 +93,13 @@ router.get('/rankings', async (req, res) => {
     const kinds = KINDS.includes(String(req.query.kind)) ? [String(req.query.kind)] : KINDS;
     const result = {};
     for (const kind of kinds) {
+      const area = data.areas[kind];
+      if (area) { result[kind] = { total: area.list.length, top: area.list.length, criteria: area.criteria, items: area.list.slice(0, limit) }; continue; }
       const list = data[kind];
-      const top = kind === 'new' ? Math.min(list.length, 20) : kind === 'popular' || kind === 'realtime' ? Math.min(list.length, 100) : Math.min(list.length, topSize(list.length));
+      const top = Math.min(list.length, topSize(list.length));
       result[kind] = { total: list.length, top, items: withRank(list, Math.min(limit, top)) };
     }
-    res.set('Cache-Control', 'no-cache'); // 인기 작품 상단 고정을 바꾸면 바로 보이게 (서버는 1분 메모리 캐시, 저장 때 비움)
+    res.set('Cache-Control', 'no-cache'); // 노출 관리 집계 기준·고정을 바꾸면 바로 보이게 (서버는 1분 메모리 캐시, 저장 때 비움)
     res.json({ realtimeHours: REALTIME_HOURS, rankings: result });
   } catch (error) {
     console.error('랭킹 조회 오류:', error);
@@ -122,4 +124,4 @@ router.get('/tags', async (req, res) => {
 module.exports = router;
 // 관리자 노출 관리·통계에서 같은 집계를 쓴다
 module.exports.rankings = rankings;
-module.exports.clearRankingCache = () => { cache = { at: 0, data: null }; };
+module.exports.clearRankingCache = () => { cache = { at: 0, data: null }; engine.clearCache(); };

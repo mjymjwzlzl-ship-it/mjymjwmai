@@ -3,16 +3,25 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowDown, ArrowUp, Eye, EyeOff, Pin, Plus, Search, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Eye, EyeOff, Lock, Pin, PinOff, Plus, RefreshCw, Search, Unlock } from 'lucide-react';
 import { DAY_LABEL, STATUS_LABEL, TYPE_LABEL, adminApi, img, siteBase } from '@/lib/works';
 
 // 노출 관리 (/api/admin/exposure): 작품 정보가 아니라 "사용자 화면 어디에 무엇을 보여 줄지"
-// 탭: 홈 화면 섹션 / 오늘의 추천작 / 추천 신작 / 인기 작품(상단 고정 + 자동 순위) / 실시간 랭킹 / 자동 분류(요일·매일·완결·신작·최신 업데이트)
+// 탭: 홈 화면 섹션 / 오늘의 추천작 / 추천 신작 / 인기 작품 / 실시간 랭킹 / 자동 분류(요일·매일·완결·신작·최신 업데이트)
+// 순위 영역 4개는 관리자가 고른 집계 기준·기간으로 자동 순위를 내고, [고정]한 작품만 지정 순위에 머문다 (/api/admin/exposure/ranking/:area)
 // 배너 관리는 /banners (같은 노출 관리 메뉴)
 type Tab = 'sections' | 'today' | 'new' | 'popular' | 'realtime' | 'auto';
 interface Brief { id: string; title: string; thumbnail?: string | null; status: string; type: 'webtoon' | 'book' | 'novel'; rating: string; createdAt: string; lastEpisodeAt?: string | null; isPublished?: boolean }
 interface Section { key: string; label: string; visible: boolean }
-interface RankRow { rank: number; id: string; title: string; type: string; score: number; views: number; recentViews: number; likes: number; pinned: boolean; launchedAt: string }
+type Area = 'today' | 'new' | 'popular' | 'realtime';
+type MetricKey = 'views' | 'likes' | 'purchases' | 'reads' | 'hearts' | 'rising' | 'composite';
+interface RankRow { rank: number; id: string; title: string; thumbnail?: string | null; type: string; status: string; launchedAt: string; pinned: boolean; metricValue: number | null; metrics: Partial<Record<MetricKey, number>> }
+interface RankingView {
+  area: Area; label: string; metricLabel: string; periodLabel: string; computedAt: number; candidates: number;
+  config: { metric: string; period: string; size: number; newWithinDays?: number; pins: { id: string; rank: number }[] };
+  options: { metrics: { key: string; label: string; help: string }[]; periods: { key: string; label: string }[]; weights: Record<string, number> };
+  items: RankRow[];
+}
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'sections', label: '홈 화면 섹션' }, { key: 'today', label: '오늘의 추천작' }, { key: 'new', label: '추천 신작' },
@@ -23,7 +32,7 @@ const d = (v?: string | null) => (v ? new Date(v).toLocaleDateString('ko-KR', { 
 function ExposureContent() {
   const params = useSearchParams();
   const tab = (TABS.some((t) => t.key === params.get('tab')) ? params.get('tab') : 'sections') as Tab;
-  const [data, setData] = useState<{ sections: Section[]; todayPicks: Brief[]; newPicks: Brief[]; popularPins: Brief[] } | null>(null);
+  const [data, setData] = useState<{ sections: Section[] } | null>(null);
   const load = useCallback(async () => { try { setData(await adminApi('/admin/exposure')); } catch (e: any) { alert(e.message); } }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -40,25 +49,10 @@ function ExposureContent() {
           <Link href="/banners" className="-mb-px border-b-2 border-transparent px-4 py-2 text-sm font-bold text-gray-400 hover:text-white">배너 관리 →</Link>
         </div>
         <div className="mt-5">
-          {!data && tab !== 'realtime' && tab !== 'auto' ? <p className="py-20 text-center text-gray-400">불러오는 중...</p> : (
+          {!data && tab === 'sections' ? <p className="py-20 text-center text-gray-400">불러오는 중...</p> : (
             <>
               {tab === 'sections' && data && <Sections initial={data.sections} />}
-              {tab === 'today' && data && (
-                <PickList listKey="today_picks" title="오늘의 추천작" max={6} initial={data.todayPicks} allowNovel={false} onSaved={load}
-                  help="홈 [오늘의 추천작]에 이 순서대로 나옵니다(최대 6개). 비거나 모자라면 남는 자리는 인기 작품 순으로 자동으로 채웁니다. 홈 카드 영역이라 웹소설·19세 작품은 고를 수 없습니다." />
-              )}
-              {tab === 'new' && data && (
-                <PickList listKey="new_picks" title="추천 신작" max={6} initial={data.newPicks} allowNovel={false} onSaved={load}
-                  help="홈 [추천 신작]에 먼저 나옵니다(최대 6개). 남는 자리는 런칭 최신순으로 자동으로 채웁니다. 웹소설·19세 작품은 고를 수 없습니다." />
-              )}
-              {tab === 'popular' && data && (
-                <>
-                  <PickList listKey="popular_pins" title="인기 작품 상단 고정" max={10} initial={data.popularPins} allowNovel onSaved={load}
-                    help="홈 [인기 작품]·랭킹 페이지 인기순에서 점수와 관계없이 맨 앞에 이 순서대로 둡니다(최대 10개). 나머지는 인기 점수(누적 조회수 + 찜 × 10 + 평점 합) 순으로 자동 정렬됩니다." />
-                  <Rankings kind="popular" />
-                </>
-              )}
-              {tab === 'realtime' && <Rankings kind="realtime" />}
+              {(tab === 'today' || tab === 'new' || tab === 'popular' || tab === 'realtime') && <RankingArea key={tab} area={tab} />}
               {tab === 'auto' && <AutoCategories />}
             </>
           )}
@@ -99,73 +93,126 @@ function Sections({ initial }: { initial: Section[] }) {
   );
 }
 
-// 작품 고르기: 선택 목록(순서·삭제) + 검색해서 추가
-function PickList({ listKey, title, max, initial, allowNovel, help, onSaved }: { listKey: string; title: string; max: number; initial: Brief[]; allowNovel: boolean; help: string; onSaved: () => Promise<void> }) {
-  const [picked, setPicked] = useState<Brief[]>(initial);
-  const [dirty, setDirty] = useState(false);
-  const [all, setAll] = useState<Brief[]>([]);
-  const [q, setQ] = useState('');
-  useEffect(() => { setPicked(initial); setDirty(false); }, [initial]);
-  useEffect(() => { adminApi<{ works: any[] }>('/admin/works').then((r) => setAll(r.works.map((w) => ({ id: w.id, title: w.title, thumbnail: w.thumbnail, status: w.status, type: w.type, rating: w.rating, createdAt: w.createdAt, lastEpisodeAt: w.lastEpisodeAt, isPublished: w.isPublished })))).catch(() => {}); }, []);
-  const candidates = useMemo(() => all.filter((w) => w.isPublished !== false && !['19', 'ADULT', 'adult'].includes(w.rating) && (allowNovel || w.type !== 'novel') && !picked.some((p) => p.id === w.id) && (!q.trim() || w.title.includes(q.trim()))).slice(0, 30), [all, picked, q, allowNovel]);
-  const move = (i: number, dir: -1 | 1) => { const n = [...picked]; const j = i + dir; if (j < 0 || j >= n.length) return; [n[i], n[j]] = [n[j], n[i]]; setPicked(n); setDirty(true); };
-  const save = async () => {
-    try { await adminApi(`/admin/exposure/list/${listKey}`, { method: 'PUT', json: { ids: picked.map((p) => p.id) } }); setDirty(false); await onSaved(); alert(`${title}을(를) 저장했습니다. 사이트에 바로 반영됩니다.`); } catch (e: any) { alert(e.message); }
-  };
-  return (
-    <section className="mb-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">{title} <span className="text-sm text-gray-400">{picked.length}/{max}</span></h2>
-        <button type="button" disabled={!dirty} onClick={() => void save()} className="rounded bg-purple-600 px-4 py-1.5 text-sm font-bold disabled:opacity-40">저장</button>
-      </div>
-      <p className="mb-3 mt-1 text-sm text-gray-400">{help}</p>
-      <div className="grid gap-4 md:grid-cols-2">
-        <ol className="space-y-2">
-          {picked.length === 0 && <li className="rounded-lg border border-dashed border-gray-700 p-6 text-center text-sm text-gray-500">고른 작품이 없습니다 (전부 자동으로 채움)</li>}
-          {picked.map((w, i) => (
-            <li key={w.id} className="flex items-center gap-2 rounded-lg bg-gray-800 p-2 text-sm">
-              <span className="w-5 text-center font-bold text-gray-400">{i + 1}</span>
-              <img src={img(w.thumbnail)} alt="" className="h-12 w-9 rounded bg-gray-700 object-cover" />
-              <span className="min-w-0 flex-1"><b className="block truncate">{w.title}</b><span className="text-xs text-gray-400">{TYPE_LABEL[w.type]} · {STATUS_LABEL[w.status] || w.status}</span></span>
-              <button type="button" aria-label="위로" disabled={i === 0} onClick={() => move(i, -1)} className="rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
-              <button type="button" aria-label="아래로" disabled={i === picked.length - 1} onClick={() => move(i, 1)} className="rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
-              <button type="button" aria-label="빼기" onClick={() => { setPicked(picked.filter((p) => p.id !== w.id)); setDirty(true); }} className="rounded bg-red-600/70 p-1"><X className="h-3.5 w-3.5" /></button>
-            </li>
-          ))}
-        </ol>
-        <div>
-          <label className="mb-2 flex items-center gap-2 rounded border border-gray-600 bg-gray-800 px-2"><Search className="h-4 w-4 text-gray-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="작품 검색해서 추가" className="w-full bg-transparent py-1.5 text-sm outline-none" /></label>
-          <ul className="max-h-80 space-y-1 overflow-y-auto">
-            {candidates.map((w) => (
-              <li key={w.id}>
-                <button type="button" disabled={picked.length >= max} onClick={() => { setPicked([...picked, w]); setDirty(true); }} className="flex w-full items-center gap-2 rounded p-1.5 text-left text-sm hover:bg-gray-800 disabled:opacity-40">
-                  <Plus className="h-3.5 w-3.5 text-purple-300" /><img src={img(w.thumbnail)} alt="" className="h-9 w-7 rounded bg-gray-700 object-cover" />
-                  <span className="min-w-0 flex-1 truncate">{w.title}</span><span className="text-xs text-gray-500">{TYPE_LABEL[w.type]} · {d(w.createdAt)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
+// 순위 영역 하나 (오늘의 추천작·추천 신작·인기 작품·실시간 랭킹)
+// 위: 현재 적용 중인 집계 기준·기간·마지막 집계 시간 / 설정: 집계 기준·기간·노출 개수 / 아래: 순위표 + 고정·비고정·순서 이동·작품 추가
+const AREA_HELP: Record<Area, string> = {
+  today: '홈 [오늘의 추천작]에 앞에서부터 6개가 나옵니다. 홈 카드 영역이라 웹소설·19세 작품은 빠집니다.',
+  new: '홈 [추천 신작](앞에서부터 6개)과 랭킹 페이지 [신작] 탭에 나옵니다. 신작 범위(런칭 후 며칠 이내) 안의 작품만 자동 순위에 들어갑니다. 웹소설·19세 작품은 빠집니다.',
+  popular: '홈 [인기 작품](6개)과 랭킹 페이지 [인기 작품] 탭에 나옵니다. 19세 작품은 빠집니다.',
+  realtime: '홈 [실시간 랭킹](6개)과 랭킹 페이지 [실시간 랭킹] 탭에 나옵니다. 기간 안에 집계값이 0인 작품은 자동 순위에서 빠집니다. 19세 작품은 빠집니다.',
+};
+const METRIC_COLS: [MetricKey, string][] = [['views', '조회'], ['likes', '찜'], ['purchases', '구매'], ['reads', '열람'], ['hearts', '좋아요']];
+const when = (t: number) => new Date(t).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-function Rankings({ kind }: { kind: 'popular' | 'realtime' }) {
-  const [rows, setRows] = useState<RankRow[] | null>(null);
-  useEffect(() => { adminApi<Record<string, RankRow[]>>('/admin/exposure/rankings').then((r) => setRows(r[kind])).catch((e) => alert(e.message)); }, [kind]);
+function RankingArea({ area }: { area: Area }) {
+  const [view, setView] = useState<RankingView | null>(null);
+  const [form, setForm] = useState({ metric: '', period: '', size: 6, newWithinDays: 30 });
+  const [busy, setBusy] = useState(false);
+  const [works, setWorks] = useState<Brief[]>([]);
+  const [q, setQ] = useState('');
+  const [addRank, setAddRank] = useState(1);
+  const apply = (v: RankingView) => { setView(v); setForm({ metric: v.config.metric, period: v.config.period, size: v.config.size, newWithinDays: v.config.newWithinDays || 30 }); };
+  const call = async (path: string, init?: { method: string; json?: unknown }) => {
+    setBusy(true);
+    try { apply(await adminApi<RankingView>(`/admin/exposure/ranking/${area}${path}`, init)); return true; } catch (e: any) { alert(e.message); return false; } finally { setBusy(false); }
+  };
+  useEffect(() => { void call(''); }, [area]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { adminApi<{ works: any[] }>('/admin/works').then((r) => setWorks(r.works.map((w) => ({ id: w.id, title: w.title, thumbnail: w.thumbnail, status: w.status, type: w.type, rating: w.rating, createdAt: w.createdAt, lastEpisodeAt: w.lastEpisodeAt, isPublished: w.isPublished })))).catch(() => {}); }, []);
+  const pinOp = (json: Record<string, unknown>) => call('/pins', { method: 'POST', json });
+  const dirty = !!view && (form.metric !== view.config.metric || form.period !== view.config.period || form.size !== view.config.size || (area === 'new' && form.newWithinDays !== view.config.newWithinDays));
+  const shown = useMemo(() => new Set((view?.items || []).map((r) => r.id)), [view]);
+  const candidates = useMemo(() => (q.trim() ? works.filter((w) => w.isPublished !== false && !['19', 'ADULT', 'adult'].includes(w.rating) && ((area !== 'today' && area !== 'new') || w.type !== 'novel') && !shown.has(w.id) && w.title.includes(q.trim())).slice(0, 12) : []), [works, q, shown, area]);
+  if (!view) return <p className="py-20 text-center text-gray-400">집계하는 중...</p>;
+  const metricHelp = view.options.metrics.find((m) => m.key === form.metric)?.help;
+  const pinnedCount = view.items.filter((r) => r.pinned).length;
+  const sel = 'rounded border border-gray-600 bg-gray-800 px-2 py-1.5 text-sm';
+  const fmt = (n?: number | null) => (n == null ? '-' : n.toLocaleString());
   return (
     <section>
-      <h2 className="text-lg font-bold">{kind === 'popular' ? '현재 인기 작품 순위 (자동)' : '실시간 랭킹 (자동)'}</h2>
-      <p className="mb-3 mt-1 text-sm text-gray-400">{kind === 'popular' ? '인기 점수 = 누적 조회수 + 찜 × 10 + 회차 평점 합. 상단 고정 작품은 맨 앞(📌). 1분마다 다시 집계합니다.' : '최근 24시간 회차 조회 수 순. 직접 고치지 않고 조회 기록으로 자동 계산됩니다. 홈 [실시간 랭킹]과 같은 목록입니다.'} 성인 작품은 제외.</p>
-      {!rows ? <p className="text-gray-400">불러오는 중...</p> : rows.length === 0 ? <p className="rounded-lg border border-dashed border-gray-700 p-6 text-center text-gray-500">최근 24시간 조회 기록이 없습니다.</p> : (
-        <table className="w-full text-sm">
-          <thead className="text-left text-gray-400"><tr><th className="p-2">순위</th><th className="p-2">작품</th><th className="p-2">유형</th><th className="p-2">{kind === 'popular' ? '인기 점수' : '24시간 조회'}</th><th className="p-2">누적 조회</th><th className="p-2">찜</th></tr></thead>
-          <tbody>{rows.map((r) => (
-            <tr key={r.id} className="border-t border-gray-800"><td className="p-2 font-bold">{r.pinned ? <Pin className="inline h-3.5 w-3.5 text-purple-300" /> : r.rank}</td><td className="p-2"><Link href={`/works/${r.id}`} className="hover:underline">{r.title}</Link></td><td className="p-2 text-xs">{TYPE_LABEL[r.type] || r.type}</td><td className="p-2">{(kind === 'popular' ? r.score : r.recentViews).toLocaleString()}</td><td className="p-2">{r.views.toLocaleString()}</td><td className="p-2">{r.likes}</td></tr>
-          ))}</tbody>
-        </table>
+      <p className="mb-3 text-sm text-gray-400">{AREA_HELP[area]} 순위는 아래 집계 기준으로 자동 계산되고, [고정]한 작품만 지정한 순위에 머뭅니다.</p>
+
+      {/* 현재 적용 중 */}
+      <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border border-purple-700/60 bg-purple-900/20 p-4 text-sm" data-testid="ranking-current">
+        <span><span className="text-gray-400">집계 기준</span> <b className="ml-1 text-base">{view.metricLabel}</b></span>
+        <span><span className="text-gray-400">집계 기간</span> <b className="ml-1 text-base">{view.periodLabel}</b></span>
+        <span><span className="text-gray-400">마지막 집계</span> <b className="ml-1">{when(view.computedAt)}</b></span>
+        <span className="text-gray-400">후보 {view.candidates}개 · 고정 {pinnedCount}개 · 노출 {view.items.length}/{view.config.size}</span>
+        <button type="button" disabled={busy} onClick={() => void call('/recompute', { method: 'POST' })} className="ml-auto flex items-center gap-1 rounded bg-gray-700 px-3 py-1.5 text-xs font-bold disabled:opacity-40"><RefreshCw className="h-3.5 w-3.5" />지금 다시 집계</button>
+      </div>
+
+      {/* 설정 */}
+      <div className="mb-4 rounded-lg border border-gray-700 bg-gray-800/60 p-4">
+        <div className="flex flex-wrap items-end gap-3 text-sm">
+          <label className="flex flex-col gap-1"><span className="text-xs text-gray-400">집계 기준</span>
+            <select className={sel} value={form.metric} onChange={(e) => setForm({ ...form, metric: e.target.value })}>{view.options.metrics.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}</select></label>
+          <label className="flex flex-col gap-1"><span className="text-xs text-gray-400">집계 기간</span>
+            <select className={sel} value={form.period} disabled={form.metric === 'launch'} onChange={(e) => setForm({ ...form, period: e.target.value })}>{view.options.periods.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}</select></label>
+          <label className="flex flex-col gap-1"><span className="text-xs text-gray-400">노출 개수 (최대 100)</span>
+            <input type="number" min={1} max={100} className={`${sel} w-24`} value={form.size} onChange={(e) => setForm({ ...form, size: Number(e.target.value) || 1 })} /></label>
+          {area === 'new' && (
+            <label className="flex flex-col gap-1"><span className="text-xs text-gray-400">신작 범위 (런칭 후 일)</span>
+              <input type="number" min={1} max={365} className={`${sel} w-24`} value={form.newWithinDays} onChange={(e) => setForm({ ...form, newWithinDays: Number(e.target.value) || 1 })} /></label>
+          )}
+          <button type="button" disabled={!dirty || busy} onClick={() => void call('', { method: 'PUT', json: form })} className="rounded bg-purple-600 px-4 py-1.5 font-bold disabled:opacity-40">적용</button>
+          {dirty && <button type="button" onClick={() => apply(view)} className="rounded bg-gray-700 px-3 py-1.5">되돌리기</button>}
+        </div>
+        <p className="mt-2 text-xs text-gray-400">{metricHelp}</p>
+        {form.metric === 'composite' && <p className="mt-1 text-xs text-gray-500">종합 인기 점수 = {Object.entries(view.options.weights).map(([k, w]) => `${METRIC_COLS.find(([c]) => c === k)?.[1] || k} × ${w}`).join(' + ')} (집계 기간 기준. 전체 기간이면 조회는 누적 조회수, 찜은 현재 찜 수)</p>}
+      </div>
+
+      {/* 고정 일괄 + 작품 추가 */}
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+        <button type="button" disabled={busy || !view.items.length} onClick={() => { if (confirm('지금 보이는 순위를 전부 고정할까요? 이후 집계가 바뀌어도 이 순서가 유지됩니다.')) void pinOp({ action: 'pinAll' }); }} className="flex items-center gap-1 rounded bg-purple-700 px-3 py-1.5 font-bold disabled:opacity-40"><Lock className="h-3.5 w-3.5" />전체 고정</button>
+        <button type="button" disabled={busy || !pinnedCount} onClick={() => { if (confirm('고정을 모두 풀고 자동 순위로 되돌릴까요?')) void pinOp({ action: 'unpinAll' }); }} className="flex items-center gap-1 rounded bg-gray-700 px-3 py-1.5 font-bold disabled:opacity-40"><Unlock className="h-3.5 w-3.5" />전체 비고정</button>
+        <span className="mx-1 h-5 w-px bg-gray-700" />
+        <label className="flex items-center gap-1 rounded border border-gray-600 bg-gray-800 px-2"><Search className="h-4 w-4 text-gray-400" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="작품 검색해서 순위에 넣기" className="w-56 bg-transparent py-1.5 outline-none" /></label>
+        <label className="flex items-center gap-1 text-gray-400">순위<input type="number" min={1} max={view.config.size} value={addRank} onChange={(e) => setAddRank(Number(e.target.value) || 1)} className={`${sel} w-16`} />위에 고정</label>
+      </div>
+      {candidates.length > 0 && (
+        <ul className="mb-3 grid gap-1 rounded-lg border border-gray-700 bg-gray-800 p-2 sm:grid-cols-2">
+          {candidates.map((w) => (
+            <li key={w.id}>
+              <button type="button" disabled={busy} onClick={() => void pinOp({ action: 'add', id: w.id, rank: addRank }).then((ok) => ok && setQ(''))} className="flex w-full items-center gap-2 rounded p-1.5 text-left text-sm hover:bg-gray-700">
+                <Plus className="h-3.5 w-3.5 text-purple-300" /><img src={img(w.thumbnail)} alt="" className="h-9 w-7 rounded bg-gray-700 object-cover" />
+                <span className="min-w-0 flex-1 truncate">{w.title}</span><span className="text-xs text-gray-500">{TYPE_LABEL[w.type]} · {d(w.createdAt)} · {addRank}위에 고정</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
+
+      {/* 순위표 */}
+      {view.items.length === 0 ? <p className="rounded-lg border border-dashed border-gray-700 p-6 text-center text-gray-500">이 기준·기간으로 집계된 작품이 없습니다. 기간을 늘리거나 작품을 직접 넣어 고정하세요.</p> : (
+        <div className="overflow-x-auto rounded-lg border border-gray-700">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-800 text-left text-gray-400"><tr>
+              <th className="p-2">순위</th><th className="p-2">작품</th><th className="p-2">상태</th>
+              <th className="p-2 text-purple-300">{view.metricLabel}{view.config.metric !== 'launch' && <span className="block text-[10px] font-normal text-gray-500">{view.periodLabel}</span>}</th>
+              {METRIC_COLS.map(([k, label]) => <th key={k} className="p-2 text-xs font-normal">{label}</th>)}
+              <th className="p-2" />
+            </tr></thead>
+            <tbody>
+              {view.items.map((r, i) => (
+                <tr key={r.id} className={`border-t border-gray-800 ${r.pinned ? 'bg-purple-900/15' : ''}`} data-testid="ranking-row">
+                  <td className="p-2 text-base font-black">{r.rank}</td>
+                  <td className="p-2"><Link href={`/works/${r.id}`} className="flex items-center gap-2 hover:underline"><img src={img(r.thumbnail)} alt="" className="h-10 w-8 rounded bg-gray-700 object-cover" /><span><b>{r.title}</b><span className="block text-xs text-gray-400">{TYPE_LABEL[r.type] || r.type} · {STATUS_LABEL[r.status] || r.status} · {d(r.launchedAt)} 런칭</span></span></Link></td>
+                  <td className="p-2">{r.pinned ? <span className="inline-flex items-center gap-1 rounded bg-purple-600/50 px-1.5 text-xs font-bold"><Pin className="h-3 w-3" />고정</span> : <span className="rounded bg-gray-700 px-1.5 text-xs text-gray-300">자동</span>}</td>
+                  <td className="p-2 font-bold text-purple-200">{view.config.metric === 'launch' ? d(r.launchedAt) : `${view.config.metric === 'rising' && (r.metricValue || 0) > 0 ? '+' : ''}${fmt(r.metricValue)}`}</td>
+                  {METRIC_COLS.map(([k]) => <td key={k} className="p-2 text-xs text-gray-400">{fmt(r.metrics[k])}</td>)}
+                  <td className="whitespace-nowrap p-2">
+                    <button type="button" aria-label="위로" title="한 칸 위로 (이 작품을 고정)" disabled={busy || i === 0} onClick={() => void pinOp({ action: 'move', id: r.id, rank: r.rank - 1 })} className="mr-1 rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5" /></button>
+                    <button type="button" aria-label="아래로" title="한 칸 아래로 (이 작품을 고정)" disabled={busy || r.rank >= view.config.size} onClick={() => void pinOp({ action: 'move', id: r.id, rank: r.rank + 1 })} className="mr-2 rounded bg-gray-700 p-1 disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5" /></button>
+                    {r.pinned
+                      ? <button type="button" disabled={busy} onClick={() => void pinOp({ action: 'unpin', id: r.id })} className="inline-flex items-center gap-1 rounded bg-gray-700 px-2 py-1 text-xs"><PinOff className="h-3 w-3" />비고정</button>
+                      : <button type="button" disabled={busy} onClick={() => void pinOp({ action: 'pin', id: r.id })} className="inline-flex items-center gap-1 rounded bg-purple-600 px-2 py-1 text-xs font-bold"><Pin className="h-3 w-3" />고정</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-gray-500">↑↓ 로 옮기면 그 작품은 옮긴 순위에 고정됩니다(옮긴 자리에 고정 작품이 있으면 서로 자리를 바꿈). 집계는 1분마다 새로 하고, 설정·고정을 바꾸면 바로 다시 집계합니다.</p>
     </section>
   );
 }

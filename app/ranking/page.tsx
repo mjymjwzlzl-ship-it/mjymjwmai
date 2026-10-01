@@ -44,7 +44,7 @@ function RankingContent() {
             </button>
           ))}
         </div>
-        <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{rankingCriteria(kind, data?.realtimeHours)}</p>
+        <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{rankingCriteria(kind, data?.realtimeHours, list)}</p>
 
         {isLoading ? (
           <div className="flex justify-center py-20"><div className="h-10 w-10 animate-spin rounded-full border-b-2 border-[#00dc64]" /></div>
@@ -57,7 +57,7 @@ function RankingContent() {
           <RankingEmpty kind={kind} />
         ) : (
           <div className="grid gap-1 rounded-xl border border-gray-200 bg-white p-2 sm:grid-cols-2 dark:border-gray-800 dark:bg-[#1b1b1b]">
-            {list.items.map((item) => <RankingCard key={item.id} item={item} kind={kind} />)}
+            {list.items.map((item) => <RankingCard key={item.id} item={item} kind={kind} criteria={list.criteria} />)}
           </div>
         )}
       </div>
