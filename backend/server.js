@@ -329,6 +329,7 @@ app.use('/api', require('./routes/admin-reports')); // 관리자: 신고 관리(
 app.use('/api', require('./routes/admin-banners')); // 관리자: 배너 관리(홈 대배너 기준, 이벤트→대배너)
 app.use('/api', require('./routes/admin-exposure')); // 관리자: 노출 관리(추천·인기 고정·홈 섹션·자동 분류·랭킹)
 app.use('/api', require('./routes/admin-ops')); // 관리자: 결제·사용자·통계·대시보드
+app.use('/api', require('./routes/admin-achat')); // 에이쳇 관리자 센터: 젬(코인)·결제 집계, 젬 지급·회수
 app.use('/api/board', require('./routes/board')); // 커뮤니티 게시판 (분류·작품 연결·스포일러·추천·저장·대댓글·알림)
 app.use('/api', require('./routes/admin-community')); // 관리자: 커뮤니티 관리
 app.use('/api/gallery', require('./routes/gallery')); // 캐릭터 화보관 (추천·인기·검색·태그·좋아요·저장·내 화보·사용자 화보)
