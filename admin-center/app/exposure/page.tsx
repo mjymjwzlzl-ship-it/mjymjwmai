@@ -120,8 +120,9 @@ function RankingArea({ area }: { area: Area }) {
   useEffect(() => { adminApi<{ works: any[] }>('/admin/works').then((r) => setWorks(r.works.map((w) => ({ id: w.id, title: w.title, thumbnail: w.thumbnail, status: w.status, type: w.type, rating: w.rating, createdAt: w.createdAt, lastEpisodeAt: w.lastEpisodeAt, isPublished: w.isPublished })))).catch(() => {}); }, []);
   const pinOp = (json: Record<string, unknown>) => call('/pins', { method: 'POST', json });
   const dirty = !!view && (form.metric !== view.config.metric || form.period !== view.config.period || form.size !== view.config.size || (area === 'new' && form.newWithinDays !== view.config.newWithinDays));
-  const shown = useMemo(() => new Set((view?.items || []).map((r) => r.id)), [view]);
-  const candidates = useMemo(() => (q.trim() ? works.filter((w) => w.isPublished !== false && !['19', 'ADULT', 'adult'].includes(w.rating) && ((area !== 'today' && area !== 'new') || w.type !== 'novel') && !shown.has(w.id) && w.title.includes(q.trim())).slice(0, 12) : []), [works, q, shown, area]);
+  // 검색 결과: 이미 순위에 있는 작품은 그 순위로 옮겨 고정(move), 없는 작품은 새로 넣어 고정(add)
+  const shown = useMemo(() => new Map((view?.items || []).map((r) => [r.id, r.rank])), [view]);
+  const candidates = useMemo(() => (q.trim() ? works.filter((w) => w.isPublished !== false && !['19', 'ADULT', 'adult'].includes(w.rating) && ((area !== 'today' && area !== 'new') || w.type !== 'novel') && w.title.includes(q.trim())).slice(0, 12) : []), [works, q, area]);
   if (!view) return <p className="py-20 text-center text-gray-400">집계하는 중...</p>;
   const metricHelp = view.options.metrics.find((m) => m.key === form.metric)?.help;
   const pinnedCount = view.items.filter((r) => r.pinned).length;
@@ -172,9 +173,9 @@ function RankingArea({ area }: { area: Area }) {
         <ul className="mb-3 grid gap-1 rounded-lg border border-gray-700 bg-gray-800 p-2 sm:grid-cols-2">
           {candidates.map((w) => (
             <li key={w.id}>
-              <button type="button" disabled={busy} onClick={() => void pinOp({ action: 'add', id: w.id, rank: addRank }).then((ok) => ok && setQ(''))} className="flex w-full items-center gap-2 rounded p-1.5 text-left text-sm hover:bg-gray-700">
+              <button type="button" disabled={busy} onClick={() => void pinOp({ action: shown.has(w.id) ? 'move' : 'add', id: w.id, rank: addRank }).then((ok) => ok && setQ(''))} className="flex w-full items-center gap-2 rounded p-1.5 text-left text-sm hover:bg-gray-700">
                 <Plus className="h-3.5 w-3.5 text-purple-300" /><img src={img(w.thumbnail)} alt="" className="h-9 w-7 rounded bg-gray-700 object-cover" />
-                <span className="min-w-0 flex-1 truncate">{w.title}</span><span className="text-xs text-gray-500">{TYPE_LABEL[w.type]} · {d(w.createdAt)} · {addRank}위에 고정</span>
+                <span className="min-w-0 flex-1 truncate">{w.title}</span><span className="text-xs text-gray-500">{TYPE_LABEL[w.type]} · {d(w.createdAt)} · {shown.has(w.id) ? `지금 ${shown.get(w.id)}위 → ` : ''}{addRank}위에 고정</span>
               </button>
             </li>
           ))}
